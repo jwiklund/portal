@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Profile – BlackSheep Demo{% endblock %}
+
+{% block extra_styles %}
+  .profile-card {
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 12px;
+    padding: 2.5rem;
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+  .profile-card img {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 2px solid #3a3a3a;
+    flex-shrink: 0;
+  }
+  .profile-info h2 { font-size: 1.5rem; font-weight: normal; margin-bottom: 0.3rem; }
+  .profile-info .email { color: #888; font-size: 0.9rem; margin-bottom: 1rem; }
+  .badge {
+    display: inline-block;
+    background: #1e3a1e;
+    color: #6fcf6f;
+    border: 1px solid #2e5c2e;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+  }
+{% endblock %}
+
+{% block content %}
+  <div class="profile-card">
+    {% if user.picture %}
+      <img src="{{ user.picture }}" alt="{{ user.name }}" />
+    {% endif %}
+    <div class="profile-info">
+      <h2>{{ user.name }}</h2>
+      <p class="email">{{ user.email }}</p>
+      <span class="badge">✓ Authenticated</span>
+    </div>
+  </div>
+{% endblock %}

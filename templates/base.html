@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}BlackSheep App{% endblock %}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0f0f0f;
+      font-family: 'Georgia', serif;
+      color: #e8e8e8;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #2e2e2e;
+      background: #1a1a1a;
+    }
+
+    .nav-brand { font-size: 1.2rem; text-decoration: none; color: #e8e8e8; letter-spacing: 0.03em; }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links a { color: #999; text-decoration: none; font-size: 0.9rem; transition: color 0.15s; }
+    .nav-links a:hover { color: #e8e8e8; }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #444;
+    }
+
+    main { max-width: 800px; margin: 0 auto; padding: 3rem 2rem; }
+
+    {% block extra_styles %}{% endblock %}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-brand">🐑 BlackSheep Demo</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/profile">Profile</a>
+      {% if user and user.picture %}
+        <img src="{{ user.picture }}" class="avatar" alt="{{ user.name }}" />
+      {% endif %}
+      <a href="/logout">Sign out</a>
+    </div>
+  </nav>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Home – BlackSheep Demo{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
+  p  { color: #aaa; line-height: 1.7; margin-bottom: 1rem; }
+  .pill {
+    display: inline-block;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 999px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.85rem;
+    color: #ccc;
+    margin-bottom: 2rem;
+  }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 1rem; margin-top: 2rem; }
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+  .card h3 { margin-bottom: 0.5rem; font-size: 1rem; }
+  .card p  { font-size: 0.85rem; color: #888; margin: 0; }
+{% endblock %}
+
+{% block content %}
+  <span class="pill">✅ Protected route</span>
+  <h2>Welcome back, {{ user.name.split(' ')[0] }}!</h2>
+  <p>
+    You are authenticated via Google OAuth. This page – and every other route
+    except <code>/login</code> – is protected by the
+    <code>@login_required</code> decorator.
+  </p>
+  <p>
+    Try signing out and visiting <a href="/profile" style="color:#e8e8e8">/profile</a>
+    directly – you'll be redirected to the login page.
+  </p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>🔒 Protected by default</h3>
+      <p>All routes require a valid session. Unauthenticated requests are redirected to /login.</p>
+    </div>
+    <div class="card">
+      <h3>🐑 BlackSheep</h3>
+      <p>Fast async Python web framework. This demo uses its session middleware for auth state.</p>
+    </div>
+    <div class="card">
+      <h3>🔑 Google OAuth 2.0</h3>
+      <p>Standard PKCE-friendly code flow with <code>state</code> validation to prevent CSRF.</p>
+    </div>
+  </div>
+{% endblock %}

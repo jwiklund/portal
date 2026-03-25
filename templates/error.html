@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Error</title>
+  <style>
+    body { background:#0f0f0f; color:#e8e8e8; font-family:'Georgia',serif;
+           display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .box { background:#1a1a1a; border:1px solid #2e2e2e; border-radius:12px;
+           padding:2.5rem; max-width:420px; text-align:center; }
+    h1 { font-size:1.3rem; font-weight:normal; margin-bottom:1rem; }
+    p  { color:#888; font-size:0.9rem; line-height:1.6; margin-bottom:1.5rem; }
+    a  { color:#e8e8e8; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>⚠️ Something went wrong</h1>
+    <p>{{ message }}</p>
+    <a href="/login">← Back to login</a>
+  </div>
+</body>
+</html>
