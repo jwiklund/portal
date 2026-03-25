@@ -15,7 +15,6 @@ Set these environment variables (or create a .env file):
 import os
 import secrets
 import urllib.parse
-from functools import wraps
 
 import httpx
 from blacksheep import Application, Request, Response
@@ -24,12 +23,15 @@ from blacksheep.sessions import SessionMiddleware
 from blacksheep.sessions.memory import InMemorySessionStore
 from jinja2 import Environment, FileSystemLoader
 
+from born_portal.auth import AuthMiddleware
+
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
 GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
+ALLOWED_USERS = set(os.environ.get("ALLOWED_USERS", "").split(","))
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -42,9 +44,12 @@ REDIRECT_URI = f"{BASE_URL}/auth/callback"
 # ---------------------------------------------------------------------------
 app = Application()
 
-# Session middleware (signs cookies with SECRET_KEY)
+_PUBLIC_PATHS = {"/login", "/auth/google", "/auth/callback"}
+
+
+app.middlewares.append(SessionMiddleware(store=InMemorySessionStore()))
 app.middlewares.append(
-    SessionMiddleware(store=InMemorySessionStore())
+    AuthMiddleware(public_paths=_PUBLIC_PATHS, allowed_users=ALLOWED_USERS)
 )
 
 # Jinja2 templates
@@ -56,35 +61,11 @@ def render(template_name: str, **ctx) -> Response:
 
 
 # ---------------------------------------------------------------------------
-# Auth helpers
-# ---------------------------------------------------------------------------
-PUBLIC_PATHS = {"/login", "/auth/callback"}
-
-
-def get_user(request: Request):
-    """Return the user dict stored in the session, or None."""
-    session = request.session  # type: ignore[attr-defined]
-    return session.get("user")
-
-
-def login_required(handler):
-    """Decorator that redirects to /login when no session user is present."""
-
-    @wraps(handler)
-    async def wrapper(request: Request, *args, **kwargs):
-        if not get_user(request):
-            return redirect("/login")
-        return await handler(request, *args, **kwargs)
-
-    return wrapper
-
-
-# ---------------------------------------------------------------------------
 # Auth routes  (PUBLIC)
 # ---------------------------------------------------------------------------
 @app.router.get("/login")
 async def login_page(request: Request):
-    if get_user(request):
+    if request.session.get("user"):
         return redirect("/")
     return render("login.html")
 
@@ -151,7 +132,7 @@ async def auth_callback(request: Request):
 
 @app.router.get("/logout")
 async def logout(request: Request):
-    request.session.clear()  # type: ignore[union-attr]
+    del request.session["user"]
     return redirect("/login")
 
 
@@ -159,16 +140,14 @@ async def logout(request: Request):
 # Protected routes
 # ---------------------------------------------------------------------------
 @app.router.get("/")
-@login_required
 async def index(request: Request):
-    user = get_user(request)
+    user = request.session.get("user")
     return render("index.html", user=user)
 
 
 @app.router.get("/profile")
-@login_required
 async def profile(request: Request):
-    user = get_user(request)
+    user = request.session.get("user")
     return render("profile.html", user=user)
 
 
@@ -179,7 +158,5 @@ def main():
     import granian
 
     granian.Granian(
-        "born_portal.app:app",
-        interface="asgi", 
-        port=8080,
-        reload=True).serve()
+        "born_portal.app:app", interface="asgi", port=8080, reload=True
+    ).serve()
