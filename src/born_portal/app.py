@@ -20,19 +20,16 @@ from functools import wraps
 import httpx
 from blacksheep import Application, Request, Response
 from blacksheep.server.responses import html, redirect
-from blacksheep.sessions import InMemorySessionSerializer, SessionMiddleware
-from dotenv import load_dotenv
+from blacksheep.sessions import SessionMiddleware
+from blacksheep.sessions.memory import InMemorySessionStore
 from jinja2 import Environment, FileSystemLoader
-
-load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
 GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
-SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:8000")
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -47,10 +44,7 @@ app = Application()
 
 # Session middleware (signs cookies with SECRET_KEY)
 app.middlewares.append(
-    SessionMiddleware(
-        secret_key=SECRET_KEY,
-        session_serializer=InMemorySessionSerializer(),
-    )
+    SessionMiddleware(store=InMemorySessionStore())
 )
 
 # Jinja2 templates
@@ -181,7 +175,11 @@ async def profile(request: Request):
 # ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    import uvicorn
+def main():
+    import granian
 
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    granian.Granian(
+        "born_portal.app:app",
+        interface="asgi", 
+        port=8080,
+        reload=True).serve()
