@@ -16,4 +16,4 @@ requires = ["uv_build >= 0.10.10, <0.11.0"]
 build-backend = "uv_build"
 
 [project.scripts]
-app = "born_portal.app:main"
+app = "born_portal.main:main"
