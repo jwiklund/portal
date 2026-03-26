@@ -32,7 +32,7 @@ class AuthMiddleware:
         if not request.session.get("user"):
             return redirect("/login")
 
-        if request.session.get("user", {}).get("email") not in self._allowed_users:
+        if request.session.get("user") not in self._allowed_users:
             return Response(403, content=TextContent("Forbidden"))
 
         return await handler(request)
@@ -97,12 +97,7 @@ def register_routes(app):
             userinfo_resp.raise_for_status()
             user = userinfo_resp.json()
 
-        request.session["user"] = {  # type: ignore[index]
-            "sub": user["sub"],
-            "name": user.get("name", ""),
-            "email": user.get("email", ""),
-            "picture": user.get("picture", ""),
-        }
+        request.session["user"] = user.get("email", "")
         return redirect("/")
 
     @app.router.get("/logout")

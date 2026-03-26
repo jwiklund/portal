@@ -1,3 +1,4 @@
 [shell_alias]
-run = "uv run --no-sync app"
+run = "uv run --no-sync granian \"born_portal.main:app\" --interface=asgi --reload --port 8080"
 sync = "uv sync"
+format = "black src"

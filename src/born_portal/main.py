@@ -2,9 +2,9 @@ import granian
 
 from blacksheep import Application
 from blacksheep.sessions import SessionMiddleware
-from blacksheep.sessions.memory import InMemorySessionStore
+from blacksheep.sessions.cookies import CookieSessionStore
 
-from born_portal.core import ALLOWED_USERS
+from born_portal.core import ALLOWED_USERS, SECRET_KEY
 from born_portal import routes, auth
 
 
@@ -12,7 +12,7 @@ app = Application()
 
 _PUBLIC_PATHS = {"/login", "/auth/google", "/auth/callback"}
 
-app.middlewares.append(SessionMiddleware(store=InMemorySessionStore()))
+app.middlewares.append(SessionMiddleware(store=CookieSessionStore(SECRET_KEY)))
 app.middlewares.append(
     auth.AuthMiddleware(public_paths=_PUBLIC_PATHS, allowed_users=ALLOWED_USERS)
 )
