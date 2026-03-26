@@ -3,7 +3,6 @@ import urllib.parse
 import httpx
 
 from blacksheep import Request, Response
-from blacksheep.contents import TextContent
 from blacksheep.server.responses import redirect
 from typing import Callable, Awaitable
 
@@ -33,7 +32,9 @@ class AuthMiddleware:
             return redirect("/login")
 
         if request.session.get("user") not in self._allowed_users:
-            return Response(403, content=TextContent("Forbidden"))
+            return render(
+                "error.html", message="Access denied: your account is not allowed."
+            )
 
         return await handler(request)
 
