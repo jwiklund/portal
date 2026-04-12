@@ -1,3 +1,7 @@
+import argparse
+import asyncio
+import json
+
 import granian
 
 from blacksheep import Application
@@ -5,8 +9,7 @@ from blacksheep.sessions import SessionMiddleware
 from blacksheep.sessions.cookies import CookieSessionStore
 
 from born_portal.core import ALLOWED_USERS, SECRET_KEY
-from born_portal import routes, auth
-
+from born_portal import routes, auth, event
 
 app = Application()
 
@@ -21,7 +24,38 @@ auth.register_routes(app)
 routes.register_routes(app)
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="main",
+        description="Start the portal or fetch and parse event data from a URL.",
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    serve_parser = subparsers.add_parser("serve", help="Start the portal web server")
+    serve_parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port to bind the portal server",
+    )
+
+    fetch_parser = subparsers.add_parser(
+        "fetch", help="Fetch an event URL and parse event data"
+    )
+    fetch_parser.add_argument("url", help="URL to fetch and parse")
+
+    args = parser.parse_args(argv)
+
+    if args.command == "fetch":
+        event_data = asyncio.run(event.parse(args.url))
+        print(json.dumps(event_data.__dict__, indent=2, ensure_ascii=False))
+        return
+
+    port = args.port if args.command == "serve" else 8080
     granian.Granian(
-        "born_portal.main:app", interface="asgi", port=8080, reload=True
+        "born_portal.main:app", interface="asgi", port=port, reload=True
     ).serve()
+
+
+if __name__ == "__main__":
+    main()

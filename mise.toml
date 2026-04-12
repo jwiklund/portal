@@ -1,4 +1,5 @@
 [shell_alias]
 run = "uv run --no-sync granian \"born_portal.main:app\" --interface=asgi --reload --port 8080"
+fetch = "uv run --no-sync python -m born_portal.main fetch"
 sync = "uv sync"
 format = "black src"
