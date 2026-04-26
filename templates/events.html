@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Events – Born Portal{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
+  .filters { margin-bottom: 1.5rem; }
+  .filters a { margin-right: 1rem; color: #999; text-decoration: none; }
+  .filters a:hover, .filters a.active { color: #e8e8e8; }
+  .event-list { display: flex; flex-direction: column; gap: 0.75rem; }
+  .event-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 1rem;
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #e8e8e8;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .event-item:hover {
+    border-color: #444;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .event-date {
+    font-size: 0.85rem;
+    color: #aaa;
+    min-width: 80px;
+    padding-right: 1rem;
+    border-right: 1px solid #2e2e2e;
+    margin-right: 1rem;
+  }
+  .event-info { flex: 1; }
+  .event-name { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.25rem; }
+  .event-meta { font-size: 0.85rem; color: #888; }
+  .event-price { color: #d4b483; }
+{% endblock %}
+
+{% block content %}
+  <h2>Upcoming Events</h2>
+
+  <div style="margin-bottom: 1.5rem;">
+    <a href="/events/import" style="background: #d4b483; color: #1a1a1a; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">+ Import Event</a>
+  </div>
+
+  <div class="filters">
+    <a href="/events" class="{% if not sort_by or sort_by == 'date' %}active{% endif %}">Date</a>
+    <a href="/events?sort_by=price" class="{% if sort_by == 'price' %}active{% endif %}">Cost</a>
+  </div>
+
+  {% if events %}
+    <div class="event-list">
+      {% for e in events %}
+        <a href="/events/{{ e.id }}" class="event-item">
+          <div class="event-date">{{ e.date or "TBD" }}</div>
+          <div class="event-info">
+            <div class="event-name">{{ e.name }}</div>
+            <div class="event-meta">
+              {% if e.price %}<span class="event-price">{{ e.price }}</span>{% endif %}
+              {% if e.location %} • {{ e.location }}{% endif %}
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="color: #aaa;">No upcoming events found.</p>
+  {% endif %}
+{% endblock %}

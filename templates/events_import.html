@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Import Event – Born Portal{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1.5rem; }
+  .import-form { max-width: 500px; }
+  .form-group { margin-bottom: 1.5rem; }
+  label { display: block; margin-bottom: 0.5rem; color: #ccc; font-size: 0.9rem; }
+  input[type="url"] {
+    width: 100%;
+    padding: 0.75rem;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e8e8e8;
+    font-size: 1rem;
+  }
+  input[type="url"]:focus { outline: none; border-color: #555; }
+  button {
+    background: #d4b483;
+    color: #1a1a1a;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  button:hover { opacity: 0.9; }
+  .error { color: #e76f51; background: #2a1a1a; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; }
+{% endblock %}
+
+{% block content %}
+  <h2>Import Event from URL</h2>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST" action="/events/import" class="import-form">
+    <div class="form-group">
+      <label for="url">Event URL</label>
+      <input type="url" id="url" name="url" placeholder="https://..." required {% if url %}value="{{ url }}"{% endif %}>
+    </div>
+    <button type="submit">Parse & Edit</button>
+  </form>
+
+  <p style="color: #888; margin-top: 2rem;">
+    Paste an event URL to automatically extract name, date, location, and description.
+    You can then review and edit the data before saving.
+  </p>
+{% endblock %}

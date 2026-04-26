@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Edit Event – Born Portal{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
+  .edit-form { max-width: 600px; }
+  .form-group { margin-bottom: 1.25rem; }
+  label { display: block; margin-bottom: 0.5rem; color: #ccc; font-size: 0.9rem; }
+  input, textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e8e8e8;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  textarea { min-height: 150px; resize: vertical; }
+  input:focus, textarea:focus { outline: none; border-color: #555; }
+  .form-actions { display: flex; gap: 1rem; margin-top: 2rem; align-items: center; }
+  .save-btn {
+    background: #d4b483;
+    color: #1a1a1a;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .cancel-btn {
+    background: transparent;
+    color: #999;
+    border: 1px solid #3a3a3a;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .cancel-btn:hover { color: #e8e8e8; border-color: #555; }
+  .info-box {
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .info-box p { margin: 0; color: #888; font-size: 0.9rem; }
+{% endblock %}
+
+{% block content %}
+  <h2>Edit Event</h2>
+
+  <form method="POST" action="/events/save" class="edit-form">
+    <div class="form-group">
+      <label for="url">URL</label>
+      <input type="text" id="url" name="url" value="{{ event.url }}" required>
+    </div>
+
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" value="{{ event.name }}" required>
+    </div>
+
+    <div class="form-group">
+      <label for="date">Date</label>
+      <input type="text" id="date" name="date" value="{{ event.date or '' }}" placeholder="YYYY-MM-DD">
+    </div>
+
+    <div class="form-group">
+      <label for="location">Location</label>
+      <input type="text" id="location" name="location" value="{{ event.location or '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="price">Price / Cost</label>
+      <input type="text" id="price" name="price" value="{{ event.price or '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" placeholder="Event description...">{{ event.description }}</textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="save-btn">Save Event</button>
+      <a href="/events" class="cancel-btn">Cancel</a>
+      <input type="hidden" name="event_id" value="{{ event.id }}">
+      {% if is_update %}<input type="hidden" name="is_update" value="1">{% endif %}
+    </div>
+  </form>
+
+  {% if from_import %}
+    {% if is_update %}
+      <div class="info-box" style="background: #2a1a1a; border: 1px solid #e76f51;">
+        <p><strong>Note:</strong> This event already exists in the database. You are updating the existing record. The URL cannot be changed for existing events.</p>
+      </div>
+    {% else %}
+      <div class="info-box" style="background: #1a2a1a; border: 1px solid #51e78f;">
+        <p><strong>Note:</strong> This is a new event. The data was automatically parsed - please review and edit as needed before saving.</p>
+      </div>
+    {% endif %}
+  {% endif %}
+
+{% endblock %}

@@ -22,19 +22,22 @@ class _Parser(HTMLParser):
         self._ld = None
         self._header = None
         self._description_div = None
+        self._style = False
 
     def handle_starttag(self, tag, attrs):
         if tag == "script" and dict(attrs).get("type") == "application/ld+json":
             self._ld = []
         if tag == "h2":
             self._header = []
+        if tag == "style":
+            self._style = True
 
     def handle_data(self, data):
         if self._ld is not None:
             self._ld.append(data)
         if self._header is not None:
             self._header.append(data)
-        if self._description_div is not None:
+        if self._description_div is not None and not self._style:
             self._description_div.append(data)
 
     def handle_endtag(self, tag):
@@ -45,9 +48,11 @@ class _Parser(HTMLParser):
             if "".join(self._header) == "Beskrivning":
                 self._description_div = []
                 self._header = None
+        if tag == "style":
+            self._style = False
         if tag == "div":
             if self._description_div is not None:
-                self._description = "\n".join(self._description_div).strip()
+                self._description = " ".join(self._description_div).strip()
             self._description_div = None
 
     def parse_ld(self, ld_str: str):
@@ -65,7 +70,7 @@ class _Parser(HTMLParser):
         offers = [
             offer
             for offer in ld["offers"]
-            if offer["availability"] == "http://schema.org/InStock"
+            if offer.get("availability") == "http://schema.org/InStock"
         ]
         if not offers:
             offers = ld["offers"]

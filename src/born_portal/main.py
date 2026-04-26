@@ -21,6 +21,7 @@ app.middlewares.append(
 
 auth.register_routes(app)
 routes.register_routes(app)
+event.register_routes(app)
 
 
 def main(argv=None):
