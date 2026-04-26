@@ -118,7 +118,9 @@ def register_routes(app):
         store = event.EventStore()
         try:
             event_id = form.get("event_id")
-            if event_id and event_id != "None":
+
+            # Determine if we're updating an existing event
+            if event_id:
                 # Get existing event and update its fields
                 existing = store.get_by_id(int(event_id))
                 if existing:
@@ -130,17 +132,12 @@ def register_routes(app):
                         location=form.get("location"),
                         price=form.get("price"),
                         date=form.get("date"),
+                        ticket=bool(form.get("ticket") == "on"),
                     )
                 else:
-                    event_data = event.EventData(
-                        url=form.get("url", ""),
-                        name=form.get("name", ""),
-                        description=form.get("description", ""),
-                        location=form.get("location"),
-                        price=form.get("price"),
-                        date=form.get("date"),
-                    )
+                    raise Exception("Event does not exist")
             else:
+                # No event_id, create new one
                 event_data = event.EventData(
                     url=form.get("url", ""),
                     name=form.get("name", ""),
@@ -148,10 +145,13 @@ def register_routes(app):
                     location=form.get("location"),
                     price=form.get("price"),
                     date=form.get("date"),
+                    ticket=ticket,
                 )
             event_id = store.save(event_data)
         finally:
             store.close()
+
+        print(event_id)
 
         return redirect(f"/events/{event_id}")
 

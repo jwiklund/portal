@@ -6,6 +6,21 @@
   .event-header { margin-bottom: 2rem; }
   .event-title { font-size: 2rem; margin-bottom: 0.5rem; line-height: 1.2; }
   .event-subtitle { color: #aaa; font-size: 0.9rem; }
+  .event-ticket {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    background: #2e7d32;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+  }
+  .event-ticket::after {
+    content: "✓";
+    color: white;
+    font-size: 0.85rem;
+  }
   .event-meta { display: flex; gap: 2rem; margin: 1.5rem 0; flex-wrap: wrap; }
   .meta-item { display: flex; flex-direction: column; }
   .meta-label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
@@ -24,7 +39,10 @@
   </div>
 
   <div class="event-header">
-    <h1 class="event-title">{{ event.name }}</h1>
+    <h1 class="event-title">
+      {{ event.name }}
+      {% if event.ticket %}<span class="event-ticket"></span>{% endif %}
+    </h1>
     <div class="event-subtitle">
       {% if event.date %}<span>{{ event.date }}</span>{% endif %}
       {% if event.location %} • <span>{{ event.location }}</span>{% endif %}

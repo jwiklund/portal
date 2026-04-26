@@ -34,6 +34,21 @@
   .event-name { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.25rem; }
   .event-meta { font-size: 0.85rem; color: #888; }
   .event-price { color: #d4b483; }
+  .event-ticket {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    background: #2e7d32;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+  }
+  .event-ticket::after {
+    content: "✓";
+    color: white;
+    font-size: 0.75rem;
+  }
 {% endblock %}
 
 {% block content %}
@@ -54,7 +69,10 @@
         <a href="/events/{{ e.id }}" class="event-item">
           <div class="event-date">{{ e.date or "TBD" }}</div>
           <div class="event-info">
-            <div class="event-name">{{ e.name }}</div>
+            <div class="event-name">
+              {{ e.name }}
+              {% if e.ticket %}<span class="event-ticket"></span>{% endif %}
+            </div>
             <div class="event-meta">
               {% if e.price %}<span class="event-price">{{ e.price }}</span>{% endif %}
               {% if e.location %} • {{ e.location }}{% endif %}

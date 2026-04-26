@@ -32,10 +32,17 @@ class EventStore:
                 description TEXT NOT NULL,
                 location TEXT,
                 price TEXT,
-                date TEXT
+                date TEXT,
+                ticket INTEGER DEFAULT 0
             )
         """
         )
+        # Add ticket column if it doesn't exist (for existing databases)
+        try:
+            cursor.execute("ALTER TABLE events ADD COLUMN ticket INTEGER DEFAULT 0")
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
         self._conn.commit()
 
     def close(self) -> None:
@@ -47,17 +54,39 @@ class EventStore:
         """Save an event to the database. Returns the row id."""
         conn = self._get_connection()
         cursor = conn.cursor()
+        if event.id:
+            # Update existing event by id
+            cursor.execute(
+                """
+                UPDATE events SET
+                    url = :url,
+                    name = :name,
+                    description = :description,
+                    location = :location,
+                    price = :price,
+                    date = :date,
+                    ticket = :ticket
+                WHERE id = :id
+            """,
+                asdict(event),
+            )
+            conn.commit()
+            # If update affected rows, return the id; otherwise insert new
+            if cursor.rowcount > 0:
+                return event.id
+        # Insert new event (or update by URL if id was not valid)
         cursor.execute(
             """
-            INSERT INTO events (url, name, description, location, price, date)
-            VALUES (:url, :name, :description, :location, :price, :date)
+            INSERT INTO events (url, name, description, location, price, date, ticket)
+            VALUES (:url, :name, :description, :location, :price, :date, :ticket)
             ON CONFLICT(url) DO UPDATE SET
                 name = excluded.name,
                 description = excluded.description,
                 location = excluded.location,
                 price = excluded.price,
-                date = excluded.date
-        """,
+                date = excluded.date,
+                ticket = excluded.ticket
+            """,
             asdict(event),
         )
         conn.commit()
@@ -78,6 +107,7 @@ class EventStore:
                 location=row["location"],
                 price=row["price"],
                 date=row["date"],
+                ticket=bool(row["ticket"]),
             )
         return None
 
@@ -96,6 +126,7 @@ class EventStore:
                 location=row["location"],
                 price=row["price"],
                 date=row["date"],
+                ticket=bool(row["ticket"]),
             )
         return None
 
@@ -136,6 +167,7 @@ class EventStore:
                 location=row["location"],
                 price=row["price"],
                 date=row["date"],
+                ticket=bool(row["ticket"]),
             )
             for row in rows
         ]

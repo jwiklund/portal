@@ -11,3 +11,4 @@ class EventData:
     location: Optional[str] = None
     price: Optional[str] = None
     date: Optional[str] = None
+    ticket: bool = False
