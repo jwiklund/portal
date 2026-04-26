@@ -13,6 +13,7 @@ Set these environment variables (or create a .env file):
 """
 
 import os
+
 from blacksheep import Response
 from blacksheep.server.responses import html
 from jinja2 import Environment, FileSystemLoader

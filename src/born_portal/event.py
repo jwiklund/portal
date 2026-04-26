@@ -5,24 +5,71 @@ import os
 import re
 from dataclasses import dataclass
 from typing import Optional
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-import markdownify
 import httpx
-from litellm import completion
+import markdownify
 
-DEFAULT_MODEL = "ollama/gemma4"
-DEFAULT_API_BASE = "http://localhost:11434"
+from born_portal import event_biletto
+from born_portal.model import EventData
 
-
-@dataclass
-class EventData:
-    name: str
-    description: str
-    price: Optional[str] = None
-    date: Optional[str] = None
+_model = os.environ.get("MODEL")
 
 
-def html_to_markdown(html: str) -> str:
+async def parse(url: str) -> EventData:
+    from litellm import acompletion
+
+    html = await _fetch_html(_clean_url(url))
+    if url.startswith("https://billetto.se/"):
+        return event_biletto.parse(html)
+
+    markdown = _html_to_markdown(html)
+
+    response = await acompletion(
+        messages=[
+            {
+                "role": "system",
+                "content": "Extract name, location, date/time, cost and description as JSON",
+            },
+            {"role": "user", "content": markdown},
+        ],
+        model=_model,
+        max_tokens=1024,
+    )
+
+    content = _extract_response_text(response)
+    parsed = _parse_json_output(content)
+
+    return EventData(
+        name=(parsed["name"] or "").strip(),
+        description=(parsed["description"] or "").strip(),
+        location=(parsed["location"] or None),
+        price=(parsed["price"] or None),
+        date=(parsed["date"] or None),
+    )
+
+
+def _clean_url(url: str) -> str:
+    parsed = urlparse(url)
+
+    params = {
+        key: value
+        for key, value in parse_qs(parsed.query).items()
+        if not key.startswith("utm_")
+    }
+    new_query = urlencode(params, doseq=True)
+    filtered_url = urlunparse(parsed._replace(query=new_query))
+    return filtered_url
+
+
+async def _fetch_html(url: str) -> str:
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.get(url)
+        response.raise_for_status()
+        return response.text
+
+
+def _html_to_markdown(html: str) -> str:
     """Convert HTML to Markdown using markdownify."""
     return markdownify.markdownify(html, heading_style="ATX").strip()
 
@@ -39,6 +86,8 @@ def _extract_response_text(response) -> str:
 
 
 def _parse_json_output(raw: str) -> dict[str, Optional[str]]:
+    print(raw)
+
     raw = raw.strip()
     if raw.startswith("```json") and raw.endswith("```"):
         raw = raw[len("```json") : -len("```")].strip()
@@ -60,45 +109,3 @@ def _parse_json_output(raw: str) -> dict[str, Optional[str]]:
         "price": data.get("price"),
         "date": data.get("date"),
     }
-
-
-async def parse(url: str) -> EventData:
-    html = await fetch_html(url)
-    markdown = html_to_markdown(html)
-
-    model = os.environ.get("MODEL", DEFAULT_MODEL)
-    api_base = os.environ.get("API_BASE", DEFAULT_API_BASE)
-
-    response = completion(
-        model=model,
-        messages=[
-            {"role": "user", "content": markdown},
-            {
-                "role": "user",
-                "content": "The markdown content contains information about an event (possibly in swedish). "
-                "Please detect/infer the name, description, price and date and return as json.",
-            },
-        ],
-        api_base=api_base,
-        temperature=0.0,
-        max_tokens=1024,
-    )
-
-    print(response)
-
-    content = _extract_response_text(response)
-    parsed = _parse_json_output(content)
-
-    return EventData(
-        name=(parsed["name"] or "").strip(),
-        description=(parsed["description"] or "").strip(),
-        price=(parsed["price"] or None),
-        date=(parsed["date"] or None),
-    )
-
-
-async def fetch_html(url: str) -> str:
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        return response.text

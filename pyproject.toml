@@ -19,3 +19,4 @@ build-backend = "uv_build"
 
 [project.scripts]
 app = "born_portal.main:main"
+event = "born_portal.event:main"

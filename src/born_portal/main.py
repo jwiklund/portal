@@ -3,13 +3,12 @@ import asyncio
 import json
 
 import granian
-
 from blacksheep import Application
 from blacksheep.sessions import SessionMiddleware
 from blacksheep.sessions.cookies import CookieSessionStore
 
+from born_portal import auth, event, event_biletto, routes
 from born_portal.core import ALLOWED_USERS, SECRET_KEY
-from born_portal import routes, auth, event
 
 app = Application()
 
@@ -42,6 +41,7 @@ def main(argv=None):
     fetch_parser = subparsers.add_parser(
         "fetch", help="Fetch an event URL and parse event data"
     )
+    parse_parser = subparsers.add_parser("parse", help="Parse event example")
     fetch_parser.add_argument("url", help="URL to fetch and parse")
 
     args = parser.parse_args(argv)
@@ -49,6 +49,12 @@ def main(argv=None):
     if args.command == "fetch":
         event_data = asyncio.run(event.parse(args.url))
         print(json.dumps(event_data.__dict__, indent=2, ensure_ascii=False))
+        return
+
+    if args.command == "parse":
+        with open("biletto.html") as r:
+            event_data = event_biletto.parse(r.read())
+            print(event_data.description)
         return
 
     port = args.port if args.command == "serve" else 8080
