@@ -37,12 +37,6 @@ class EventStore:
             )
         """
         )
-        # Add ticket column if it doesn't exist (for existing databases)
-        try:
-            cursor.execute("ALTER TABLE events ADD COLUMN ticket INTEGER DEFAULT 0")
-            self._conn.commit()
-        except sqlite3.OperationalError:
-            pass  # Column already exists
         self._conn.commit()
 
     def close(self) -> None:
