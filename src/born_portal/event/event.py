@@ -88,6 +88,7 @@ def _extract_response_text(response) -> str:
 
 
 def _parse_json_output(raw: str) -> dict[str, Optional[str]]:
+    print(raw)
     raw = raw.strip()
     if raw.startswith("```json") and raw.endswith("```"):
         raw = raw[len("```json") : -len("```")].strip()
@@ -103,10 +104,14 @@ def _parse_json_output(raw: str) -> dict[str, Optional[str]]:
             data = json.loads(match.group(1))
         else:
             raise
+    date = None
+    for key, value in data.items():
+        if key.startswith("date"):
+            date = value
     return {
         "name": data.get("name"),
         "description": data.get("description"),
         "location": data.get("location"),
         "price": data.get("price"),
-        "date": data.get("date/time"),
+        "date": date,
     }
