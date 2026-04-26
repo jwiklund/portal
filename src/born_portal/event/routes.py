@@ -120,7 +120,7 @@ def register_routes(app):
             event_id = form.get("event_id")
 
             # Determine if we're updating an existing event
-            if event_id:
+            if event_id and event_id != "None":
                 # Get existing event and update its fields
                 existing = store.get_by_id(int(event_id))
                 if existing:
@@ -145,7 +145,7 @@ def register_routes(app):
                     location=form.get("location"),
                     price=form.get("price"),
                     date=form.get("date"),
-                    ticket=ticket,
+                    ticket=bool(form.get("ticket") == "on"),
                 )
             event_id = store.save(event_data)
         finally:
