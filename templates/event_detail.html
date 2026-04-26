@@ -54,7 +54,18 @@
     {% if event.date %}
       <div class="meta-item">
         <span class="meta-label">Date</span>
-        <span class="meta-value">{{ event.date }}</span>
+        <span class="meta-value">
+          {% if event._date_parts and event._date_parts.start_date %}
+            <div>{{ event._date_parts.start_date }}</div>
+            <div style="margin-left: 1rem;">{{ event._date_parts.start_time }}</div>
+            {% if event._date_parts.end_time %}
+              <div style="margin-left: 1rem;">to</div>
+              <div style="margin-left: 1rem;">{{ event._date_parts.end_time }}</div>
+            {% endif %}
+          {% else %}
+            {{ event.date or "TBD" }}
+          {% endif %}
+        </span>
       </div>
     {% endif %}
     {% if event.location %}

@@ -88,7 +88,6 @@ def _extract_response_text(response) -> str:
 
 
 def _parse_json_output(raw: str) -> dict[str, Optional[str]]:
-    print(raw)
     raw = raw.strip()
     if raw.startswith("```json") and raw.endswith("```"):
         raw = raw[len("```json") : -len("```")].strip()

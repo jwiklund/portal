@@ -13,6 +13,41 @@ def user(request: Request) -> dict:
     return {"name": email.split("@")[0], "email": email}
 
 
+def parse_date_range(date_str: str) -> dict:
+    """Parse date string that may contain end time in format YYYY-MM-DD HH:MM-HH:MM"""
+    if not date_str:
+        return {"start_date": None, "start_time": None, "end_time": None}
+
+    # Check if date contains end time (format: YYYY-MM-DD HH:MM-HH:MM)
+    if "-" in date_str and len(date_str) > 16:
+        # Extract end time after the dash
+        parts = date_str.rsplit("-", 1)
+        if len(parts) == 2:
+            start_part = parts[0].strip()
+            end_time = parts[1].strip()
+            # Parse start date/time
+            try:
+                dt = datetime.strptime(start_part, "%Y-%m-%d %H:%M")
+                return {
+                    "start_date": dt.strftime("%Y-%m-%d"),
+                    "start_time": dt.strftime("%H:%M"),
+                    "end_time": end_time,
+                }
+            except ValueError:
+                pass
+
+    # Single date without end time
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M")
+        return {
+            "start_date": dt.strftime("%Y-%m-%d"),
+            "start_time": dt.strftime("%H:%M"),
+            "end_time": None,
+        }
+    except ValueError:
+        return {"start_date": None, "start_time": None, "end_time": None}
+
+
 def register_routes(app):
     @app.router.get("/events")
     async def events_list(request: Request, sort_by: Optional[str] = None):
