@@ -1,7 +1,7 @@
 import json
 from html.parser import HTMLParser
 
-from born_portal.model import EventData
+from born_portal.event.model import EventData
 
 
 def parse_biletto(html: str) -> EventData:
@@ -13,6 +13,7 @@ def parse_biletto(html: str) -> EventData:
 class _Parser(HTMLParser):
     def __init__(self):
         super().__init__()
+        self._url = None
         self._name = ""
         self._description = ""
         self._price = None
@@ -53,6 +54,7 @@ class _Parser(HTMLParser):
         ld = json.loads(ld_str)
         if ld["@type"] != "Event":
             return
+        self._url = ld["url"]
         self._name = ld["name"]
         self._location = (
             ld["location"]["address"]["streetAddress"]
@@ -71,6 +73,7 @@ class _Parser(HTMLParser):
 
     def result(self) -> EventData:
         return EventData(
+            url=self._url,
             name=self._name,
             description=self._description,
             location=self._location,

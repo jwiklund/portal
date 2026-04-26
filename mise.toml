@@ -3,4 +3,4 @@ run = "uv run --no-sync granian \"born_portal.main:app\" --interface=asgi --relo
 fetch = "uv run --no-sync python -m born_portal.main fetch"
 parse = "uv run --no-sync python -m born_portal.main parse"
 sync = "uv sync"
-format = "black src"
+format = "black src ; isort src"

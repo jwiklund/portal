@@ -11,7 +11,7 @@ import httpx
 import markdownify
 
 from born_portal.event.biletto import parse_biletto
-from born_portal.model import EventData
+from born_portal.event.model import EventData
 
 _model = os.environ.get("MODEL")
 
@@ -19,7 +19,8 @@ _model = os.environ.get("MODEL")
 async def parse(url: str) -> EventData:
     from litellm import acompletion
 
-    html = await _fetch_html(_clean_url(url))
+    clean_url = _clean_url(url)
+    html = await _fetch_html(clean_url)
     if url.startswith("https://billetto.se/"):
         return parse_biletto(html)
 
@@ -41,6 +42,7 @@ async def parse(url: str) -> EventData:
     parsed = _parse_json_output(content)
 
     return EventData(
+        url=clean_url,
         name=(parsed["name"] or "").strip(),
         description=(parsed["description"] or "").strip(),
         location=(parsed["location"] or None),
