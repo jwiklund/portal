@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 import httpx
 import markdownify
 
-from born_portal import event_biletto
+from born_portal.event.biletto import parse_biletto
 from born_portal.model import EventData
 
 _model = os.environ.get("MODEL")
@@ -21,7 +21,7 @@ async def parse(url: str) -> EventData:
 
     html = await _fetch_html(_clean_url(url))
     if url.startswith("https://billetto.se/"):
-        return event_biletto.parse(html)
+        return parse_biletto(html)
 
     markdown = _html_to_markdown(html)
 

@@ -7,7 +7,7 @@ from blacksheep import Application
 from blacksheep.sessions import SessionMiddleware
 from blacksheep.sessions.cookies import CookieSessionStore
 
-from born_portal import auth, event, event_biletto, routes
+from born_portal import auth, event, routes
 from born_portal.core import ALLOWED_USERS, SECRET_KEY
 
 app = Application()
@@ -53,7 +53,7 @@ def main(argv=None):
 
     if args.command == "parse":
         with open("biletto.html") as r:
-            event_data = event_biletto.parse(r.read())
+            event_data = event.parse_biletto(r.read())
             print(event_data.description)
         return
 

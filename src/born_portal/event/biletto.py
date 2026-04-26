@@ -4,7 +4,7 @@ from html.parser import HTMLParser
 from born_portal.model import EventData
 
 
-def parse(html: str) -> EventData:
+def parse_biletto(html: str) -> EventData:
     p = _Parser()
     p.feed(html)
     return p.result()
