@@ -30,7 +30,7 @@ async def parse(url: str) -> EventData:
         messages=[
             {
                 "role": "system",
-                "content": "Extract name, location, date/time, cost and description as JSON",
+                "content": "Extract name, location, date/time, price and description as JSON",
             },
             {"role": "user", "content": markdown},
         ],
@@ -43,11 +43,11 @@ async def parse(url: str) -> EventData:
 
     return EventData(
         url=clean_url,
-        name=(parsed["name"] or "").strip(),
-        description=(parsed["description"] or "").strip(),
-        location=(parsed["location"] or None),
-        price=(parsed["price"] or None),
-        date=(parsed["date"] or None),
+        name=(parsed.get("name") or "").strip(),
+        description=(parsed.get("description") or "").strip(),
+        location=(parsed.get("location") or None),
+        price=(parsed.get("price") or None),
+        date=(parsed.get("date") or None),
     )
 
 
@@ -88,8 +88,6 @@ def _extract_response_text(response) -> str:
 
 
 def _parse_json_output(raw: str) -> dict[str, Optional[str]]:
-    print(raw)
-
     raw = raw.strip()
     if raw.startswith("```json") and raw.endswith("```"):
         raw = raw[len("```json") : -len("```")].strip()
@@ -108,6 +106,7 @@ def _parse_json_output(raw: str) -> dict[str, Optional[str]]:
     return {
         "name": data.get("name"),
         "description": data.get("description"),
+        "location": data.get("location"),
         "price": data.get("price"),
-        "date": data.get("date"),
+        "date": data.get("date/time"),
     }
