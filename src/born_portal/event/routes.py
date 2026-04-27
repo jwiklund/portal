@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import datetime
 from typing import Optional
 
@@ -6,6 +7,7 @@ from blacksheep.server.responses import redirect
 
 from born_portal import event
 from born_portal.core import render
+from born_portal.event.model import EventData
 
 
 def user(request: Request) -> dict:
@@ -67,7 +69,15 @@ def register_routes(app):
         else:
             future_events.sort(key=lambda e: e.date or "")
 
-        upcoming = future_events[:20]
+        def render_event(e: EventData) -> dict:
+            d = dataclasses.asdict(e)
+            i = d.get("date", "").find(" - ")
+            if i != -1:
+                d["date_end"] = d["date"][i + 3 :]
+                d["date"] = d["date"][:i]
+            return d
+
+        upcoming = [render_event(e) for e in future_events[:20]]
 
         return render("events.html", user=user(request), events=upcoming)
 
@@ -121,8 +131,6 @@ def register_routes(app):
                 return render(
                     "error.html", user=user(request), message="Event not found"
                 )
-            # Store original URL for redirect
-            event_url = event_data.url
         finally:
             store.close()
 

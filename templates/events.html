@@ -6,17 +6,19 @@
   .filters { margin-bottom: 1.5rem; }
   .filters a { margin-right: 1rem; color: #999; text-decoration: none; }
   .filters a:hover, .filters a.active { color: #e8e8e8; }
-  .event-list { display: flex; flex-direction: column; gap: 0.75rem; }
+  .event-list {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1.5rem;
+  }
   .event-item {
-    display: flex;
-    align-items: flex-start;
-    padding: 1rem;
+    display: contents;
     background: #1a1a1a;
     border: 1px solid #2e2e2e;
     border-radius: 8px;
     text-decoration: none;
     color: #e8e8e8;
-    transition: border-color 0.15s, box-shadow 0.15s;
+
   }
   .event-item:hover {
     border-color: #444;
@@ -72,6 +74,9 @@
           <div class="event-date">
             {% if e.date %}
               <div>{{ e.date }}</div>
+              {% if e.date_end %}
+                <div>{{ e.date_end }}</div>
+              {% endif %}
             {% else %}
               {{ "TBD" }}
             {% endif %}
