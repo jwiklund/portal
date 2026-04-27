@@ -75,6 +75,11 @@ def register_routes(app):
             if i != -1:
                 d["date_end"] = d["date"][i + 3 :]
                 d["date"] = d["date"][:i]
+            else:
+                i = d.get("date", "").find(" ")
+                if i != -1:
+                    d["date_end"] = d["date"][i + 1 :]
+                    d["date"] = d["date"][:i]
             return d
 
         upcoming = [render_event(e) for e in future_events[:20]]
