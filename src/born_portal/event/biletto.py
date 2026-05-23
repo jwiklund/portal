@@ -2,6 +2,7 @@ import json
 from html.parser import HTMLParser
 
 from born_portal.event.model import EventData
+from born_portal.utils import date_range
 
 
 def parse_biletto(html: str) -> EventData:
@@ -66,7 +67,12 @@ class _Parser(HTMLParser):
             + " "
             + ld["location"]["address"]["addressRegion"]
         )
-        self._date = ld["startDate"]
+        if "endDate" in ld:
+            self._date = date_range.parse_date_range(
+                ld["startDate"] + " - " + ld["endDate"]
+            )
+        else:
+            self._date = date_range.parse_date_range(ld["startDate"])
         offers = [
             offer
             for offer in ld["offers"]

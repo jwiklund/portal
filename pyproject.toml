@@ -17,6 +17,11 @@ dependencies = [
 requires = ["uv_build<=0.12"]
 build-backend = "uv_build"
 
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
+
 [project.scripts]
 app = "born_portal.main:main"
 event = "born_portal.event:main"

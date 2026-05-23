@@ -12,6 +12,7 @@ import markdownify
 
 from born_portal.event.biletto import parse_biletto
 from born_portal.event.model import EventData
+from born_portal.utils import date_range
 
 _model = os.environ.get("MODEL")
 
@@ -106,7 +107,7 @@ def _parse_json_output(raw: str) -> dict[str, Optional[str]]:
     date = None
     for key, value in data.items():
         if key.startswith("date"):
-            date = value
+            date = date_range.parse_date_range(value)
     return {
         "name": data.get("name"),
         "description": data.get("description"),
