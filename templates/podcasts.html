@@ -140,6 +140,37 @@
   }
   .delete-btn:hover { background: #7a2a2a; }
   .podcast-item form { margin: 0; }
+.podcast-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.3rem;
+}
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background: #2e2e2e;
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.progress-fill {
+  height: 100%;
+  background: #d4b483;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.1s linear;
+}
+.progress-label {
+  font-size: 0.7rem;
+  color: #888;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 85px;
+  text-align: right;
+}
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -159,15 +190,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn)  { btn.textContent = a.paused ? '▶' : '❚❚'; btn.classList.toggle('playing', !a.paused); }
   }
 
+  function updateProgress(a) {
+    const idx = a.id.split('-')[1];
+    const fill = document.querySelector(`#fill-${idx}`);
+    const label = document.querySelector(`#label-${idx}`);
+    if (fill) fill.style.width = (a.duration ? (a.currentTime / a.duration * 100) : 0) + '%';
+    if (label) label.textContent = fmt(a.currentTime) + ' / ' + fmt(a.duration);
+  }
+
   allAudio.forEach(a => {
-    ['loadedmetadata','play','pause','ended'].forEach(ev => a.addEventListener(ev, () => refresh(a)));
+    ['loadedmetadata','play','pause','ended','timeupdate','seeked'].forEach(ev => {
+      a.addEventListener(ev, () => { refresh(a); updateProgress(a); });
+    });
   });
 
   document.querySelectorAll('.play-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const a = document.getElementById(btn.dataset.audio);
       if (!a) return;
-      if (a.paused) { allAudio.forEach(x => { if (x !== a) { x.pause(); refresh(x); }}); a.play().catch(() => {}); }
+      if (a.paused) {
+        allAudio.forEach(x => { if (x !== a) { x.pause(); refresh(x); updateProgress(x); }});
+        a.play().catch(() => {});
+      }
       else a.pause();
     });
   });
@@ -175,6 +219,15 @@ document.addEventListener('DOMContentLoaded', () => {
   window.skipAudio = (id, s) => {
     const a = document.getElementById(id);
     if (a) a.currentTime = Math.min(a.currentTime + s, a.duration || Infinity);
+  };
+
+  window.seekAudio = (id, e) => {
+    const a = document.getElementById(id);
+    if (!a || !a.duration) return;
+    const bar = e.currentTarget;
+    const rect = bar.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    a.currentTime = pct * a.duration;
   };
 });
 </script>
@@ -208,6 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
               <input type="hidden" name="filename" value="{{ p.name }}">
               <button type="submit" class="delete-btn" onclick="return confirm('Delete {{ p.name }}?')">Delete</button>
             </form>
+            <div class="podcast-progress" id="progress-{{ loop.index }}">
+              <div class="progress-bar" onclick="seekAudio('audio-{{ loop.index }}', event)">
+                <div class="progress-fill" id="fill-{{ loop.index }}"></div>
+              </div>
+              <span class="progress-label" id="label-{{ loop.index }}">0:00 / 0:00</span>
+            </div>
           </div>
         </div>
       {% endfor %}

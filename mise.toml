@@ -1,5 +1,4 @@
 [shell_alias]
-run-granian = "uv run --no-sync granian \"born_portal.main:app\" --interface=asgi --reload --port 8080 --log-level debug"
 run = "uv run --no-sync uvicorn born_portal.main:app --reload --port 8080 --log-level debug"
 fetch = "uv run --no-sync python -m born_portal.main fetch"
 parse = "uv run --no-sync python -m born_portal.main parse"
