@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Podcasts – Born Portal{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
+  .download-form {
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 0.75rem;
+  }
+  .download-form input[type="text"] {
+    flex: 1;
+    background: #0f0f0f;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    color: #e8e8e8;
+    font-size: 0.95rem;
+  }
+  .download-form button {
+    background: #d4b483;
+    color: #1a1a1a;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .download-form button:hover { background: #c4a473; }
+  .error { color: #e57373; margin-bottom: 1rem; }
+  .podcast-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .podcast-item {
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .podcast-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .podcast-audio { display: none; }
+  .custom-player { width: 100%; display: flex; align-items: center; gap: 0.5rem; }
+  .play-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid #d4b483; background: transparent;
+    color: #d4b483; font-size: 0.9rem; cursor: pointer;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    padding: 0; line-height: 1; transition: background 0.15s;
+  }
+  .play-btn:hover { background: rgba(212, 180, 131, 0.15); }
+  .play-btn.playing { background: #d4b483; color: #1a1a1a; }
+  .progress-track {
+    flex: 1; height: 6px; background: #3a3a3a; border-radius: 3px;
+    cursor: pointer; position: relative; min-width: 40px;
+  }
+  .progress-fill {
+    height: 100%; background: #d4b483; border-radius: 3px;
+    width: 0%; transition: width 0.1s linear;
+  }
+  .time-readout {
+    font-size: 0.75rem; color: #888; font-variant-numeric: tabular-nums;
+    white-space: nowrap; flex-shrink: 0; min-width: 40px; text-align: right;
+  }
+  .skip-btn {
+    background: #2a4a5c;
+    color: #e8e8e8;
+    border: 1px solid #3a6a7c;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .skip-btn:hover { background: #3a6a7c; }
+  .podcast-name {
+    font-size: 0.9rem;
+    color: #ccc;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+  }
+  .podcast-size {
+    font-size: 0.8rem;
+    color: #888;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .delete-btn {
+    background: #5c1a1a;
+    color: #e8e8e8;
+    border: 1px solid #7a2a2a;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .delete-btn:hover { background: #7a2a2a; }
+  .podcast-item form { margin: 0; }
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const allAudio = Array.from(document.querySelectorAll('.podcast-audio'));
+
+  function fmt(sec) {
+    if (!isFinite(sec) || isNaN(sec)) return '0:00';
+    return Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0');
+  }
+
+  function refresh(a) {
+    const fill = document.querySelector(`.progress-fill[data-audio="${a.id}"]`);
+    const time = document.querySelector(`.time-readout[data-audio="${a.id}"]`);
+    const btn  = document.querySelector(`.play-btn[data-audio="${a.id}"]`);
+    if (fill && a.duration) fill.style.width = (a.currentTime / a.duration * 100) + '%';
+    if (time) time.textContent = fmt(a.currentTime);
+    if (btn)  { btn.textContent = a.paused ? '▶' : '❚❚'; btn.classList.toggle('playing', !a.paused); }
+  }
+
+  allAudio.forEach(a => {
+    ['timeupdate','loadedmetadata','play','pause','ended'].forEach(ev => a.addEventListener(ev, () => refresh(a)));
+  });
+
+  document.querySelectorAll('.play-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const a = document.getElementById(btn.dataset.audio);
+      if (!a) return;
+      if (a.paused) { allAudio.forEach(x => { if (x !== a) { x.pause(); refresh(x); }}); a.play(); }
+      else a.pause();
+    });
+  });
+
+  document.querySelectorAll('.progress-track').forEach(tr => {
+    tr.addEventListener('click', e => {
+      const a = document.getElementById(tr.dataset.audio);
+      if (!a || !a.duration) return;
+      const r = tr.getBoundingClientRect();
+      a.currentTime = ((e.clientX - r.left) / r.width) * a.duration;
+    });
+  });
+
+  window.skipAudio = (id, s) => {
+    const a = document.getElementById(id);
+    if (a) a.currentTime = Math.min(a.currentTime + s, a.duration || Infinity);
+  };
+});
+</script>
+{% endblock %}
+
+{% block content %}
+  <h2>Podcasts</h2>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form class="download-form" method="POST" action="/podcasts/download">
+    <input type="text" name="url" placeholder="Paste a YouTube/audio URL..." required />
+    <button type="submit">Download</button>
+  </form>
+
+  {% if podcasts %}
+    <div class="podcast-list">
+      {% for p in podcasts %}
+        <div class="podcast-item">
+          <div class="podcast-row">
+            <span class="podcast-name" title="{{ p.name }}">{{ p.name }}</span>
+            <span class="podcast-size">({{ (p.size / 1024 / 1024) | round(1) }} MB)</span>
+            <audio id="audio-{{ loop.index }}" class="podcast-audio" preload="none">
+              <source src="{{ p.path }}" type="{{ p.mime_type }}">
+            </audio>
+            <button type="button" class="play-btn" data-audio="audio-{{ loop.index }}" title="Play/Pause">▶</button>
+            <button type="button" class="skip-btn" onclick="skipAudio('audio-{{ loop.index }}', 15)">+15s</button>
+            <form method="POST" action="/podcasts/delete" style="display:inline">
+              <input type="hidden" name="filename" value="{{ p.name }}" />
+              <button type="submit" class="delete-btn" onclick="return confirm('Delete {{ p.name }}?')">Delete</button>
+            </form>
+          </div>
+          <div class="custom-player">
+            <div class="progress-track" data-audio="audio-{{ loop.index }}">
+              <div class="progress-fill" data-audio="audio-{{ loop.index }}"></div>
+            </div>
+            <span class="time-readout" data-audio="audio-{{ loop.index }}">0:00</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="color: #aaa;">No podcasts downloaded yet.</p>
+  {% endif %}
+{% endblock %}

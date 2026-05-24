@@ -12,7 +12,7 @@ from born_portal.core import ALLOWED_USERS, SECRET_KEY
 
 app = Application()
 
-_PUBLIC_PATHS = {"/login", "/auth/google", "/auth/callback", "/podcast/audio/"}
+_PUBLIC_PATHS = {"/login", "/auth/google", "/auth/callback", "/podcasts/audio/"}
 
 app.middlewares.append(SessionMiddleware(store=CookieSessionStore(SECRET_KEY)))
 app.middlewares.append(

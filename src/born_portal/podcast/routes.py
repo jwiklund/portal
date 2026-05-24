@@ -17,7 +17,7 @@ import re
 
 def _safe_filename(name: str) -> str:
     """Strip everything except letters, numbers, spaces, dots, and hyphens."""
-    return re.sub(r"[^a-zA-Z0-9 .\-]", "", name)
+    return re.sub(r"[^a-zA-Z0-9 ._\-]", "", name)
 
 
 def _clean_filenames():
@@ -30,32 +30,40 @@ def _clean_filenames():
 
 
 def _list_podcasts() -> list[dict]:
+    mime_map = {
+        ".mp3": "audio/mpeg",
+        ".m4a": "audio/mp4",
+        ".ogg": "audio/ogg",
+        ".opus": "audio/opus",
+        ".wav": "audio/wav",
+    }
     files = []
     for f in sorted(PODCAST_DIR.iterdir(), key=os.path.getmtime, reverse=True):
-        if f.is_file() and f.suffix in (".mp3", ".m4a", ".ogg", ".wav", ".opus"):
+        if f.is_file() and f.suffix in mime_map:
             files.append(
                 {
                     "name": f.name,
                     "size": f.stat().st_size,
-                    "path": f"/podcast/audio/{f.name}",
+                    "path": f"/podcasts/audio/{f.name}",
+                    "mime_type": mime_map[f.suffix],
                 }
             )
     return files
 
 
 def register_routes(app):
-    @app.router.get("/podcast")
+    @app.router.get("/podcasts")
     async def podcast_page(request: Request):
-        return render("podcast.html", user=user(request), podcasts=_list_podcasts())
+        return render("podcasts.html", user=user(request), podcasts=_list_podcasts())
 
-    @app.router.post("/podcast/download")
+    @app.router.post("/podcasts/download")
     async def podcast_download(request: Request):
         form = await request.form()
         url = form.get("url", "")
 
         if not url:
             return render(
-                "podcast.html",
+                "podcasts.html",
                 user=user(request),
                 podcasts=_list_podcasts(),
                 error="Please enter a URL",
@@ -77,7 +85,7 @@ def register_routes(app):
 
             if proc.returncode != 0:
                 return render(
-                    "podcast.html",
+                    "podcasts.html",
                     user=user(request),
                     podcasts=_list_podcasts(),
                     error=f"Download failed: {stderr.decode()[:500]}",
@@ -86,15 +94,15 @@ def register_routes(app):
             _clean_filenames()
         except FileNotFoundError:
             return render(
-                "podcast.html",
+                "podcasts.html",
                 user=user(request),
                 podcasts=_list_podcasts(),
                 error="yt-dlp not found. Please install it first.",
             )
 
-        return redirect("/podcast")
+        return redirect("/podcasts")
 
-    @app.router.post("/podcast/delete")
+    @app.router.post("/podcasts/delete")
     async def podcast_delete(request: Request):
         form = await request.form()
         filename = form.get("filename", "")
@@ -112,9 +120,9 @@ def register_routes(app):
             if filepath.exists() and filepath.is_file():
                 filepath.unlink()
 
-        return redirect("/podcast")
+        return redirect("/podcasts")
 
-    @app.router.get("/podcast/audio/{filename}")
+    @app.router.get("/podcasts/audio/{filename}")
     async def podcast_audio(request: Request, filename: str):
         # Only allow safe filenames
         safe = _safe_filename(filename)
