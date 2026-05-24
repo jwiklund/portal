@@ -38,34 +38,10 @@ def audio(file_path, content_type="audio/mpeg"):
 
         parsed = parse_range(range_header, file_size)
 
-        # -------------------------
-        # FULL FILE (no range)
-        # -------------------------
         if parsed is None:
-
-            async def full_stream():
-                async with aiofiles.open(file_path, "rb") as f:
-                    while True:
-                        chunk = await f.read(CHUNK_SIZE)
-                        if not chunk:
-                            break
-                        yield chunk
-
-            return Response(
-                200,
-                [
-                    (b"Content-Type", content_type.encode()),
-                    (b"Content-Length", str(file_size).encode()),
-                    (b"Accept-Ranges", b"bytes"),
-                    (b"Cache-Control", b"public, max-age=86400"),
-                ],
-                StreamedContent(content_type.encode(), full_stream),
-            )
-
-        # -------------------------
-        # PARTIAL CONTENT (range)
-        # -------------------------
-        start, end = parsed
+            start, end = (0, file_size - 1)
+        else:
+            start, end = parsed
         length = end - start + 1
 
         async def range_stream():
