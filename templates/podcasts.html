@@ -222,11 +222,12 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.seekAudio = (id, e) => {
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const a = document.getElementById(id);
     if (!a || !a.duration) return;
     const bar = e.currentTarget;
     const rect = bar.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
+    const pct = (clientX - rect.left) / rect.width;
     a.currentTime = pct * a.duration;
   };
 });
@@ -252,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="podcast-row">
             <span class="podcast-name" title="{{ p.name }}">{{ p.name }}</span>
             <span class="podcast-size">({{ (p.size / 1024 / 1024) | round(1) }} MB)</span>
-            <audio id="audio-{{ loop.index }}" class="podcast-audio" preload="none">
+            <audio id="audio-{{ loop.index }}" class="podcast-audio" preload="metadata">
               <source src="{{ p.path }}" type="{{ p.mime_type }}">
             </audio>
             <button type="button" class="play-btn" data-audio="audio-{{ loop.index }}" title="Play/Pause">▶</button>
@@ -262,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <button type="submit" class="delete-btn" onclick="return confirm('Delete {{ p.name }}?')">Delete</button>
             </form>
             <div class="podcast-progress" id="progress-{{ loop.index }}">
-              <div class="progress-bar" onclick="seekAudio('audio-{{ loop.index }}', event)">
+              <div class="progress-bar" onclick="seekAudio('audio-{{ loop.index }}', event)" ontouchstart="seekAudio('audio-{{ loop.index }}', event)">
                 <div class="progress-fill" id="fill-{{ loop.index }}"></div>
               </div>
               <span class="progress-label" id="label-{{ loop.index }}">0:00 / 0:00</span>
