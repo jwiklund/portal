@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import json
 
-import granian
 from blacksheep import Application
 from blacksheep.sessions import SessionMiddleware
 from blacksheep.sessions.cookies import CookieSessionStore
@@ -59,10 +58,7 @@ def main(argv=None):
             print(event_data.description)
         return
 
-    port = args.port if args.command == "serve" else 8080
-    granian.Granian(
-        "born_portal.main:app", interface="asgi", port=port, reload=True
-    ).serve()
+    parser.print_help()
 
 
 if __name__ == "__main__":

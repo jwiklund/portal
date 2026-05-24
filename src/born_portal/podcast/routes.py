@@ -8,6 +8,7 @@ from blacksheep import Request, file
 from blacksheep.server.responses import redirect
 
 from born_portal.core import render
+from born_portal.podcast import stream
 
 PODCAST_DIR = Path("podcasts")
 PODCAST_DIR.mkdir(exist_ok=True)
@@ -145,14 +146,8 @@ def register_routes(app):
         elif filename.endswith(".wav"):
             content_type = "audio/wav"
 
-        return file(
-            str(filepath),
-            content_type=content_type,
-            headers=[
-                (b"Accept-Ranges", b"bytes"),
-                (b"Cache-Control", b"public, max-age=86400"),
-            ],
-        )
+        handler = stream.audio(filepath, content_type)
+        return await handler(request)
 
 
 def user(request: Request) -> dict:
