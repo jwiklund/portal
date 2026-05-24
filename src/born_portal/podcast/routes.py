@@ -30,7 +30,13 @@ def _clean_filenames():
 
 
 def _list_podcasts() -> list[dict]:
-    mime_map = {".mp3": "audio/mpeg", ".m4a": "audio/mp4", ".ogg": "audio/ogg", ".opus": "audio/opus", ".wav": "audio/wav"}
+    mime_map = {
+        ".mp3": "audio/mpeg",
+        ".m4a": "audio/mp4",
+        ".ogg": "audio/ogg",
+        ".opus": "audio/opus",
+        ".wav": "audio/wav",
+    }
     files = []
     for f in sorted(PODCAST_DIR.iterdir(), key=os.path.getmtime, reverse=True):
         if f.is_file() and f.suffix in mime_map:
