@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import logging
 
 from blacksheep import Application
 from blacksheep.sessions import SessionMiddleware
@@ -8,6 +9,11 @@ from blacksheep.sessions.cookies import CookieSessionStore
 
 from born_portal import auth, event, podcast, routes
 from born_portal.core import ALLOWED_USERS, SECRET_KEY
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s: %(message)s",
+)
 
 app = Application()
 

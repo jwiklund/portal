@@ -1,5 +1,5 @@
 import asyncio
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 import os
 from pathlib import Path
@@ -46,7 +46,7 @@ def _list_podcasts() -> list[dict]:
                 {
                     "name": f.name,
                     "size": f.stat().st_size,
-                    "path": f"/podcasts/audio/{f.name}",
+                    "path": f"/podcasts/audio/{quote(f.name)}",
                     "mime_type": mime_map[f.suffix],
                 }
             )

@@ -51,10 +51,9 @@
     flex-wrap: wrap;
   }
   .podcast-audio {
-    position: absolute;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
+    width: 0;
+    height: 0;
+    opacity: 0;
   }
 
   .download-form {
@@ -149,19 +148,22 @@
 }
 .progress-bar {
   flex: 1;
-  height: 4px;
+  height: 20px;
   background: #2e2e2e;
   border-radius: 2px;
   touch-action: none;
   overflow: hidden;
   cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 .progress-fill {
-  height: 100%;
+  height: 4px;
   background: #d4b483;
   border-radius: 2px;
   width: 0%;
   transition: width 0.1s linear;
+  align-self: center;
 }
 .progress-label {
   font-size: 0.7rem;
@@ -192,27 +194,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateProgress(a) {
-    const idx = a.id.split('-')[1];
-    const fill = document.querySelector(`#fill-${idx}`);
-    const label = document.querySelector(`#label-${idx}`);
-    if (fill) fill.style.width = (a.duration ? (a.currentTime / a.duration * 100) : 0) + '%';
+    const idx  = a.id.split('-')[1];
+    const fill  = document.getElementById(`fill-${idx}`);
+    const label = document.getElementById(`label-${idx}`);
+    if (fill)  fill.style.width = (a.duration ? (a.currentTime / a.duration * 100) : 0) + '%';
     if (label) label.textContent = fmt(a.currentTime) + ' / ' + fmt(a.duration);
   }
 
   allAudio.forEach(a => {
-    ['loadedmetadata','play','pause','ended','timeupdate','seeked'].forEach(ev => {
+    a.preload = 'metadata';
+    a.load();
+    ['loadedmetadata', 'durationchange', 'play', 'pause', 'ended', 'timeupdate', 'seeked'].forEach(ev => {
       a.addEventListener(ev, () => { refresh(a); updateProgress(a); });
-    });
-  });
-
-  allAudio.forEach(a => {
-    a.addEventListener('loadedmetadata', () => {
-      updateProgress(a);
-      refresh(a);
-    });
-
-    a.addEventListener('durationchange', () => {
-      updateProgress(a);
     });
   });
 
@@ -221,62 +214,55 @@ document.addEventListener('DOMContentLoaded', () => {
       const a = document.getElementById(btn.dataset.audio);
       if (!a) return;
       if (a.paused) {
-        allAudio.forEach(x => { if (x !== a) { x.pause(); refresh(x); updateProgress(x); }});
+        allAudio.forEach(x => { if (x !== a) { x.pause(); refresh(x); updateProgress(x); } });
         a.play().catch(() => {});
+      } else {
+        a.pause();
       }
-      else a.pause();
     });
   });
 
   window.skipAudio = (id, s) => {
     const a = document.getElementById(id);
-    if (!a || !isFinite(a.duration)) return;
-
-    a.currentTime = Math.min(
-      Math.max(0, a.currentTime + s),
-      a.duration
-    );
+    if (!a) return;
+    a.currentTime = Math.max(0, a.currentTime + s);
   };
 
-  let seeking = false;
+  // Progress bar seeking — unified pointer events handle mouse, touch, and stylus
+  let activeSeek = null; // { a, bar }
 
-  function setTimeFromEvent(a, bar, e) {
-    if (!a || !isFinite(a.duration) || a.duration <= 0) return;
-
+  function seekToPointer(a, bar, e) {
     const rect = bar.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-
-    let pct = (clientX - rect.left) / rect.width;
-    pct = Math.max(0, Math.min(1, pct));
-
+    const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    if (!isFinite(a.duration) || isNaN(a.duration)) return;
     a.currentTime = pct * a.duration;
   }
 
-  window.seekAudio = (id, e) => {
-    const a = document.getElementById(id);
-    const bar = e.currentTarget;
-    setTimeFromEvent(a, bar, e);
-  };
-
-  // drag support for progress bars
   document.querySelectorAll('.progress-bar').forEach(bar => {
-    const audioId = bar.parentElement.id.replace('progress-', '').replace('fill-', '');
-    const a = document.getElementById('audio-' + audioId);
+    const idx = bar.closest('.podcast-progress').id.replace('progress-', '');
+    const a   = document.getElementById('audio-' + idx);
+    if (!a) return;
 
-    bar.addEventListener('pointerdown', (e) => {
-      if (!a) return;
-      seeking = true;
-      setTimeFromEvent(a, bar, e);
+    bar.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      bar.setPointerCapture(e.pointerId);
+      activeSeek = { a, bar };
+      seekToPointer(a, bar, e);
     });
 
-    window.addEventListener('pointermove', (e) => {
-      if (!seeking) return;
-      const rect = bar.getBoundingClientRect();
-      setTimeFromEvent(a, bar, e);
+    bar.addEventListener('pointermove', e => {
+      if (!activeSeek || activeSeek.bar !== bar) return;
+      seekToPointer(a, bar, e);
     });
 
-    window.addEventListener('pointerup', () => {
-      seeking = false;
+    bar.addEventListener('pointerup', e => {
+      if (!activeSeek || activeSeek.bar !== bar) return;
+      seekToPointer(a, bar, e);
+      activeSeek = null;
+    });
+
+    bar.addEventListener('pointercancel', () => {
+      activeSeek = null;
     });
   });
 });
@@ -312,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <button type="submit" class="delete-btn" onclick="return confirm('Delete {{ p.name }}?')">Delete</button>
             </form>
             <div class="podcast-progress" id="progress-{{ loop.index }}">
-              <div class="progress-bar" onclick="seekAudio('audio-{{ loop.index }}', event)">
+              <div class="progress-bar">
                 <div class="progress-fill" id="fill-{{ loop.index }}"></div>
               </div>
               <span class="progress-label" id="label-{{ loop.index }}">0:00 / 0:00</span>
