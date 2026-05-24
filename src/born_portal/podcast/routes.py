@@ -19,7 +19,7 @@ import re
 
 def _safe_filename(name: str) -> str:
     """Strip everything except letters, numbers, spaces, dots, and hyphens."""
-    return re.sub(r"[^a-zA-Z0-9 ._\-]", "", name)
+    return re.sub(r"[^a-zA-Z0-9._\-]", "", name.replace(" ", "_"))
 
 
 def _clean_filenames():
