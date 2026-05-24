@@ -131,26 +131,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn)  { btn.textContent = a.paused ? '▶' : '❚❚'; btn.classList.toggle('playing', !a.paused); }
   }
 
+  // RAF polling for reliable progress on iOS (timeupdate fires unreliably)
+  let rafHandle = null;
+  function rafLoop() {
+    const active = allAudio.filter(a => a.duration && !a.paused);
+    if (!active.length) { rafHandle = null; return; }
+    active.forEach(a => refresh(a));
+    rafHandle = requestAnimationFrame(rafLoop);
+  }
   allAudio.forEach(a => {
-    ['timeupdate','loadedmetadata','play','pause','ended'].forEach(ev => a.addEventListener(ev, () => refresh(a)));
+    ['loadedmetadata','seeked','pause','ended'].forEach(ev => a.addEventListener(ev, () => refresh(a)));
+    a.addEventListener('play', () => { refresh(a); if (!rafHandle) rafHandle = requestAnimationFrame(rafLoop); });
   });
 
   document.querySelectorAll('.play-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const a = document.getElementById(btn.dataset.audio);
       if (!a) return;
-      if (a.paused) { allAudio.forEach(x => { if (x !== a) { x.pause(); refresh(x); }}); a.play(); }
+      if (a.paused) { allAudio.forEach(x => { if (x !== a) { x.pause(); refresh(x); }}); a.play().catch(() => {}); }
       else a.pause();
     });
   });
 
+  // Seeking via click or touch (mobile)
+  function seekFromEvent(tr, e) {
+    const a = document.getElementById(tr.dataset.audio);
+    if (!a || !a.duration) return;
+    const r = tr.getBoundingClientRect();
+    const x = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
+    a.currentTime = ((x - r.left) / r.width) * a.duration;
+  }
   document.querySelectorAll('.progress-track').forEach(tr => {
-    tr.addEventListener('click', e => {
-      const a = document.getElementById(tr.dataset.audio);
-      if (!a || !a.duration) return;
-      const r = tr.getBoundingClientRect();
-      a.currentTime = ((e.clientX - r.left) / r.width) * a.duration;
-    });
+    tr.addEventListener('click', e => seekFromEvent(tr, e));
+    tr.addEventListener('touchstart', e => { e.preventDefault(); seekFromEvent(tr, e); });
   });
 
   window.skipAudio = (id, s) => {
