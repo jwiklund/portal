@@ -16,6 +16,20 @@ from born_portal.utils import date_range
 
 _model = os.environ.get("MODEL")
 
+FIREFOX_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    "DNT": "1",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+}
+
 
 async def parse(url: str) -> EventData:
     from litellm import acompletion
@@ -66,7 +80,7 @@ def _clean_url(url: str) -> str:
 
 
 async def _fetch_html(url: str) -> str:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=FIREFOX_HEADERS) as client:
         response = await client.get(url)
         response.raise_for_status()
         return response.text
