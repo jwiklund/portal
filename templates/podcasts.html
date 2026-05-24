@@ -204,7 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </audio>
             <button type="button" class="play-btn" data-audio="audio-{{ loop.index }}" title="Play/Pause">▶</button>
             <button type="button" class="skip-btn" onclick="skipAudio('audio-{{ loop.index }}', 15)">+15s</button>
-            <button type="submit" formaction="/podcasts/delete" formmethod="POST" name="filename" value="{{ p.name }}" class="delete-btn" onclick="return confirm('Delete {{ p.name }}?')">Delete</button>
+            <form method="POST" action="/podcasts/delete" style="margin:0;display:inline">
+              <input type="hidden" name="filename" value="{{ p.name }}">
+              <button type="submit" class="delete-btn" onclick="return confirm('Delete {{ p.name }}?')">Delete</button>
+            </form>
           </div>
         </div>
       {% endfor %}
