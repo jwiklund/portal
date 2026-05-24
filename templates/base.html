@@ -44,9 +44,8 @@
   <nav>
     <a href="/" class="nav-brand">Born Portal</a>
     <div class="nav-links">
-      <a href="/">Home</a>
-      <a href="/profile">Profile</a>
       <a href="/events">Events</a>
+      <a href="/podcast">Podcast</a>
       {% if user and user.picture %}
         <img src="{{ user.picture }}" class="avatar" alt="{{ user.name }}" />
       {% endif %}

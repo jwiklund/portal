@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Podcast – Born Portal{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
+  .download-form {
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 0.75rem;
+  }
+  .download-form input[type="text"] {
+    flex: 1;
+    background: #0f0f0f;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    color: #e8e8e8;
+    font-size: 0.95rem;
+  }
+  .download-form button {
+    background: #d4b483;
+    color: #1a1a1a;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .download-form button:hover { background: #c4a473; }
+  .error { color: #e57373; margin-bottom: 1rem; }
+  .podcast-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .podcast-item {
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .podcast-item audio { flex: 1; min-width: 0; }
+  .podcast-name {
+    font-size: 0.9rem;
+    color: #ccc;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+  }
+  .podcast-size {
+    font-size: 0.8rem;
+    color: #888;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .delete-btn {
+    background: #5c1a1a;
+    color: #e8e8e8;
+    border: 1px solid #7a2a2a;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .delete-btn:hover { background: #7a2a2a; }
+  .podcast-item form { margin: 0; }
+
+{% endblock %}
+
+{% block content %}
+  <h2>Podcasts</h2>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form class="download-form" method="POST" action="/podcast/download">
+    <input type="text" name="url" placeholder="Paste a YouTube/audio URL..." required />
+    <button type="submit">Download</button>
+  </form>
+
+  {% if podcasts %}
+    <div class="podcast-list">
+      {% for p in podcasts %}
+        <div class="podcast-item">
+          <span class="podcast-name" title="{{ p.name }}">{{ p.name }}</span>
+          <span class="podcast-size">({{ (p.size / 1024 / 1024) | round(1) }} MB)</span>
+          <audio controls preload="none">
+            <source src="{{ p.path }}" type="audio/mpeg">
+            Your browser does not support the audio element.
+          </audio>
+          <form method="POST" action="/podcast/delete" style="display:inline">
+            <input type="hidden" name="filename" value="{{ p.name }}" />
+            <button type="submit" class="delete-btn" onclick="return confirm('Delete {{ p.name }}?')">Delete</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="color: #aaa;">No podcasts downloaded yet.</p>
+  {% endif %}
+{% endblock %}

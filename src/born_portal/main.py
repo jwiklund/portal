@@ -7,12 +7,12 @@ from blacksheep import Application
 from blacksheep.sessions import SessionMiddleware
 from blacksheep.sessions.cookies import CookieSessionStore
 
-from born_portal import auth, event, routes
+from born_portal import auth, event, podcast, routes
 from born_portal.core import ALLOWED_USERS, SECRET_KEY
 
 app = Application()
 
-_PUBLIC_PATHS = {"/login", "/auth/google", "/auth/callback"}
+_PUBLIC_PATHS = {"/login", "/auth/google", "/auth/callback", "/podcast/audio/"}
 
 app.middlewares.append(SessionMiddleware(store=CookieSessionStore(SECRET_KEY)))
 app.middlewares.append(
@@ -22,6 +22,7 @@ app.middlewares.append(
 auth.register_routes(app)
 routes.register_routes(app)
 event.register_routes(app)
+podcast.register_routes(app)
 
 
 def main(argv=None):

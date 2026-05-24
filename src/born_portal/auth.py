@@ -19,7 +19,9 @@ class AuthMiddleware:
     async def __call__(
         self, request: Request, handler: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        if request.path in self._public:
+        if request.path in self._public or any(
+            request.path.startswith(p) for p in self._public if p.endswith("/")
+        ):
             return await handler(request)
 
         if not request.session.get("user"):
@@ -37,7 +39,7 @@ def register_routes(app):
     @app.router.get("/login")
     async def login_page(request: Request):
         if request.session.get("user"):
-            return redirect("/")
+            return redirect("/events")
         return render("login.html")
 
     @app.router.get("/auth/google")
@@ -93,7 +95,7 @@ def register_routes(app):
             user = userinfo_resp.json()
 
         request.session["user"] = user.get("email", "")
-        return redirect("/")
+        return redirect("/events")
 
     @app.router.get("/logout")
     async def logout(request: Request):
