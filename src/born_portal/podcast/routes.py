@@ -145,7 +145,14 @@ def register_routes(app):
         elif filename.endswith(".wav"):
             content_type = "audio/wav"
 
-        return file(str(filepath), content_type=content_type)
+        return file(
+            str(filepath),
+            content_type=content_type,
+            headers=[
+                (b"Accept-Ranges", b"bytes"),
+                (b"Cache-Control", b"public, max-age=86400"),
+            ],
+        )
 
 
 def user(request: Request) -> dict:
