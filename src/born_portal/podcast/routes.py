@@ -143,7 +143,59 @@ def register_routes(app):
         elif filename.endswith(".wav"):
             content_type = "audio/wav"
 
-        async def file_stream():
+        file_size = filepath.stat().st_size
+
+        # Check for Range header (byte serving for audio seeking/resume)
+        range_header = request.headers.get(b"Range", None)
+        if range_header:
+            range_str = range_header.decode()
+            # Parse Range header: "bytes=start-end"
+            if range_str.startswith("bytes="):
+                range_val = range_str[6:]
+                if "-" in range_val:
+                    parts = range_val.split("-", 1)
+                    start = int(parts[0]) if parts[0] else 0
+                    end = int(parts[1]) if parts[1] else file_size - 1
+                    if start < 0:
+                        start = 0
+                    if end >= file_size:
+                        end = file_size - 1
+                    if start > end:
+                        # Invalid range
+                        return Response(
+                            416,
+                            [(b"Content-Range", f"bytes */{file_size}".encode())],
+                            None,
+                        )
+
+                    length = end - start + 1
+
+                    async def range_stream(s=start, e=end, fs=file_size, fp=filepath):
+                        with open(fp, "rb") as f:
+                            f.seek(s)
+                            remaining = e - s + 1
+                            while remaining > 0:
+                                chunk_size = min(64 * 1024, remaining)
+                                chunk = f.read(chunk_size)
+                                if not chunk:
+                                    break
+                                yield chunk
+                                remaining -= len(chunk)
+
+                    return Response(
+                        206,
+                        [
+                            (b"Content-Type", content_type.encode()),
+                            (b"Content-Length", str(length).encode()),
+                            (b"Content-Range", f"bytes {start}-{end}/{file_size}".encode()),
+                            (b"Accept-Ranges", b"bytes"),
+                            (b"Content-Disposition", f'inline; filename="{filename}"'.encode()),
+                        ],
+                        StreamedContent(content_type.encode(), range_stream),
+                    )
+
+        # Full file response
+        async def full_stream():
             with open(filepath, "rb") as f:
                 while chunk := f.read(64 * 1024):
                     yield chunk
@@ -152,9 +204,11 @@ def register_routes(app):
             200,
             [
                 (b"Content-Type", content_type.encode()),
+                (b"Content-Length", str(file_size).encode()),
+                (b"Accept-Ranges", b"bytes"),
                 (b"Content-Disposition", f'inline; filename="{filename}"'.encode()),
             ],
-            StreamedContent(content_type.encode(), file_stream),
+            StreamedContent(content_type.encode(), full_stream),
         )
 
 
