@@ -152,6 +152,7 @@
   height: 4px;
   background: #2e2e2e;
   border-radius: 2px;
+  touch-action: none;
   overflow: hidden;
   cursor: pointer;
 }
@@ -204,6 +205,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  allAudio.forEach(a => {
+    a.addEventListener('loadedmetadata', () => {
+      updateProgress(a);
+      refresh(a);
+    });
+
+    a.addEventListener('durationchange', () => {
+      updateProgress(a);
+    });
+  });
+
   document.querySelectorAll('.play-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const a = document.getElementById(btn.dataset.audio);
@@ -218,18 +230,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.skipAudio = (id, s) => {
     const a = document.getElementById(id);
-    if (a) a.currentTime = Math.min(a.currentTime + s, a.duration || Infinity);
+    if (!a || !isFinite(a.duration)) return;
+
+    a.currentTime = Math.min(
+      Math.max(0, a.currentTime + s),
+      a.duration
+    );
   };
 
-  window.seekAudio = (id, e) => {
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const a = document.getElementById(id);
-    if (!a || !a.duration) return;
-    const bar = e.currentTarget;
+  let seeking = false;
+
+  function setTimeFromEvent(a, bar, e) {
+    if (!a || !isFinite(a.duration) || a.duration <= 0) return;
+
     const rect = bar.getBoundingClientRect();
-    const pct = (clientX - rect.left) / rect.width;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+
+    let pct = (clientX - rect.left) / rect.width;
+    pct = Math.max(0, Math.min(1, pct));
+
     a.currentTime = pct * a.duration;
+  }
+
+  window.seekAudio = (id, e) => {
+    const a = document.getElementById(id);
+    const bar = e.currentTarget;
+    setTimeFromEvent(a, bar, e);
   };
+
+  // drag support for progress bars
+  document.querySelectorAll('.progress-bar').forEach(bar => {
+    const audioId = bar.parentElement.id.replace('progress-', '').replace('fill-', '');
+    const a = document.getElementById('audio-' + audioId);
+
+    bar.addEventListener('pointerdown', (e) => {
+      if (!a) return;
+      seeking = true;
+      setTimeFromEvent(a, bar, e);
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!seeking) return;
+      const rect = bar.getBoundingClientRect();
+      setTimeFromEvent(a, bar, e);
+    });
+
+    window.addEventListener('pointerup', () => {
+      seeking = false;
+    });
+  });
 });
 </script>
 {% endblock %}
@@ -263,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <button type="submit" class="delete-btn" onclick="return confirm('Delete {{ p.name }}?')">Delete</button>
             </form>
             <div class="podcast-progress" id="progress-{{ loop.index }}">
-              <div class="progress-bar" onclick="seekAudio('audio-{{ loop.index }}', event)" ontouchstart="seekAudio('audio-{{ loop.index }}', event)">
+              <div class="progress-bar" onclick="seekAudio('audio-{{ loop.index }}', event)">
                 <div class="progress-fill" id="fill-{{ loop.index }}"></div>
               </div>
               <span class="progress-label" id="label-{{ loop.index }}">0:00 / 0:00</span>
