@@ -1,14 +1,13 @@
 import asyncio
-from urllib.parse import quote, unquote
-
 import os
 from pathlib import Path
+from urllib.parse import quote, unquote
 
+import aiofiles
 from blacksheep import Request, file
-from blacksheep.server.responses import redirect
+from blacksheep.server.responses import ContentDispositionType, redirect
 
 from born_portal.core import render
-from born_portal.podcast import stream
 
 PODCAST_DIR = Path("podcasts")
 PODCAST_DIR.mkdir(exist_ok=True)
@@ -146,8 +145,12 @@ def register_routes(app):
         elif filename.endswith(".wav"):
             content_type = "audio/wav"
 
-        handler = stream.audio(filepath, content_type)
-        return await handler(request)
+        async with aiofiles.open(filepath, "rb") as f:
+            data = await f.read()
+
+        return file(
+            data, content_type, content_disposition=ContentDispositionType.INLINE
+        )
 
 
 def user(request: Request) -> dict:

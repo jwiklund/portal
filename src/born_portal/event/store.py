@@ -23,8 +23,7 @@ class EventStore:
 
     def _create_table(self) -> None:
         cursor = self._conn.cursor()
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 url TEXT UNIQUE NOT NULL,
@@ -35,8 +34,7 @@ class EventStore:
                 date TEXT,
                 ticket INTEGER DEFAULT 0
             )
-        """
-        )
+        """)
         self._conn.commit()
 
     def close(self) -> None:
