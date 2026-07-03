@@ -1,0 +1,9 @@
+[bash]
+allow = [
+    "cd *",
+]
+
+["mcp:fff__grep"]
+allow = [
+    "*",
+]

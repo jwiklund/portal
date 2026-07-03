@@ -102,5 +102,41 @@ def test_various_swedish_months():
         assert result == expected_date, f"Failed for {date_input}: got {result}"
 
 
+def test_iso_timestamp_with_z():
+    """ISO timestamp with seconds and Z suffix."""
+    result = parse_date_range("2026-05-23T01:02:03Z")
+    assert result == "2026-05-23 01:02"
+
+
+def test_iso_timestamp_without_z():
+    """ISO timestamp with seconds, no Z."""
+    result = parse_date_range("2026-05-23T01:02:03")
+    assert result == "2026-05-23 01:02"
+
+
+def test_iso_timestamp_with_t():
+    """ISO timestamp with T but only minutes."""
+    result = parse_date_range("2026-05-23T18:00")
+    assert result == "2026-05-23 18:00"
+
+
+def test_iso_timestamp_t_range():
+    """Full date range using T notation."""
+    result = parse_date_range("2026-05-23T12:00:00Z - 2026-05-24T14:30:00Z")
+    assert result == "2026-05-23 12:00 - 2026-05-24 14:30"
+
+
+def test_iso_timestamp_with_offset():
+    """ISO timestamp with timezone offset."""
+    result = parse_date_range("2026-07-04T22:00:00+02:00")
+    assert result == "2026-07-04 22:00"
+
+
+def test_iso_timestamp_with_offset_range():
+    """Full date range with timezone offsets."""
+    result = parse_date_range("2026-07-04T22:00:00+02:00 - 2026-07-05T10:00:00+02:00")
+    assert result == "2026-07-04 22:00 - 2026-07-05 10:00"
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

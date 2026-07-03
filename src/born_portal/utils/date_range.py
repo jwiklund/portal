@@ -31,6 +31,19 @@ _formats = [
         "%Y-%m-%dT%H:%MZ",
         "datetime",
     ),  # ISO date with time and Zulu timezone (e.g. "2026-05-23T18:00Z")
+    (
+        "%Y-%m-%dT%H:%M:%SZ",
+        "datetime",
+    ),  # ISO timestamp with Z (e.g. "2026-05-23T01:02:03Z")
+    (
+        "%Y-%m-%dT%H:%M:%S%z",
+        "datetime-tz",
+    ),  # ISO timestamp with offset (e.g. "2026-05-23T01:02:03+02:00")
+    ("%Y-%m-%dT%H:%M:%S", "datetime"),  # ISO timestamp (e.g. "2026-05-23T01:02:03")
+    (
+        "%Y-%m-%d %H:%M:%S",
+        "datetime",
+    ),  # ISO date with time (e.g. "2026-05-23 01:02:03")
     ("%Y-%m-%d", "date"),  # ISO date only (e.g. "2026-05-23")
     ("%H:%M", "time"),  # Time only (e.g. "18:00")
 ]
@@ -85,6 +98,11 @@ def _parse_date(date_str: str) -> str | None:
         try:
             if format_type.startswith("en-"):
                 dt = datetime.strptime(_english_to_swedish_date(date_str), format)
+            elif format_type == "datetime-tz":
+                # Normalize timezone offset: "+02:00" -> "+0200"
+                dt = datetime.strptime(
+                    re.sub(r"([+-]\d{2}):(\d{2})$", r"\1\2", date_str), format
+                )
             else:
                 dt = datetime.strptime(date_str, format)
         except ValueError:
@@ -130,6 +148,7 @@ def parse_date_range(date_str: str) -> str:
     - "23 maj 2026 18:00 - 24 maj 2026 21:00" (full Swedish date range)
     - "2026-05-23 18:00 - 2026-05-24 21:00" (full ISO date range)
     - "2026-05-23" (just a date)
+    - "2026-05-23T01:02:03Z" (full ISO timestamp)
 
     Returns a formatted date range string.
     """
