@@ -3,12 +3,12 @@ import os
 import re
 import uuid
 from pathlib import Path
-from urllib import response
-from urllib.parse import unquote
 
 import aiofiles
-from blacksheep import Request, file
-from blacksheep.server.responses import ContentDispositionType, redirect
+from blacksheep import (ContentDispositionType, Request, Response,
+                        StreamedContent, redirect)
+from blacksheep.exceptions import BadRequest, RangeNotSatisfiable
+from blacksheep.ranges import InvalidRangeValue, Range
 
 from born_portal.core import BASE_URL, SHOWS_CACHE_DIR, SHOWS_DIR, render, user
 
@@ -241,49 +241,68 @@ def register_routes(app):
 
     @app.router.get("/shows/video/{id}.mp4")
     async def shows_video(request: Request, id: str):
-        filepath = SHOWS_CACHE_DIR / f"{id}.mp4"
-        if not filepath.exists() or not filepath.is_file():
-            return render("error.html", message="File not found.")
+        if not _stream_filename_pattern(id):
+            return render("error.html", message="Invalid stream ID.")
+        shows = [s for s in _list_shows() if s.get("stream_id") == id]
+        if len(shows) == 0:
+            return render("error.html", message="Stream not found.")
+        stream_file = (
+            SHOWS_CACHE_DIR / f"{shows[0]['name']}-{shows[0]['stream_id']}.mp4"
+        )
+        if not stream_file.exists() or not stream_file.is_file():
+            return render("error.html", message="Stream file not found.")
 
-        file_size = filepath.stat().st_size
-        range_header = request.headers.get(b"range")
+        file_size = stream_file.stat().st_size
 
-        start, end = 0, file_size - 1
-        status = 200
-
+        range_header = request.get_first_header(b"range")
+        requested_range = None
         if range_header:
-            range_str = (
-                range_header.decode()
-                if isinstance(range_header, bytes)
-                else range_header
-            )
-            match = re.match(r"bytes=(\d+)-(\d*)", range_str)
-            if match:
-                start = int(match.group(1))
-                end = int(match.group(2)) if match.group(2) else file_size - 1
-                status = 206
+            try:
+                requested_range = Range.parse(range_header)
+            except InvalidRangeValue:
+                raise BadRequest("Invalid Range header")
+            if requested_range.unit != "bytes" or requested_range.is_multipart:
+                # ignore units we don't understand; keep it simple and skip
+                # multipart ranges (rare for a single <video> tag request)
+                requested_range = None
 
-        content_length = end - start + 1
+        headers = [(b"Accept-Ranges", b"bytes")]
+
+        if requested_range:
+            if not requested_range.can_satisfy(file_size):
+                raise RangeNotSatisfiable()
+
+            part = requested_range.parts[0]
+            start = part.start if part.start is not None else file_size - part.end
+            end = (
+                part.end
+                if (part.end is not None and part.start is not None)
+                else file_size - 1
+            )
+
+            content_length = end - start + 1
+            status = 206
+            headers.append(
+                (b"Content-Range", f"bytes {start}-{end}/{file_size}".encode())
+            )
+        else:
+            start, end = 0, file_size - 1
+            content_length = file_size
+            status = 200
 
         async def data_provider():
-            async with aiofiles.open(filepath, "rb") as f:
+            async with aiofiles.open(stream_file, "rb") as f:
                 await f.seek(start)
                 remaining = content_length
                 while remaining > 0:
-                    chunk = await f.read(min(CHUNK_SIZE, remaining))
+                    chunk = await f.read(min(1024 * 1024, remaining))
                     if not chunk:
                         break
                     remaining -= len(chunk)
                     yield chunk
 
-        response = file(
-            data_provider,
-            "video/mp4",
-            content_disposition=ContentDispositionType.INLINE,
+        content = StreamedContent(b"video/mp4", data_provider, content_length)
+        headers.append(
+            (b"Content-Disposition", ContentDispositionType.INLINE.value.encode())
         )
-        response.status = status
-        response.add_header(
-            b"Content-Range", f"bytes {start}-{end}/{file_size}".encode()
-        )
-        response.add_header(b"Accept-Ranges", b"bytes")
-        return response
+        return Response(status, headers, content)
