@@ -22,21 +22,29 @@ VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".webm"}
 _conversion_status: dict[str, str] = {}
 
 
+_STREAM_FILE_RE = re.compile(
+    r"^(.+)-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.mp4$"
+)
+
+
 def _list_shows() -> list[dict]:
     """Scan SHOWS_DIR for video files and match against cached streams."""
+    # Build stem -> stream_id mapping from cached stream files
+    stream_map: dict[str, str] = {}
+    for f in SHOWS_CACHE_DIR.iterdir():
+        if f.is_file():
+            m = _STREAM_FILE_RE.match(f.name)
+            if m:
+                stream_map[m.group(1)] = m.group(2)
+
     files = []
     for f in sorted(SHOWS_DIR.iterdir(), key=os.path.getmtime, reverse=True):
         if f.is_file() and f.suffix.lower() in VIDEO_EXTENSIONS:
-            stream_id = None
-            stem = f.stem
-            for sf in sorted(
-                SHOWS_CACHE_DIR.iterdir(), key=os.path.getmtime, reverse=True
-            ):
-                if sf.is_file() and sf.suffix.lower() == ".mp4":
-                    if sf.stem.startswith(stem + "-"):
-                        stream_id = sf.stem[len(stem) + 1 :]
-                        break
+            # Skip cached stream files in case they are in the same directory
+            if _STREAM_FILE_RE.match(f.name):
+                continue
 
+            stream_id = stream_map.get(f.stem)
             status = _conversion_status.get(f.name, "ready" if stream_id else "")
 
             files.append(
