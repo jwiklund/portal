@@ -42,6 +42,7 @@ def _list_shows() -> list[dict]:
             files.append(
                 {
                     "name": f.stem,
+                    "filename": f.name,
                     "size": f.stat().st_size,
                     "stream_id": stream_id,
                     "status": status,
