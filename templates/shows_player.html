@@ -92,42 +92,81 @@
   <p class="fallback-label">Open this page on a device with Chromecast support to cast.</p>
 
   <script>
-    window['__onGCastApiAvailable'] = function(isAvailable) {
-      if (isAvailable) {
-        document.getElementById('castStatus').textContent = 'Chromecast available';
-        initCast();
-      }
-    };
+window['__onGCastApiAvailable'] = function(isAvailable, reason) {
+  var statusEl = document.getElementById('castStatus');
+  if (isAvailable) {
+    initCast();
+  } else {
+    statusEl.textContent = 'Chromecast unavailable' + (reason ? ' (' + reason + ')' : '');
+    console.error('Cast API unavailable. Are you on HTTPS?', reason);
+  }
+};
 
-    function initCast() {
-      var options = new cast.framework.CastOptions();
-      options.receiverApplicationId = chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID;
-      options.autoJoinPolicy = chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED;
+function initCast() {
+  var options = new cast.framework.CastOptions();
+  options.receiverApplicationId = chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID;
+  options.autoJoinPolicy = chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED;
+  var castContext = cast.framework.CastContext.getInstance();
+  castContext.setOptions(options);
 
-      cast.framework.CastContext.getInstance().setOptions(options);
+  var statusEl = document.getElementById('castStatus');
+  var btnEl = document.getElementById('castBtn');
+
+  function updateFromState(state) {
+    switch (state) {
+      case cast.framework.CastState.NO_DEVICES_AVAILABLE:
+        statusEl.textContent = 'No Chromecast devices found';
+        statusEl.classList.remove('connected');
+        btnEl.classList.remove('connected');
+        break;
+      case cast.framework.CastState.NOT_CONNECTED:
+        statusEl.textContent = 'Chromecast available';
+        statusEl.classList.remove('connected');
+        btnEl.classList.remove('connected');
+        break;
+      case cast.framework.CastState.CONNECTING:
+        statusEl.textContent = 'Connecting…';
+        break;
+      case cast.framework.CastState.CONNECTED:
+        statusEl.textContent = 'Casting';
+        statusEl.classList.add('connected');
+        btnEl.classList.add('connected');
+        break;
     }
+  }
 
-    document.getElementById('castBtn').addEventListener('click', function() {
-      var castContext = cast.framework.CastContext.getInstance();
-      var statusEl = document.getElementById('castStatus');
-      var btnEl = document.getElementById('castBtn');
+  updateFromState(castContext.getCastState());
+  castContext.addEventListener(
+    cast.framework.CastContextEventType.CAST_STATE_CHANGED,
+    function(e) { updateFromState(e.castState); }
+  );
+}
 
-      castContext.requestSession().then(function() {
-        var session = castContext.getCurrentSession();
-        var mediaInfo = new chrome.cast.media.MediaInfo('{{ video_url }}', 'video/mp4');
-        mediaInfo.streamType = chrome.cast.media.StreamType.BUFFERED;
+document.getElementById('castBtn').addEventListener('click', function() {
+  var castContext = cast.framework.CastContext.getInstance();
+  var statusEl = document.getElementById('castStatus');
 
-        var request = new chrome.cast.media.LoadRequest(mediaInfo);
-        session.loadMedia(request).then(function() {
-          statusEl.textContent = 'Casting';
-          statusEl.classList.add('connected');
-          btnEl.classList.add('connected');
-          document.getElementById('videoPlayer').pause();
-        });
-      }).catch(function(err) {
-        statusEl.textContent = 'Failed to connect: ' + (err.description || err);
-      });
+  castContext.requestSession().then(function() {
+    var session = castContext.getCurrentSession();
+    var mediaInfo = new chrome.cast.media.MediaInfo('{{ video_url }}', 'video/mp4');
+    mediaInfo.streamType = chrome.cast.media.StreamType.BUFFERED;
+
+    var metadata = new chrome.cast.media.GenericMediaMetadata();
+    metadata.title = '{{ title }}';
+    mediaInfo.metadata = metadata;
+
+    var request = new chrome.cast.media.LoadRequest(mediaInfo);
+    session.loadMedia(request).then(function() {
+      document.getElementById('videoPlayer').pause();
+    }).catch(function(err) {
+      statusEl.textContent = 'Failed to load media: ' + (err.description || err.code || err);
+      console.error('loadMedia error', err);
     });
+  }).catch(function(err) {
+    statusEl.textContent = 'Failed to connect: ' + (err.description || err.code || err);
+    console.error('requestSession error', err);
+  });
+});
   </script>
 </body>
 </html>
