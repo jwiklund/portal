@@ -3,6 +3,7 @@ import os
 import re
 import uuid
 from pathlib import Path
+from urllib import response
 from urllib.parse import unquote
 
 import aiofiles
@@ -228,7 +229,6 @@ def register_routes(app):
         stream_file = (
             SHOWS_CACHE_DIR / f"{shows[0]['name']}-{shows[0]['stream_id']}.mp4"
         )
-        print(stream_file)
         if not stream_file.exists() or not stream_file.is_file():
             return render("error.html", message="Stream file not found.")
 
@@ -245,11 +245,45 @@ def register_routes(app):
         if not filepath.exists() or not filepath.is_file():
             return render("error.html", message="File not found.")
 
-        async with aiofiles.open(filepath, "rb") as f:
-            data = await f.read()
+        file_size = filepath.stat().st_size
+        range_header = request.headers.get(b"range")
 
-        return file(
-            data,
+        start, end = 0, file_size - 1
+        status = 200
+
+        if range_header:
+            range_str = (
+                range_header.decode()
+                if isinstance(range_header, bytes)
+                else range_header
+            )
+            match = re.match(r"bytes=(\d+)-(\d*)", range_str)
+            if match:
+                start = int(match.group(1))
+                end = int(match.group(2)) if match.group(2) else file_size - 1
+                status = 206
+
+        content_length = end - start + 1
+
+        async def data_provider():
+            async with aiofiles.open(filepath, "rb") as f:
+                await f.seek(start)
+                remaining = content_length
+                while remaining > 0:
+                    chunk = await f.read(min(CHUNK_SIZE, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+
+        response = file(
+            data_provider,
             "video/mp4",
             content_disposition=ContentDispositionType.INLINE,
         )
+        response.status = status
+        response.add_header(
+            b"Content-Range", f"bytes {start}-{end}/{file_size}".encode()
+        )
+        response.add_header(b"Accept-Ranges", b"bytes")
+        return response
