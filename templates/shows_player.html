@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }} – Born Portal</title>
+  <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0f0f0f;
+      font-family: 'Georgia', serif;
+      color: #e8e8e8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      font-weight: normal;
+      margin-bottom: 1.5rem;
+      color: #ccc;
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .cast-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid #d4b483;
+      background: transparent;
+      color: #d4b483;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background 0.15s;
+    }
+    .cast-btn:hover { background: rgba(212, 180, 131, 0.15); }
+    .cast-btn.connected { background: #d4b483; color: #1a1a1a; }
+
+    .cast-status {
+      font-size: 0.85rem;
+      color: #888;
+    }
+    .cast-status.connected { color: #6fcf6f; }
+
+    video {
+      max-width: 100%;
+      width: 800px;
+      border-radius: 8px;
+      background: #000;
+      border: 1px solid #2e2e2e;
+    }
+
+    .fallback-label {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>{{ title }}</h2>
+
+  <div class="controls">
+    <button id="castBtn" class="cast-btn" title="Cast">▷</button>
+    <span id="castStatus" class="cast-status">Chromecast not connected</span>
+  </div>
+
+  <video id="videoPlayer" controls>
+    <source src="{{ video_url }}" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <p class="fallback-label">Open this page on a device with Chromecast support to cast.</p>
+
+  <script>
+    window['__onGCastApiAvailable'] = function(isAvailable) {
+      if (isAvailable) {
+        document.getElementById('castStatus').textContent = 'Chromecast available';
+        initCast();
+      }
+    };
+
+    function initCast() {
+      var options = new cast.framework.CastOptions();
+      options.receiverApplicationId = chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID;
+      options.autoJoinPolicy = chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED;
+
+      cast.framework.CastContext.getInstance().setOptions(options);
+    }
+
+    document.getElementById('castBtn').addEventListener('click', function() {
+      var castContext = cast.framework.CastContext.getInstance();
+      var statusEl = document.getElementById('castStatus');
+      var btnEl = document.getElementById('castBtn');
+
+      castContext.requestSession().then(function() {
+        var session = castContext.getCurrentSession();
+        var mediaInfo = new chrome.cast.media.MediaInfo('{{ video_url }}', 'video/mp4');
+        mediaInfo.streamType = chrome.cast.media.StreamType.BUFFERED;
+
+        var request = new chrome.cast.media.LoadRequest(mediaInfo);
+        session.loadMedia(request).then(function() {
+          statusEl.textContent = 'Casting';
+          statusEl.classList.add('connected');
+          btnEl.classList.add('connected');
+          document.getElementById('videoPlayer').pause();
+        });
+      }).catch(function(err) {
+        statusEl.textContent = 'Failed to connect: ' + (err.description || err);
+      });
+    });
+  </script>
+</body>
+</html>

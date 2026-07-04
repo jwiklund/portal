@@ -1,6 +1,7 @@
 [bash]
 allow = [
     "cd *",
+    "mkdir *",
 ]
 
 ["mcp:fff__grep"]

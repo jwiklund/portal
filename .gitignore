@@ -3,3 +3,4 @@ mise.local.toml
 __pycache__
 events.db
 podcasts
+shows_cache

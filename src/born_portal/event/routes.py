@@ -2,17 +2,12 @@ import dataclasses
 from datetime import datetime
 from typing import Optional
 
-from blacksheep import Request, Response
+from blacksheep import Request
 from blacksheep.server.responses import redirect
 
 from born_portal import event
-from born_portal.core import render
+from born_portal.core import render, user
 from born_portal.event.model import EventData
-
-
-def user(request: Request) -> dict:
-    email = request.session.get("user")
-    return {"name": email.split("@")[0], "email": email}
 
 
 def register_routes(app):

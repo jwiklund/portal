@@ -25,6 +25,8 @@ GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
 GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
 ALLOWED_USERS = set(os.environ.get("ALLOWED_USERS", "").split(","))
+SHOWS_DIR = os.environ.get("SHOWS_DIR", "shows")
+SHOWS_CACHE_DIR = os.environ.get("SHOWS_CACHE_DIR", "shows_cache")
 SECRET_KEY = os.environ["SECRET_KEY"]
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -35,6 +37,11 @@ REDIRECT_URI = f"{BASE_URL}/auth/callback"
 
 # Jinja2 templates
 jinja = Environment(loader=FileSystemLoader("templates"), autoescape=True)
+
+
+def user(request) -> dict:
+    email = request.session.get("user")
+    return {"name": email.split("@")[0], "email": email}
 
 
 def render(template_name: str, **ctx) -> Response:

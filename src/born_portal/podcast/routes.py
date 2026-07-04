@@ -7,7 +7,7 @@ import aiofiles
 from blacksheep import Request, file
 from blacksheep.server.responses import ContentDispositionType, redirect
 
-from born_portal.core import render
+from born_portal.core import render, user
 
 PODCAST_DIR = Path("podcasts")
 PODCAST_DIR.mkdir(exist_ok=True)
@@ -151,8 +151,3 @@ def register_routes(app):
         return file(
             data, content_type, content_disposition=ContentDispositionType.INLINE
         )
-
-
-def user(request: Request) -> dict:
-    email = request.session.get("user")
-    return {"name": email.split("@")[0], "email": email}
