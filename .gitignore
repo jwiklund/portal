@@ -4,3 +4,4 @@ __pycache__
 events.db
 podcasts
 shows_cache
+crush.json
