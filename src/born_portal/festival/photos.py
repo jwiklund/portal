@@ -12,6 +12,7 @@ Videos expose a playable stream by appending "=dv" to the base URL; photos
 
 from __future__ import annotations
 
+import html
 import json
 import re
 import time
@@ -27,12 +28,17 @@ _TYPE_VIDEO = 1
 
 _CACHE_TTL_SECONDS = 600
 _cache: dict[str, tuple[float, list[dict]]] = {}
+_html_cache: dict[str, tuple[float, str]] = {}
 
 _CALLBACK_RE = re.compile(r"AF_initDataCallback\((\{.*?\})\);", re.S)
 _DATA_RE = re.compile(r"data:(\[.*\]),\s*sideChannel", re.S)
 _URL_RE = re.compile(
     r'\["https://lh[3-6]\.googleusercontent\.com/(pw/[A-Za-z0-9_-]+)",(\d+),(\d+)'
 )
+_META_TAG_RE = re.compile(r"<meta\b[^>]*>", re.I)
+_ATTR_RE = re.compile(r'([\w:-]+)\s*=\s*"([^"]*)"|([\w:-]+)\s*=\s*\'([^\']*)\'')
+_TITLE_TAG_RE = re.compile(r"<title>(.*?)</title>", re.S | re.I)
+_GOOGLE_SUFFIX_RE = re.compile(r"\s*[-–—]\s*Google Photos\s*$", re.I)
 
 
 def _walk(value):
@@ -120,9 +126,61 @@ def parse_album_html(html: str) -> list[dict]:
     return media
 
 
-async def fetch_album_photos(album_uri: str) -> list[dict]:
-    """Fetch photos for an album URI, using an in-memory cache."""
-    cached = _cache.get(album_uri)
+def _title_from_og_meta(html_text: str) -> str | None:
+    for tag in _META_TAG_RE.finditer(html_text):
+        attrs = {}
+        for m in _ATTR_RE.finditer(tag.group(0)):
+            key, value = m.group(1) or m.group(3), m.group(2) or m.group(4)
+            attrs[key.lower()] = value
+        if attrs.get("property") == "og:title":
+            title = html.unescape(attrs.get("content", "")).strip()
+            if title:
+                return title
+    return None
+
+
+def _title_from_title_tag(html_text: str) -> str | None:
+    match = _TITLE_TAG_RE.search(html_text)
+    if not match:
+        return None
+    title = html.unescape(match.group(1)).strip()
+    title = _GOOGLE_SUFFIX_RE.sub("", title).strip()
+    return title or None
+
+
+def _title_from_payload(html_text: str) -> str | None:
+    """Album title is the first [string, null] pair of a data payload."""
+    for match in _CALLBACK_RE.finditer(html_text):
+        data_match = _DATA_RE.search(match.group(1))
+        if not data_match:
+            continue
+        try:
+            data = json.loads(data_match.group(1))
+        except json.JSONDecodeError:
+            continue
+        if (
+            isinstance(data, list)
+            and data
+            and isinstance(data[0], list)
+            and data[0]
+            and isinstance(data[0][0], str)
+        ):
+            return data[0][0]
+    return None
+
+
+def parse_album_title(html_text: str) -> str | None:
+    """Extract the album title from an album share page."""
+    return (
+        _title_from_og_meta(html_text)
+        or _title_from_title_tag(html_text)
+        or _title_from_payload(html_text)
+    )
+
+
+async def fetch_album_page(album_uri: str) -> str:
+    """Fetch the album share page HTML, using an in-memory cache."""
+    cached = _html_cache.get(album_uri)
     if cached and time.monotonic() - cached[0] < _CACHE_TTL_SECONDS:
         return cached[1]
 
@@ -130,7 +188,17 @@ async def fetch_album_photos(album_uri: str) -> list[dict]:
         resp = await client.get(album_uri, headers={"User-Agent": "Mozilla/5.0"})
         resp.raise_for_status()
 
-    photos = parse_album_html(resp.text)
+    _html_cache[album_uri] = (time.monotonic(), resp.text)
+    return resp.text
+
+
+async def fetch_album_photos(album_uri: str) -> list[dict]:
+    """Fetch photos for an album URI, using an in-memory cache."""
+    cached = _cache.get(album_uri)
+    if cached and time.monotonic() - cached[0] < _CACHE_TTL_SECONDS:
+        return cached[1]
+
+    photos = parse_album_html(await fetch_album_page(album_uri))
     if photos:
         _cache[album_uri] = (time.monotonic(), photos)
     return photos

@@ -9,6 +9,7 @@ from blacksheep.server.responses import redirect
 from born_portal import festival
 from born_portal.core import is_admin, render, user
 from born_portal.festival.model import ArtistData, FestivalData
+from born_portal.utils.date_range import parse_name_with_dates
 
 
 def register_routes(app):
@@ -43,6 +44,50 @@ def register_routes(app):
             "festival_edit.html",
             user=user(request),
             festival=FestivalData(),
+            known_album_uris=known_album_uris,
+        )
+
+    @app.router.get("/festivals/import")
+    async def festival_import(request: Request):
+        return render("festival_import.html", user=user(request))
+
+    @app.router.post("/festivals/import")
+    async def festival_import_post(request: Request):
+        form = await request.form()
+        url = (form.get("url") or "").strip()
+
+        if not url:
+            return render(
+                "festival_import.html",
+                user=user(request),
+                error="Please enter a URL",
+            )
+
+        try:
+            page_html = await festival.fetch_album_page(url)
+            title = festival.parse_album_title(page_html)
+        except Exception as e:
+            return render(
+                "festival_import.html", user=user(request), error=str(e), url=url
+            )
+
+        name, start_date, end_date = parse_name_with_dates(title or "")
+
+        store = festival.FestivalStore()
+        try:
+            known_album_uris = store.known_album_uris()
+        finally:
+            store.close()
+
+        return render(
+            "festival_edit.html",
+            user=user(request),
+            festival=FestivalData(
+                name=name,
+                start_date=start_date,
+                end_date=end_date,
+                album_uri=url,
+            ),
             known_album_uris=known_album_uris,
         )
 

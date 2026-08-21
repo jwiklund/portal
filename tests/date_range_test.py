@@ -1,6 +1,7 @@
 import pytest
 
-from born_portal.utils.date_range import parse_date_range
+from born_portal.utils.date_range import (parse_date_range,
+                                          parse_name_with_dates)
 
 
 def test_empty_string():
@@ -136,6 +137,74 @@ def test_iso_timestamp_with_offset_range():
     """Full date range with timezone offsets."""
     result = parse_date_range("2026-07-04T22:00:00+02:00 - 2026-07-05T10:00:00+02:00")
     assert result == "2026-07-04 22:00 - 2026-07-05 10:00"
+
+
+def test_name_with_iso_range():
+    assert parse_name_with_dates("Way Out West 2026-08-06 - 2026-08-08") == (
+        "Way Out West",
+        "2026-08-06",
+        "2026-08-08",
+    )
+
+
+def test_name_with_iso_range_without_spaces():
+    assert parse_name_with_dates("Siesta 2026-07-10-2026-07-12") == (
+        "Siesta",
+        "2026-07-10",
+        "2026-07-12",
+    )
+
+
+def test_name_with_swedish_range():
+    assert parse_name_with_dates("Way Out West 6 augusti 2026 - 8 augusti 2026") == (
+        "Way Out West",
+        "2026-08-06",
+        "2026-08-08",
+    )
+
+
+def test_name_with_partial_day_range():
+    assert parse_name_with_dates("Putte i Parken 10-12 juli 2026") == (
+        "Putte i Parken",
+        "2026-07-10",
+        "2026-07-12",
+    )
+
+
+def test_name_with_en_dash_partial_range():
+    assert parse_name_with_dates("Bråvalla 25–27 juni 2026") == (
+        "Bråvalla",
+        "2026-06-25",
+        "2026-06-27",
+    )
+
+
+def test_name_with_single_date():
+    assert parse_name_with_dates("Lollapalooza 2026-07-17") == (
+        "Lollapalooza",
+        "2026-07-17",
+        None,
+    )
+
+
+def test_name_with_year_only_keeps_title():
+    assert parse_name_with_dates("Way Out West 2026") == (
+        "Way Out West 2026",
+        None,
+        None,
+    )
+
+
+def test_name_without_dates():
+    assert parse_name_with_dates("Peace & Love") == ("Peace & Love", None, None)
+
+
+def test_name_with_only_date_returns_title():
+    assert parse_name_with_dates("2026-07-10") == ("2026-07-10", None, None)
+
+
+def test_name_empty():
+    assert parse_name_with_dates("") == ("", None, None)
 
 
 if __name__ == "__main__":

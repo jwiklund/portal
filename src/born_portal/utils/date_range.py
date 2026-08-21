@@ -2,6 +2,8 @@ import locale
 import re
 from datetime import date, datetime
 
+_PARTIAL_RANGE_RE = re.compile(r"^(\d{1,2})\s*[-–—]\s*(\d{1,2})\s+(.+)$")
+
 locale.setlocale(locale.LC_TIME, "sv_SE.UTF-8")  # Set Swedish locale for date parsing
 
 _formats = [
@@ -185,3 +187,62 @@ def parse_date_range(date_str: str) -> str:
         return date
 
     return date_str
+
+
+def _parse_name_candidate(text: str) -> tuple[str, str | None] | None:
+    """Parse a trailing date expression, returning (start_iso, end_iso|None)."""
+    normalized = text.replace("–", "-").replace("—", "-")
+
+    for match in re.finditer(r"-", normalized):
+        idx = match.start()
+        first = _parse_date(normalized[:idx])
+        second = _parse_date(normalized[idx + 1 :])
+        if first and second:
+            return first.split(" ")[0], second.split(" ")[0]
+
+    partial = _PARTIAL_RANGE_RE.match(normalized)
+    if partial:
+        base = _parse_date(partial.group(3)) or _parse_date(f"1 {partial.group(3)}")
+        if base:
+            year_month = base[:8]
+            try:
+                start = date(
+                    int(year_month[:4]), int(year_month[5:7]), int(partial.group(1))
+                )
+                end = date(
+                    int(year_month[:4]), int(year_month[5:7]), int(partial.group(2))
+                )
+            except ValueError:
+                return None
+            return start.isoformat(), end.isoformat()
+
+    single = _parse_date(normalized)
+    if single:
+        return single.split(" ")[0], None
+
+    return None
+
+
+def parse_name_with_dates(name: str) -> tuple[str, str | None, str | None]:
+    """Split a title like 'Festival 2026-07-10 - 2026-07-12' into its parts.
+
+    Recognizes a leading-in-tail date expression: full ranges ("10 juli 2026 -
+    12 juli 2026", "2026-07-10 - 2026-07-12"), partial day ranges ("10-12
+    juli 2026"), and single dates. Returns (name, start_date, end_date) with
+    ISO dates; dates are None when no date expression is found.
+    """
+    title = (name or "").strip()
+    if not title:
+        return "", None, None
+
+    tokens = title.split()
+    for i in range(len(tokens)):
+        parsed = _parse_name_candidate(" ".join(tokens[i:]))
+        if parsed:
+            start, end = parsed
+            rest = " ".join(tokens[:i]).strip(" -–—,")
+            if rest:
+                return rest, start, end
+            break
+
+    return title, None, None

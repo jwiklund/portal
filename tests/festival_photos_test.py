@@ -1,6 +1,6 @@
 import json
 
-from born_portal.festival.photos import parse_album_html
+from born_portal.festival.photos import parse_album_html, parse_album_title
 
 PHOTO_A = "https://lh3.googleusercontent.com/pw/PHOTO_A"
 PHOTO_B = "https://lh3.googleusercontent.com/pw/PHOTO_B"
@@ -112,3 +112,29 @@ def test_fallback_parses_untyped_payloads_as_photos():
 
 def test_no_photos_in_empty_html():
     assert parse_album_html("<html><body>nothing here</body></html>") == []
+
+
+def test_title_from_og_meta():
+    html = (
+        '<html><head><meta property="og:title" content="Way Out West '
+        '2026-08-06 - 2026-08-08"></head></html>'
+    )
+    assert parse_album_title(html) == "Way Out West 2026-08-06 - 2026-08-08"
+
+
+def test_title_from_og_meta_single_quotes_and_entities():
+    html = "<meta content='Siesta &#39;26' property='og:title'>"
+    assert parse_album_title(html) == "Siesta '26"
+
+
+def test_title_from_title_tag_strips_google_suffix():
+    html = "<html><head><title>Bråvalla 2026 – Google Photos</title></head></html>"
+    assert parse_album_title(html) == "Bråvalla 2026"
+
+
+def test_title_from_payload_fallback():
+    assert parse_album_title(HTML) == "Album title"
+
+
+def test_title_missing_returns_none():
+    assert parse_album_title("<html><body>nothing here</body></html>") is None
