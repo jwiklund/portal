@@ -7,8 +7,8 @@ from blacksheep import Application
 from blacksheep.sessions import SessionMiddleware
 from blacksheep.sessions.cookies import CookieSessionStore
 
-from born_portal import auth, event, podcast, routes, show
-from born_portal.core import ALLOWED_USERS, SECRET_KEY
+from born_portal import auth, event, festival, podcast, routes, show
+from born_portal.core import ADMIN_USERS, SECRET_KEY, VIEW_USERS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,12 +27,17 @@ _PUBLIC_PATHS = {
 
 app.middlewares.append(SessionMiddleware(store=CookieSessionStore(SECRET_KEY)))
 app.middlewares.append(
-    auth.AuthMiddleware(public_paths=_PUBLIC_PATHS, allowed_users=ALLOWED_USERS)
+    auth.AuthMiddleware(
+        public_paths=_PUBLIC_PATHS,
+        admin_users=ADMIN_USERS,
+        view_users=VIEW_USERS,
+    )
 )
 
 auth.register_routes(app)
 routes.register_routes(app)
 event.register_routes(app)
+festival.register_routes(app)
 podcast.register_routes(app)
 show.register_routes(app)
 

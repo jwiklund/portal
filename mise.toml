@@ -2,5 +2,6 @@
 run = "uv run --no-sync uvicorn born_portal.main:app --reload --port 8080 --log-level debug"
 fetch = "uv run --no-sync python -m born_portal.main fetch"
 parse = "uv run --no-sync python -m born_portal.main parse"
+check = "uv run --no-sync pytest"
 sync = "uv sync"
 format = "black src ; isort src"

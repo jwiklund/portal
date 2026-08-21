@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}{% if festival.id %}Edit{% else %}New{% endif %} Festival – Born Portal{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
+  .edit-form { max-width: 600px; }
+  .form-group { margin-bottom: 1.25rem; }
+  label { display: block; margin-bottom: 0.5rem; color: #ccc; font-size: 0.9rem; }
+  input, textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e8e8e8;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  textarea { min-height: 100px; resize: vertical; }
+  input:focus, textarea:focus { outline: none; border-color: #555; }
+  .date-row { display: flex; gap: 1rem; }
+  .date-row .form-group { flex: 1; }
+  .form-actions { display: flex; gap: 1rem; margin-top: 2rem; align-items: center; }
+  .save-btn {
+    background: #d4b483;
+    color: #1a1a1a;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .cancel-btn {
+    background: transparent;
+    color: #999;
+    border: 1px solid #3a3a3a;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 1rem;
+  }
+  .hint { color: #888; font-size: 0.85rem; margin-top: 0.4rem; }
+
+  .artist-editor { border: 1px solid #3a3a3a; border-radius: 6px; padding: 1rem; background: #161616; }
+  .artist-rows { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+  .artist-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #1f1f1f;
+    border: 1px solid #2e2e2e;
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+  }
+  .artist-row img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+  .artist-row .artist-name { flex: 1; font-size: 0.95rem; }
+  .artist-row .spotify-link { color: #1db954; text-decoration: none; font-size: 0.8rem; }
+  .artist-row .remove-btn {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.25rem;
+  }
+  .artist-row .remove-btn:hover { color: #e07b7b; }
+  .search-wrap { position: relative; }
+  .search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: #1f1f1f;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+    display: none;
+  }
+  .search-result {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .search-result:hover { background: #2a2a2a; }
+  .search-result img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+  .search-status { color: #888; font-size: 0.8rem; margin-top: 0.35rem; min-height: 1em; }
+{% endblock %}
+
+{% block content %}
+  <h2>{% if festival.id %}Edit{% else %}New{% endif %} Festival</h2>
+
+  <form method="POST" action="/festivals/save" class="edit-form" id="festival-form">
+    <input type="hidden" name="festival_id" value="{{ festival.id or '' }}">
+    <input type="hidden" name="artists_json" id="artists_json">
+
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" value="{{ festival.name }}" required>
+    </div>
+
+    <div class="date-row">
+      <div class="form-group">
+        <label for="start_date">Start date</label>
+        <input type="date" id="start_date" name="start_date" value="{{ festival.start_date or '' }}">
+      </div>
+      <div class="form-group">
+        <label for="end_date">End date</label>
+        <input type="date" id="end_date" name="end_date" value="{{ festival.end_date or '' }}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="location">Location</label>
+      <input type="text" id="location" name="location" value="{{ festival.location or '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" name="description">{{ festival.description }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="album_uri">Google Photos album</label>
+      <input type="text" id="album_uri" name="album_uri"
+             value="{{ festival.album_uri or '' }}" list="known-albums"
+             placeholder="https://photos.google.com/share/…">
+      <datalist id="known-albums">
+        {% for uri in known_album_uris %}
+          <option value="{{ uri }}"></option>
+        {% endfor %}
+      </datalist>
+      <p class="hint">Paste a shared album link. The album must be shared as
+        “anyone with the link” — then it works for every viewer without extra access.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Artists</label>
+      <div class="artist-editor">
+        <div class="artist-rows" id="artist-rows"></div>
+        <div class="search-wrap">
+          <input type="text" id="artist-search" placeholder="Search artist on Spotify…"
+                 autocomplete="off">
+          <div class="search-results" id="search-results"></div>
+        </div>
+        <p class="search-status" id="search-status"></p>
+        <button type="button" class="save-btn" id="add-manual-btn"
+                style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">Add manually</button>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="save-btn">Save Festival</button>
+      <a href="/festivals" class="cancel-btn">Cancel</a>
+    </div>
+  </form>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    const artists = [
+      {% for a in festival.artists %}
+        { name: {{ a.name | tojson }}, spotify_uri: {{ (a.spotify_uri or '') | tojson }} },
+      {% endfor %}
+    ];
+
+    const rowsEl = document.getElementById("artist-rows");
+    const jsonEl = document.getElementById("artists_json");
+    const searchInput = document.getElementById("artist-search");
+    const resultsEl = document.getElementById("search-results");
+    const statusEl = document.getElementById("search-status");
+
+    function renderArtists() {
+      rowsEl.innerHTML = "";
+      artists.forEach((artist, i) => {
+        const row = document.createElement("div");
+        row.className = "artist-row";
+
+        if (artist.image) {
+          const img = document.createElement("img");
+          img.src = artist.image;
+          row.appendChild(img);
+        }
+
+        const name = document.createElement("span");
+        name.className = "artist-name";
+        name.textContent = artist.name;
+        row.appendChild(name);
+
+        if (artist.spotify_uri) {
+          const link = document.createElement("a");
+          link.className = "spotify-link";
+          link.href = artist.spotify_uri.replace("spotify:artist:", "https://open.spotify.com/artist/");
+          link.textContent = "Spotify";
+          link.target = "_blank";
+          row.appendChild(link);
+        }
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "remove-btn";
+        remove.textContent = "✕";
+        remove.onclick = () => { artists.splice(i, 1); renderArtists(); };
+        row.appendChild(remove);
+
+        rowsEl.appendChild(row);
+      });
+      jsonEl.value = JSON.stringify(
+        artists.map(({ name, spotify_uri }) => ({ name, spotify_uri }))
+      );
+    }
+
+    let debounceTimer = null;
+    searchInput.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      const q = searchInput.value.trim();
+      if (!q) { resultsEl.style.display = "none"; statusEl.textContent = ""; return; }
+      debounceTimer = setTimeout(() => searchSpotify(q), 300);
+    });
+
+    async function searchSpotify(q) {
+      statusEl.textContent = "Searching…";
+      try {
+        const resp = await fetch(`/festivals/api/spotify/search?q=${encodeURIComponent(q)}`);
+        const data = await resp.json();
+        if (data.error) { statusEl.textContent = data.error; return; }
+        showResults(data.artists || []);
+        statusEl.textContent = (data.artists || []).length ? "" : "No results — use “Add manually”.";
+      } catch (err) {
+        statusEl.textContent = "Search failed: " + err;
+      }
+    }
+
+    function showResults(results) {
+      resultsEl.innerHTML = "";
+      results.forEach((r) => {
+        const item = document.createElement("div");
+        item.className = "search-result";
+        if (r.image) {
+          const img = document.createElement("img");
+          img.src = r.image;
+          item.appendChild(img);
+        }
+        const label = document.createElement("span");
+        label.textContent = r.name;
+        item.appendChild(label);
+        item.onclick = () => addArtist(r.name, r.spotify_uri, r.image);
+        resultsEl.appendChild(item);
+      });
+      resultsEl.style.display = results.length ? "block" : "none";
+    }
+
+    function addArtist(name, spotifyUri, image) {
+      if (!artists.some((a) => a.name === name)) {
+        artists.push({ name, spotify_uri: spotifyUri || "", image });
+        renderArtists();
+      }
+      searchInput.value = "";
+      resultsEl.style.display = "none";
+      statusEl.textContent = "";
+    }
+
+    document.getElementById("add-manual-btn").onclick = () => {
+      const q = searchInput.value.trim();
+      if (q) addArtist(q, "", "");
+    };
+
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const first = resultsEl.querySelector(".search-result");
+        if (first) first.click();
+        else document.getElementById("add-manual-btn").click();
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".search-wrap")) resultsEl.style.display = "none";
+    });
+
+    renderArtists();
+  </script>
+{% endblock %}

@@ -31,12 +31,15 @@
 {% endblock %}
 
 {% block content %}
-  <a href="/events" class="back-link">← Back to events</a>
+  {% set events_base = "/events" if is_admin else "/events/view" %}
+  <a href="{{ events_base }}" class="back-link">← Back to events</a>
 
-  <div style="margin-bottom: 1.5rem;">
-    <a href="/events/edit/{{ event.id }}" style="background: #2a2a2a; color: #e8e8e8; padding: 0.5rem 1rem; border: 1px solid #3a3a3a; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">Edit</a>
-    <button onclick="confirmDelete({{ event.id }})" style="background: #e76f51; color: #1a1a1a; border: none; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem; cursor: pointer; margin-left: 0.5rem;">Delete</button>
-  </div>
+  {% if is_admin %}
+    <div style="margin-bottom: 1.5rem;">
+      <a href="/events/edit/{{ event.id }}" style="background: #2a2a2a; color: #e8e8e8; padding: 0.5rem 1rem; border: 1px solid #3a3a3a; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">Edit</a>
+      <button onclick="confirmDelete({{ event.id }})" style="background: #e76f51; color: #1a1a1a; border: none; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem; cursor: pointer; margin-left: 0.5rem;">Delete</button>
+    </div>
+  {% endif %}
 
   <div class="event-header">
     <h1 class="event-title">
@@ -90,19 +93,21 @@
     <div class="event-description">{{ event.description }}</div>
   {% endif %}
 
-  <script>
-    function confirmDelete(eventId) {
-      if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-        fetch('/events/delete', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: 'event_id=' + encodeURIComponent(eventId)
-        }).then(function(response) {
-          window.location.href = '/events';
-        });
+  {% if is_admin %}
+    <script>
+      function confirmDelete(eventId) {
+        if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+          fetch('/events/delete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'event_id=' + encodeURIComponent(eventId)
+          }).then(function(response) {
+            window.location.href = '/events';
+          });
+        }
       }
-    }
-  </script>
+    </script>
+  {% endif %}
 {% endblock %}

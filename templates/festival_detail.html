@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}{{ festival.name }} – Born Portal{% endblock %}
+
+{% block extra_styles %}
+  .festival-header { margin-bottom: 1.5rem; }
+  .festival-title { font-size: 2rem; font-weight: normal; }
+  .festival-meta { color: #aaa; font-size: 0.9rem; margin-top: 0.25rem; }
+  .festival-description { color: #ccc; margin-top: 0.75rem; line-height: 1.5; white-space: pre-line; }
+  .artist-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+  .chip {
+    font-size: 0.78rem;
+    color: #bbb;
+    background: #242424;
+    border: 1px solid #333;
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    text-decoration: none;
+  }
+  a.chip:hover { border-color: #d4b483; color: #e8e8e8; }
+  .actions { margin: 1rem 0 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
+  .btn {
+    background: #d4b483;
+    color: #1a1a1a;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-danger { background: #b45d5d; }
+  .album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.5rem;
+  }
+  .album-grid img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    display: block;
+    background: #1a1a1a;
+  }
+  .album-grid img:hover { opacity: 0.85; }
+  .album-item { position: relative; }
+  .play-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 0.15rem;
+    pointer-events: none;
+  }
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.92);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img,
+  .lightbox video {
+    max-width: 94vw;
+    max-height: 88vh;
+    object-fit: contain;
+  }
+  .lightbox img {
+    cursor: zoom-in;
+  }
+  .lightbox-caption { color: #999; font-size: 0.8rem; margin-top: 0.5rem; }
+  .lb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eee;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    padding: 0.5rem 0.9rem;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .lb-nav:hover { background: rgba(255, 255, 255, 0.18); }
+  .lb-prev { left: 1rem; }
+  .lb-next { right: 1rem; }
+  .error-box {
+    background: #2a1d1d;
+    border: 1px solid #b45d5d;
+    border-radius: 8px;
+    padding: 1rem;
+    color: #e0b0b0;
+    margin-bottom: 1.5rem;
+  }
+{% endblock %}
+
+{% block content %}
+  <div class="festival-header">
+    <h2 class="festival-title">{{ festival.name }}</h2>
+    <div class="festival-meta">
+      {{ festival.start_date or "TBD" }}{% if festival.end_date and festival.end_date != festival.start_date %} – {{ festival.end_date }}{% endif %}
+      {% if festival.location %} • {{ festival.location }}{% endif %}
+    </div>
+    {% if festival.description %}
+      <div class="festival-description">{{ festival.description }}</div>
+    {% endif %}
+    {% if festival.artists %}
+      <div class="artist-chips">
+        {% for a in festival.artists %}
+          {% if a.spotify_uri and a.spotify_uri.startswith("spotify:") %}
+            <a class="chip" href="https://open.spotify.com/artist/{{ a.spotify_uri.split(':')[2] }}" target="_blank" rel="noopener">{{ a.name }}</a>
+          {% elif a.spotify_uri %}
+            <a class="chip" href="{{ a.spotify_uri }}" target="_blank" rel="noopener">{{ a.name }}</a>
+          {% else %}
+            <span class="chip">{{ a.name }}</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="actions">
+    <a href="{{ "/festivals" if is_admin else "/festivals/view" }}" style="color: #999; text-decoration: none; font-size: 0.9rem;">← All festivals</a>
+    {% if is_admin %}
+      <a href="/festivals/edit/{{ festival.id }}" class="btn">Edit</a>
+      <form method="post" action="/festivals/delete"
+            onsubmit="return confirm('Delete {{ festival.name }}?');">
+        <input type="hidden" name="festival_id" value="{{ festival.id }}" />
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if album_error %}
+    <div class="error-box">{{ album_error }}</div>
+  {% elif not festival.album_uri %}
+    <p style="color: #aaa;">No photo album linked to this festival.</p>
+  {% elif photos %}
+    <div class="album-grid" id="album-grid">
+      {% for p in photos %}
+        <div class="album-item">
+          <img src="{{ p.thumb }}" loading="lazy" alt=""
+               data-view="{{ p.view }}" data-full="{{ p.full }}"
+               {% if p.video %}data-video="{{ p.video }}"{% endif %}
+               width="{{ p.width }}" height="{{ p.height }}" />
+          {% if p.video %}<span class="play-badge">&#9654;</span>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="color: #aaa;">Album is empty or could not be read.</p>
+  {% endif %}
+
+  <div class="lightbox" id="lightbox">
+    <button class="lb-nav lb-prev" id="lb-prev">&lt;</button>
+    <img id="lightbox-img" src="" alt="" />
+    <video id="lightbox-video" controls playsinline style="display: none;"></video>
+    <button class="lb-nav lb-next" id="lb-next">&gt;</button>
+    <div class="lightbox-caption">Click image to open full size</div>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightbox-img");
+    const lightboxVideo = document.getElementById("lightbox-video");
+    const caption = document.querySelector(".lightbox-caption");
+    const images = [...document.querySelectorAll("#album-grid img[data-view]")];
+    let current = -1;
+
+    function stopVideo() {
+      lightboxVideo.pause();
+      lightboxVideo.removeAttribute("src");
+      lightboxVideo.load();
+    }
+
+    function show(i) {
+      current = (i + images.length) % images.length;
+      const img = images[current];
+      if (img.dataset.video) {
+        lightboxImg.style.display = "none";
+        lightboxVideo.style.display = "block";
+        caption.textContent = "";
+        lightboxVideo.src = img.dataset.video;
+        lightboxVideo.play().catch(() => {});
+      } else {
+        stopVideo();
+        lightboxImg.style.display = "block";
+        lightboxImg.src = img.dataset.view;
+        lightboxImg.dataset.full = img.dataset.full;
+        caption.textContent = "Click image to open full size";
+      }
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove("open");
+      stopVideo();
+    }
+
+    document.getElementById("album-grid").addEventListener("click", (e) => {
+      const img = e.target.closest("img[data-view]");
+      if (!img) return;
+      show(images.indexOf(img));
+      lightbox.classList.add("open");
+    });
+
+    document.getElementById("lb-prev").addEventListener("click", () => show(current - 1));
+    document.getElementById("lb-next").addEventListener("click", () => show(current + 1));
+
+    lightboxImg.addEventListener("click", () => {
+      window.open(lightboxImg.dataset.full, "_blank");
+    });
+
+    lightbox.addEventListener("click", (e) => {
+      if (e.target !== lightboxImg && e.target !== lightboxVideo && !e.target.closest(".lb-nav")) {
+        closeLightbox();
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (!lightbox.classList.contains("open")) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") show(current - 1);
+      if (e.key === "ArrowRight") show(current + 1);
+    });
+  </script>
+{% endblock %}

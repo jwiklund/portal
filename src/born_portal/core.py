@@ -24,7 +24,10 @@ from jinja2 import Environment, FileSystemLoader
 GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
 GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
-ALLOWED_USERS = set(os.environ.get("ALLOWED_USERS", "").split(","))
+ADMIN_USERS = set(os.environ.get("ADMIN_USERS", "").split(","))
+VIEW_USERS = set(os.environ.get("VIEW_USERS", "").split(","))
+SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
+SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
 SHOWS_DIR = os.environ.get("SHOWS_DIR", "shows")
 SHOWS_CACHE_DIR = os.environ.get("SHOWS_CACHE_DIR", "shows_cache")
 SECRET_KEY = os.environ["SECRET_KEY"]
@@ -42,6 +45,14 @@ jinja = Environment(loader=FileSystemLoader("templates"), autoescape=True)
 def user(request) -> dict:
     email = request.session.get("user")
     return {"name": email.split("@")[0], "email": email}
+
+
+def is_admin(request) -> bool:
+    return request.session.get("user") in ADMIN_USERS
+
+
+def is_viewer(request) -> bool:
+    return request.session.get("user") in VIEW_USERS
 
 
 def render(template_name: str, **ctx) -> Response:

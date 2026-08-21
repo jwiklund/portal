@@ -28,7 +28,7 @@ tests/             # pytest tests
 
 - **Database**: `events.db` (SQLite, gitignored) — auto-created by EventStore on first use.
 - **Directories**: `shows/` (video source files), `shows_cache/` (converted mp4 streams), `podcasts/` (downloaded audio) — all gitignored via `.gitignore`.
-- **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ALLOWED_USERS`, `MODEL`, `API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`.
+- **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ADMIN_USERS`, `MODEL`, `API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`.
 
 ## Architecture
 
@@ -86,7 +86,7 @@ All templates use `core.render(template_name, **ctx)` which wraps Jinja2 renderi
 
 ### Security
 
-- `AuthMiddleware` checks `request.session["user"]` against `ALLOWED_USERS` set
+- `AuthMiddleware` checks `request.session["user"]` against `ADMIN_USERS` set
 - Podcast filenames are sanitized with `_safe_filename()` regex to prevent path traversal
 
 ## Testing

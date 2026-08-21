@@ -8,13 +8,20 @@ from blacksheep.server.responses import redirect
 
 from born_portal.core import (GOOGLE_AUTH_URL, GOOGLE_CLIENT_ID,
                               GOOGLE_CLIENT_SECRET, GOOGLE_TOKEN_URL,
-                              GOOGLE_USERINFO_URL, REDIRECT_URI, render)
+                              GOOGLE_USERINFO_URL, REDIRECT_URI, is_viewer,
+                              render)
 
 
 class AuthMiddleware:
-    def __init__(self, public_paths: set[str], allowed_users: set[str]):
+    def __init__(
+        self,
+        public_paths: set[str],
+        admin_users: set[str],
+        view_users: set[str] | None = None,
+    ):
         self._public = public_paths or {"/login", "/auth/google", "/auth/callback"}
-        self._allowed_users = allowed_users
+        self._admin_users = admin_users
+        self._view_users = view_users or set()
 
     async def __call__(
         self, request: Request, handler: Callable[[Request], Awaitable[Response]]
@@ -27,18 +34,28 @@ class AuthMiddleware:
         if not request.session.get("user"):
             return redirect("/login")
 
-        if request.session.get("user") not in self._allowed_users:
-            return render(
-                "error.html", message="Access denied: your account is not allowed."
-            )
+        if request.session.get("user") in self._admin_users:
+            return await handler(request)
 
-        return await handler(request)
+        # Read-only access: GET/HEAD on view pages (paths ending in /view)
+        if (
+            request.session.get("user") in self._view_users
+            and request.method in ("GET", "HEAD")
+            and request.path.endswith("/view")
+        ):
+            return await handler(request)
+
+        return render(
+            "error.html", message="Access denied: your account is not allowed."
+        )
 
 
 def register_routes(app):
     @app.router.get("/login")
     async def login_page(request: Request):
         if request.session.get("user"):
+            if is_viewer(request):
+                return redirect("/events/view")
             return redirect("/events")
         return render("login.html")
 
@@ -95,6 +112,8 @@ def register_routes(app):
             user = userinfo_resp.json()
 
         request.session["user"] = user.get("email", "")
+        if is_viewer(request):
+            return redirect("/events/view")
         return redirect("/events")
 
     @app.router.get("/logout")

@@ -44,9 +44,15 @@
   <nav>
     <a href="/" class="nav-brand">Born Portal</a>
     <div class="nav-links">
-      <a href="/events">Events</a>
-      <a href="/podcasts">Podcasts</a>
-      <a href="/shows">Shows</a>
+      {% if is_admin %}
+        <a href="/events">Events</a>
+        <a href="/festivals">Festivals</a>
+        <a href="/podcasts">Podcasts</a>
+        <a href="/shows">Shows</a>
+      {% else %}
+        <a href="/events/view">Events</a>
+        <a href="/festivals/view">Festivals</a>
+      {% endif %}
       {% if user and user.picture %}
         <img src="{{ user.picture }}" class="avatar" alt="{{ user.name }}" />
       {% endif %}

@@ -54,21 +54,25 @@
 {% endblock %}
 
 {% block content %}
+  {% set events_base = "/events" if is_admin else "/events/view" %}
+  {% set events_suffix = "" if is_admin else "/view" %}
   <h2>Upcoming Events</h2>
 
-  <div style="margin-bottom: 1.5rem;">
-    <a href="/events/import" style="background: #d4b483; color: #1a1a1a; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">+ Import Event</a>
-  </div>
+  {% if is_admin %}
+    <div style="margin-bottom: 1.5rem;">
+      <a href="/events/import" style="background: #d4b483; color: #1a1a1a; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">+ Import Event</a>
+    </div>
+  {% endif %}
 
   <div class="filters">
-    <a href="/events" class="{% if not sort_by or sort_by == 'date' %}active{% endif %}">Date</a>
-    <a href="/events?sort_by=price" class="{% if sort_by == 'price' %}active{% endif %}">Cost</a>
+    <a href="{{ events_base }}" class="{% if not sort_by or sort_by == 'date' %}active{% endif %}">Date</a>
+    <a href="{{ events_base }}?sort_by=price" class="{% if sort_by == 'price' %}active{% endif %}">Cost</a>
   </div>
 
   {% if events %}
     <div class="event-list">
       {% for e in events %}
-        <a href="/events/{{ e.id }}" class="event-item">
+        <a href="/events/{{ e.id }}{{ events_suffix }}" class="event-item">
           <div class="event-date">
             {% if e.date %}
               <div>{{ e.date }}</div>

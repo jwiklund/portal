@@ -2,12 +2,14 @@ import dataclasses
 from datetime import datetime
 from typing import Optional
 
+from aiohttp import request
 from blacksheep import Request
 from blacksheep.server.responses import redirect
 
 from born_portal import event
-from born_portal.core import render, user
+from born_portal.core import is_admin, render, user
 from born_portal.event.model import EventData
+from born_portal.festival import store
 
 
 def register_routes(app):
@@ -44,7 +46,13 @@ def register_routes(app):
 
         upcoming = [render_event(e) for e in future_events[:20]]
 
-        return render("events.html", user=user(request), events=upcoming)
+        return render(
+            "events.html",
+            user=user(request),
+            events=upcoming,
+            sort_by=sort_by,
+            is_admin=is_admin(request),
+        )
 
     @app.router.get("/events/import")
     async def events_import(request: Request):
@@ -99,7 +107,12 @@ def register_routes(app):
         finally:
             store.close()
 
-        return render("event_detail.html", user=user(request), event=event_data)
+        return render(
+            "event_detail.html",
+            user=user(request),
+            event=event_data,
+            is_admin=is_admin(request),
+        )
 
     @app.router.get("/events/edit/{event_id}")
     async def event_edit(request: Request, event_id: int):
@@ -159,8 +172,6 @@ def register_routes(app):
         finally:
             store.close()
 
-        print(event_id)
-
         return redirect(f"/events/{event_id}")
 
     @app.router.post("/events/delete")
@@ -181,3 +192,11 @@ def register_routes(app):
             store.close()
 
         return redirect("/events")
+
+    @app.router.get("/events/{event_id}/view")
+    async def view_event_detail(request: Request, event_id: int):
+        return await event_detail(request, event_id)
+
+    @app.router.get("/events/view")
+    async def view_events_list(request: Request, sort_by: Optional[str] = None):
+        return await events_list(request, sort_by)
