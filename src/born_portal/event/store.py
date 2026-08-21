@@ -18,11 +18,11 @@ class EventStore:
         if self._conn is None:
             self._conn = sqlite3.connect(self.db_path)
             self._conn.row_factory = sqlite3.Row
-            self._create_table()
+            self._create_table(self._conn)
         return self._conn
 
-    def _create_table(self) -> None:
-        cursor = self._conn.cursor()
+    def _create_table(self, conn: sqlite3.Connection) -> None:
+        cursor = conn.cursor()
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS events (
@@ -37,7 +37,7 @@ class EventStore:
             )
         """
         )
-        self._conn.commit()
+        conn.commit()
 
     def close(self) -> None:
         if self._conn is not None:
@@ -84,7 +84,7 @@ class EventStore:
             asdict(event),
         )
         conn.commit()
-        return cursor.lastrowid
+        return cursor.lastrowid if cursor.lastrowid is not None else 0
 
     def get(self, url: str) -> Optional[EventData]:
         """Retrieve an event by URL."""

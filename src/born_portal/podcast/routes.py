@@ -7,7 +7,7 @@ import aiofiles
 from blacksheep import Request, file
 from blacksheep.server.responses import ContentDispositionType, redirect
 
-from born_portal.core import render
+from born_portal.core import form_value, render
 
 PODCAST_DIR = Path("podcasts")
 PODCAST_DIR.mkdir(exist_ok=True)
@@ -60,7 +60,7 @@ def register_routes(app):
     @app.router.post("/podcasts/download")
     async def podcast_download(request: Request):
         form = await request.form()
-        url = form.get("url", "")
+        url = form_value(form, "url") or ""
 
         if not url:
             return render(
@@ -106,7 +106,7 @@ def register_routes(app):
     @app.router.post("/podcasts/delete")
     async def podcast_delete(request: Request):
         form = await request.form()
-        filename = form.get("filename", "")
+        filename = form_value(form, "filename") or ""
 
         if filename:
             # Only allow safe filenames to prevent path traversal

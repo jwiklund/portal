@@ -41,6 +41,9 @@ async def parse(url: str) -> EventData:
 
     markdown = _html_to_markdown(html)
 
+    if not _model:
+        raise ValueError("MODEL environment variable is not set")
+
     response = await acompletion(
         messages=[
             {

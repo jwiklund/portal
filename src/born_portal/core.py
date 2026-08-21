@@ -13,6 +13,9 @@ Set these environment variables (or create a .env file):
 """
 
 import os
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
 
 from blacksheep import Request, Response
 from blacksheep.server.responses import html
@@ -28,8 +31,8 @@ ADMIN_USERS = set(os.environ.get("ADMIN_USERS", "").split(","))
 VIEW_USERS = set(os.environ.get("VIEW_USERS", "").split(","))
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
-SHOWS_DIR = os.environ.get("SHOWS_DIR", "shows")
-SHOWS_CACHE_DIR = os.environ.get("SHOWS_CACHE_DIR", "shows_cache")
+SHOWS_DIR = Path(os.environ.get("SHOWS_DIR", "shows"))
+SHOWS_CACHE_DIR = Path(os.environ.get("SHOWS_CACHE_DIR", "shows_cache"))
 SECRET_KEY = os.environ["SECRET_KEY"]
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -47,6 +50,20 @@ def user(request) -> dict | None:
     if not email:
         return None
     return {"name": email.split("@")[0], "email": email}
+
+
+def form_value(form: Mapping[str, Any] | None, key: str) -> str | None:
+    """Extract a single string value from a parsed form body."""
+    if not form:
+        return None
+    value = form.get(key)
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, str):
+                return item
+    return None
 
 
 def is_admin(request) -> bool:

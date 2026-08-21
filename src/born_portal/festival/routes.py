@@ -7,7 +7,7 @@ from blacksheep.server.responses import json as json_response
 from blacksheep.server.responses import redirect
 
 from born_portal import festival
-from born_portal.core import render
+from born_portal.core import form_value, render
 from born_portal.festival.model import ArtistData, FestivalData
 from born_portal.utils.date_range import parse_name_with_dates
 
@@ -53,7 +53,7 @@ def register_routes(app):
     @app.router.post("/festivals/import")
     async def festival_import_post(request: Request):
         form = await request.form()
-        url = (form.get("url") or "").strip()
+        url = (form_value(form, "url") or "").strip()
 
         if not url:
             return render("festival_import.html", request, error="Please enter a URL")
@@ -154,13 +154,13 @@ def register_routes(app):
         if not form:
             return render("error.html", request, message="No data provided")
 
-        name = (form.get("name") or "").strip()
+        name = (form_value(form, "name") or "").strip()
         if not name:
             return render("error.html", request, message="Festival name is required")
 
         artists = []
         try:
-            raw = json.loads(form.get("artists_json") or "[]")
+            raw = json.loads(form_value(form, "artists_json") or "[]")
             artists = [
                 ArtistData(
                     name=item.get("name", ""), spotify_uri=item.get("spotify_uri")
@@ -171,15 +171,15 @@ def register_routes(app):
         except (json.JSONDecodeError, AttributeError):
             return render("error.html", request, message="Invalid artist data")
 
-        festival_id = form.get("festival_id")
+        festival_id = form_value(form, "festival_id")
         festival_data = FestivalData(
             id=int(festival_id) if festival_id else None,
             name=name,
-            start_date=form.get("start_date") or None,
-            end_date=form.get("end_date") or None,
-            location=(form.get("location") or "").strip() or None,
-            description=form.get("description") or "",
-            album_uri=(form.get("album_uri") or "").strip() or None,
+            start_date=form_value(form, "start_date") or None,
+            end_date=form_value(form, "end_date") or None,
+            location=(form_value(form, "location") or "").strip() or None,
+            description=form_value(form, "description") or "",
+            album_uri=(form_value(form, "album_uri") or "").strip() or None,
             artists=artists,
         )
 
@@ -194,7 +194,7 @@ def register_routes(app):
     @app.router.post("/festivals/delete")
     async def festival_delete(request: Request):
         form = await request.form()
-        festival_id = form.get("festival_id")
+        festival_id = form_value(form, "festival_id")
         if not festival_id:
             return render("error.html", request, message="No festival provided")
 

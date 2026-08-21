@@ -10,12 +10,11 @@ from blacksheep import (ContentDispositionType, Request, Response,
 from blacksheep.exceptions import BadRequest, RangeNotSatisfiable
 from blacksheep.ranges import InvalidRangeValue, Range
 
-from born_portal.core import BASE_URL, SHOWS_CACHE_DIR, SHOWS_DIR, render
+from born_portal.core import (BASE_URL, SHOWS_CACHE_DIR, SHOWS_DIR, form_value,
+                              render)
 
-SHOWS_DIR = Path(SHOWS_DIR)
 SHOWS_DIR.mkdir(exist_ok=True)
 
-SHOWS_CACHE_DIR = Path(SHOWS_CACHE_DIR)
 SHOWS_CACHE_DIR.mkdir(exist_ok=True)
 
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".webm"}
@@ -60,7 +59,7 @@ def _list_shows() -> list[dict]:
     return files
 
 
-def _stream_filename_pattern(name: str) -> str:
+def _stream_filename_pattern(name: str) -> bool:
     """Validate a stream filename matches 'stem-uuid.mp4' pattern."""
     return bool(
         re.match(
@@ -176,7 +175,7 @@ def register_routes(app):
     @app.router.post("/shows/convert")
     async def shows_convert(request: Request):
         form = await request.form()
-        filename = form.get("filename", "")
+        filename = form_value(form, "filename") or ""
 
         if not filename:
             return render(
@@ -274,7 +273,9 @@ def register_routes(app):
                 raise RangeNotSatisfiable()
 
             part = requested_range.parts[0]
-            start = part.start if part.start is not None else file_size - part.end
+            start = (
+                part.start if part.start is not None else file_size - (part.end or 0)
+            )
             end = (
                 part.end
                 if (part.end is not None and part.start is not None)

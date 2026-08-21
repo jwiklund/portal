@@ -7,7 +7,7 @@ from blacksheep import Request
 from blacksheep.server.responses import redirect
 
 from born_portal import event
-from born_portal.core import render
+from born_portal.core import form_value, render
 from born_portal.event.model import EventData
 from born_portal.festival import store
 
@@ -60,7 +60,7 @@ def register_routes(app):
     @app.router.post("/events/import")
     async def event_import(request: Request):
         form = await request.form()
-        url = form.get("url", "")
+        url = form_value(form, "url") or ""
 
         if not url:
             return render("events_import.html", request, error="Please enter a URL")
@@ -124,7 +124,7 @@ def register_routes(app):
 
         store = event.EventStore()
         try:
-            event_id = form.get("event_id")
+            event_id = form_value(form, "event_id")
 
             # Determine if we're updating an existing event
             if event_id and event_id != "None":
@@ -134,25 +134,25 @@ def register_routes(app):
                     event_data = event.EventData(
                         id=existing.id,
                         url=existing.url,  # Preserve original URL
-                        name=form.get("name", ""),
-                        description=form.get("description", ""),
-                        location=form.get("location"),
-                        price=form.get("price"),
-                        date=form.get("date"),
-                        ticket=bool(form.get("ticket") == "on"),
+                        name=form_value(form, "name") or "",
+                        description=form_value(form, "description") or "",
+                        location=form_value(form, "location"),
+                        price=form_value(form, "price"),
+                        date=form_value(form, "date"),
+                        ticket=form_value(form, "ticket") == "on",
                     )
                 else:
                     raise Exception("Event does not exist")
             else:
                 # No event_id, create new one
                 event_data = event.EventData(
-                    url=form.get("url", ""),
-                    name=form.get("name", ""),
-                    description=form.get("description", ""),
-                    location=form.get("location"),
-                    price=form.get("price"),
-                    date=form.get("date"),
-                    ticket=bool(form.get("ticket") == "on"),
+                    url=form_value(form, "url") or "",
+                    name=form_value(form, "name") or "",
+                    description=form_value(form, "description") or "",
+                    location=form_value(form, "location"),
+                    price=form_value(form, "price"),
+                    date=form_value(form, "date"),
+                    ticket=form_value(form, "ticket") == "on",
                 )
             event_id = store.save(event_data)
         finally:
@@ -163,7 +163,7 @@ def register_routes(app):
     @app.router.post("/events/delete")
     async def event_delete(request: Request):
         form = await request.form()
-        event_id = form.get("event_id")
+        event_id = form_value(form, "event_id")
 
         if not event_id:
             return render("error.html", request, message="No event provided")

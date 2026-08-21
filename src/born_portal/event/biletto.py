@@ -45,7 +45,7 @@ class _Parser(HTMLParser):
         if self._ld is not None:
             self.parse_ld("".join(self._ld))
             self._ld = None
-        if tag == "h2":
+        if tag == "h2" and self._header is not None:
             if "".join(self._header) == "Beskrivning":
                 self._description_div = []
                 self._header = None
@@ -84,7 +84,7 @@ class _Parser(HTMLParser):
 
     def result(self) -> EventData:
         return EventData(
-            url=self._url,
+            url=self._url or "",
             name=self._name,
             description=self._description,
             location=self._location,

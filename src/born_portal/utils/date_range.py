@@ -80,7 +80,7 @@ _ENGLISH_TO_SWEDISH_MONTHS = {
 
 
 def _english_to_swedish_date(date_str: str) -> str:
-    def replace_month(match):
+    def replace_month(match: re.Match[str]) -> str:
         word = match.group(0)
         return _ENGLISH_TO_SWEDISH_MONTHS.get(word.lower(), word)
 
@@ -121,14 +121,16 @@ def _parse_date(date_str: str) -> str | None:
 
 
 def _format_date_range(
-    start_date: str,
-    start_time: str,
-    end_date: str,
-    end_time: str,
+    start_date: str | None,
+    start_time: str | None,
+    end_date: str | None,
+    end_time: str | None,
 ) -> str:
     """Format a date range, omitting redundant date parts if possible."""
     if not start_time:
-        return f"{start_date} - {end_date}" if end_date else start_date
+        if end_date:
+            return f"{start_date} - {end_date}"
+        return start_date or ""
 
     if not end_time:
         return f"{start_date} {start_time}"
@@ -139,7 +141,7 @@ def _format_date_range(
     return f"{start_date} {start_time} - {end_date} {end_time}"
 
 
-def parse_date_range(date_str: str) -> str:
+def parse_date_range(date_str: str | None) -> str | None:
     """Parse a date string that may contain time ranges or full date ranges.
 
     Supports formats:

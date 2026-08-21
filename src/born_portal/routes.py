@@ -1,7 +1,7 @@
 from born_portal.core import is_viewer, render, user
 from born_portal.event import biletto, model, store
 
-__all__ = ["biletto", "model", "store", "register_event_routes"]
+__all__ = ["biletto", "model", "store"]
 
 from blacksheep.server.responses import redirect
 
