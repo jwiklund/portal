@@ -7,7 +7,7 @@ import aiofiles
 from blacksheep import Request, file
 from blacksheep.server.responses import ContentDispositionType, redirect
 
-from born_portal.core import render, user
+from born_portal.core import render
 
 PODCAST_DIR = Path("podcasts")
 PODCAST_DIR.mkdir(exist_ok=True)
@@ -55,7 +55,7 @@ def _list_podcasts() -> list[dict]:
 def register_routes(app):
     @app.router.get("/podcasts")
     async def podcast_page(request: Request):
-        return render("podcasts.html", user=user(request), podcasts=_list_podcasts())
+        return render("podcasts.html", request, podcasts=_list_podcasts())
 
     @app.router.post("/podcasts/download")
     async def podcast_download(request: Request):
@@ -65,7 +65,7 @@ def register_routes(app):
         if not url:
             return render(
                 "podcasts.html",
-                user=user(request),
+                request,
                 podcasts=_list_podcasts(),
                 error="Please enter a URL",
             )
@@ -87,7 +87,7 @@ def register_routes(app):
             if proc.returncode != 0:
                 return render(
                     "podcasts.html",
-                    user=user(request),
+                    request,
                     podcasts=_list_podcasts(),
                     error=f"Download failed: {stderr.decode()[:500]}",
                 )
@@ -96,7 +96,7 @@ def register_routes(app):
         except FileNotFoundError:
             return render(
                 "podcasts.html",
-                user=user(request),
+                request,
                 podcasts=_list_podcasts(),
                 error="yt-dlp not found. Please install it first.",
             )
@@ -114,7 +114,7 @@ def register_routes(app):
             if filename != safe:
                 return render(
                     "error.html",
-                    user=user(request),
+                    request,
                     message="Invalid filename.",
                 )
             filepath = PODCAST_DIR / filename
@@ -129,11 +129,11 @@ def register_routes(app):
         # Only allow safe filenames
         safe = _safe_filename(filename)
         if filename != safe:
-            return render("error.html", user=user(request), message="Invalid filename.")
+            return render("error.html", request, message="Invalid filename.")
 
         filepath = PODCAST_DIR / filename
         if not filepath.exists() or not filepath.is_file():
-            return render("error.html", user=user(request), message="File not found")
+            return render("error.html", request, message="File not found")
 
         content_type = "audio/mpeg"
         if filename.endswith(".m4a"):

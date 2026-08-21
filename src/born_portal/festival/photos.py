@@ -6,8 +6,9 @@ server-side (no login needed for link-shared albums) and extract the media
 base URLs from the embedded AF_initDataCallback JSON payload.
 
 Media entries carry a type code in their payload (14 = photo, 1 = video).
-Videos expose a playable stream by appending "=dv" to the base URL; photos
-(and video poster frames) use size suffixes like "=w1920".
+Videos are skipped: they cannot be played inline (HEVC/MOV), so the page
+links to the album on Google Photos instead. Photos use size suffixes
+like "=w1920".
 """
 
 from __future__ import annotations
@@ -22,7 +23,6 @@ import httpx
 _THUMB_SIZE = "=w400-h400-c"
 _VIEW_SIZE = "=w1920"
 _FULL_SIZE = "=s0"
-_VIDEO_SIZE = "=dv"
 
 _TYPE_VIDEO = 1
 
@@ -108,10 +108,12 @@ def _fallback_items(html: str) -> list[dict]:
 
 
 def parse_album_html(html: str) -> list[dict]:
-    """Extract unique media items (poster URLs + dimensions) from album HTML."""
+    """Extract unique photo items (poster URLs + dimensions) from album HTML."""
     items = _items_from_payload(html) or _fallback_items(html)
     media = []
     for item in items:
+        if item["is_video"]:
+            continue
         url = item["url"]
         media.append(
             {
@@ -120,7 +122,6 @@ def parse_album_html(html: str) -> list[dict]:
                 "full": url + _FULL_SIZE,
                 "width": item["width"],
                 "height": item["height"],
-                "video": url + _VIDEO_SIZE if item["is_video"] else None,
             }
         )
     return media

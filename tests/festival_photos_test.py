@@ -22,6 +22,20 @@ PHOTO_ENTRY = [
     None,
     [[None, None, 1, 1]],
 ]
+PHOTO_B_ENTRY = [
+    PHOTO_B,
+    759,
+    759,
+    None,
+    None,
+    None,
+    None,
+    None,
+    [None, None, 14],
+    [1234567],
+    None,
+    [[None, None, 1, 1]],
+]
 VIDEO_ENTRY = [
     VIDEO_A,
     1080,
@@ -58,7 +72,7 @@ def _callback(key: str, data) -> str:
 
 
 HTML = _callback("ds:0", [[COVER_ENTRY]]) + _callback(
-    "ds:1", [["Album title", None], [[PHOTO_ENTRY, VIDEO_ENTRY]]]
+    "ds:1", [["Album title", None], [[PHOTO_ENTRY, VIDEO_ENTRY, PHOTO_B_ENTRY]]]
 )
 
 # Simplified payload without the typed entry structure (fallback path)
@@ -72,17 +86,11 @@ PLAIN_HTML = """
 """
 
 
-def test_parses_unique_items():
+def test_parses_unique_items_skipping_videos():
     items = parse_album_html(HTML)
     assert len(items) == 2
     assert items[0]["full"].startswith(PHOTO_A)
-    assert items[1]["full"].startswith(VIDEO_A)
-
-
-def test_detects_videos_and_builds_stream_url():
-    items = parse_album_html(HTML)
-    assert items[0]["video"] is None
-    assert items[1]["video"] == VIDEO_A + "=dv"
+    assert items[1]["full"].startswith(PHOTO_B)
 
 
 def test_builds_size_variants():
@@ -97,14 +105,15 @@ def test_builds_size_variants():
 
 def test_preserves_order_and_dimensions():
     items = parse_album_html(HTML)
-    assert items[1]["width"] == 1080
-    assert items[1]["height"] == 1920
+    assert items[0]["width"] == 1600
+    assert items[0]["height"] == 1200
+    assert items[1]["width"] == 759
+    assert items[1]["height"] == 759
 
 
 def test_fallback_parses_untyped_payloads_as_photos():
     items = parse_album_html(PLAIN_HTML)
     assert len(items) == 2
-    assert all(item["video"] is None for item in items)
     assert items[0]["thumb"] == PHOTO_A + "=w400-h400-c"
     assert items[1]["width"] == 759
     assert items[1]["height"] == 759

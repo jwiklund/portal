@@ -46,24 +46,6 @@
     background: #1a1a1a;
   }
   .album-grid img:hover { opacity: 0.85; }
-  .album-item { position: relative; }
-  .play-badge {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 2.6rem;
-    height: 2.6rem;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-left: 0.15rem;
-    pointer-events: none;
-  }
   .lightbox {
     display: none;
     position: fixed;
@@ -75,13 +57,10 @@
     flex-direction: column;
   }
   .lightbox.open { display: flex; }
-  .lightbox img,
-  .lightbox video {
+  .lightbox img {
     max-width: 94vw;
     max-height: 88vh;
     object-fit: contain;
-  }
-  .lightbox img {
     cursor: zoom-in;
   }
   .lightbox-caption { color: #999; font-size: 0.8rem; margin-top: 0.5rem; }
@@ -138,6 +117,9 @@
 
   <div class="actions">
     <a href="{{ "/festivals" if is_admin else "/festivals/view" }}" style="color: #999; text-decoration: none; font-size: 0.9rem;">← All festivals</a>
+    {% if festival.album_uri %}
+      <a href="{{ festival.album_uri }}" target="_blank" rel="noopener" style="color: #d4b483; text-decoration: none; font-size: 0.9rem;">Gallery ↗</a>
+    {% endif %}
     {% if is_admin %}
       <a href="/festivals/edit/{{ festival.id }}" class="btn">Edit</a>
       <form method="post" action="/festivals/delete"
@@ -155,13 +137,9 @@
   {% elif photos %}
     <div class="album-grid" id="album-grid">
       {% for p in photos %}
-        <div class="album-item">
-          <img src="{{ p.thumb }}" loading="lazy" alt=""
-               data-view="{{ p.view }}" data-full="{{ p.full }}"
-               {% if p.video %}data-video="{{ p.video }}"{% endif %}
-               width="{{ p.width }}" height="{{ p.height }}" />
-          {% if p.video %}<span class="play-badge">&#9654;</span>{% endif %}
-        </div>
+        <img src="{{ p.thumb }}" loading="lazy" alt=""
+             data-view="{{ p.view }}" data-full="{{ p.full }}"
+             width="{{ p.width }}" height="{{ p.height }}" />
       {% endfor %}
     </div>
   {% else %}
@@ -171,7 +149,6 @@
   <div class="lightbox" id="lightbox">
     <button class="lb-nav lb-prev" id="lb-prev">&lt;</button>
     <img id="lightbox-img" src="" alt="" />
-    <video id="lightbox-video" controls playsinline style="display: none;"></video>
     <button class="lb-nav lb-next" id="lb-next">&gt;</button>
     <div class="lightbox-caption">Click image to open full size</div>
   </div>
@@ -181,38 +158,20 @@
   <script>
     const lightbox = document.getElementById("lightbox");
     const lightboxImg = document.getElementById("lightbox-img");
-    const lightboxVideo = document.getElementById("lightbox-video");
     const caption = document.querySelector(".lightbox-caption");
     const images = [...document.querySelectorAll("#album-grid img[data-view]")];
     let current = -1;
 
-    function stopVideo() {
-      lightboxVideo.pause();
-      lightboxVideo.removeAttribute("src");
-      lightboxVideo.load();
-    }
-
     function show(i) {
       current = (i + images.length) % images.length;
       const img = images[current];
-      if (img.dataset.video) {
-        lightboxImg.style.display = "none";
-        lightboxVideo.style.display = "block";
-        caption.textContent = "";
-        lightboxVideo.src = img.dataset.video;
-        lightboxVideo.play().catch(() => {});
-      } else {
-        stopVideo();
-        lightboxImg.style.display = "block";
-        lightboxImg.src = img.dataset.view;
-        lightboxImg.dataset.full = img.dataset.full;
-        caption.textContent = "Click image to open full size";
-      }
+      lightboxImg.src = img.dataset.view;
+      lightboxImg.dataset.full = img.dataset.full;
+      caption.textContent = "Click image to open full size";
     }
 
     function closeLightbox() {
       lightbox.classList.remove("open");
-      stopVideo();
     }
 
     document.getElementById("album-grid").addEventListener("click", (e) => {
@@ -230,7 +189,7 @@
     });
 
     lightbox.addEventListener("click", (e) => {
-      if (e.target !== lightboxImg && e.target !== lightboxVideo && !e.target.closest(".lb-nav")) {
+      if (e.target !== lightboxImg && !e.target.closest(".lb-nav")) {
         closeLightbox();
       }
     });

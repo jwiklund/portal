@@ -41,12 +41,16 @@ class AuthMiddleware:
         if (
             request.session.get("user") in self._view_users
             and request.method in ("GET", "HEAD")
-            and request.path.endswith("/view")
+            and (
+                request.path.endswith("/view")
+                or request.path == "/"
+                or request.path == "/logout"
+            )
         ):
             return await handler(request)
 
         return render(
-            "error.html", message="Access denied: your account is not allowed."
+            "error.html", request, message="Access denied: your account is not allowed."
         )
 
 

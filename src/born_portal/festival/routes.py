@@ -7,7 +7,7 @@ from blacksheep.server.responses import json as json_response
 from blacksheep.server.responses import redirect
 
 from born_portal import festival
-from born_portal.core import is_admin, render, user
+from born_portal.core import render
 from born_portal.festival.model import ArtistData, FestivalData
 from born_portal.utils.date_range import parse_name_with_dates
 
@@ -23,9 +23,8 @@ def register_routes(app):
 
         return render(
             "festivals.html",
-            user=user(request),
+            request,
             festivals=festivals,
-            is_admin=is_admin(request),
         )
 
     @app.router.get("/festivals/view")
@@ -42,14 +41,14 @@ def register_routes(app):
 
         return render(
             "festival_edit.html",
-            user=user(request),
+            request,
             festival=FestivalData(),
             known_album_uris=known_album_uris,
         )
 
     @app.router.get("/festivals/import")
     async def festival_import(request: Request):
-        return render("festival_import.html", user=user(request))
+        return render("festival_import.html", request)
 
     @app.router.post("/festivals/import")
     async def festival_import_post(request: Request):
@@ -57,19 +56,13 @@ def register_routes(app):
         url = (form.get("url") or "").strip()
 
         if not url:
-            return render(
-                "festival_import.html",
-                user=user(request),
-                error="Please enter a URL",
-            )
+            return render("festival_import.html", request, error="Please enter a URL")
 
         try:
             page_html = await festival.fetch_album_page(url)
             title = festival.parse_album_title(page_html)
         except Exception as e:
-            return render(
-                "festival_import.html", user=user(request), error=str(e), url=url
-            )
+            return render("festival_import.html", request, error=str(e), url=url)
 
         name, start_date, end_date = parse_name_with_dates(title or "")
 
@@ -81,7 +74,7 @@ def register_routes(app):
 
         return render(
             "festival_edit.html",
-            user=user(request),
+            request,
             festival=FestivalData(
                 name=name,
                 start_date=start_date,
@@ -101,13 +94,11 @@ def register_routes(app):
             store.close()
 
         if not festival_data:
-            return render(
-                "error.html", user=user(request), message="Festival not found"
-            )
+            return render("error.html", request, message="Festival not found")
 
         return render(
             "festival_edit.html",
-            user=user(request),
+            request,
             festival=festival_data,
             known_album_uris=known_album_uris,
         )
@@ -135,9 +126,7 @@ def register_routes(app):
             store.close()
 
         if not festival_data:
-            return render(
-                "error.html", user=user(request), message="Festival not found"
-            )
+            return render("error.html", request, message="Festival not found")
 
         photos = []
         album_error = None
@@ -149,11 +138,10 @@ def register_routes(app):
 
         return render(
             "festival_detail.html",
-            user=user(request),
+            request,
             festival=festival_data,
             photos=photos,
             album_error=album_error,
-            is_admin=is_admin(request),
         )
 
     @app.router.get("/festivals/{festival_id}/view")
@@ -164,13 +152,11 @@ def register_routes(app):
     async def festival_save(request: Request):
         form = await request.form()
         if not form:
-            return render("error.html", user=user(request), message="No data provided")
+            return render("error.html", request, message="No data provided")
 
         name = (form.get("name") or "").strip()
         if not name:
-            return render(
-                "error.html", user=user(request), message="Festival name is required"
-            )
+            return render("error.html", request, message="Festival name is required")
 
         artists = []
         try:
@@ -183,9 +169,7 @@ def register_routes(app):
                 if item.get("name", "").strip()
             ]
         except (json.JSONDecodeError, AttributeError):
-            return render(
-                "error.html", user=user(request), message="Invalid artist data"
-            )
+            return render("error.html", request, message="Invalid artist data")
 
         festival_id = form.get("festival_id")
         festival_data = FestivalData(
@@ -212,9 +196,7 @@ def register_routes(app):
         form = await request.form()
         festival_id = form.get("festival_id")
         if not festival_id:
-            return render(
-                "error.html", user=user(request), message="No festival provided"
-            )
+            return render("error.html", request, message="No festival provided")
 
         store = festival.FestivalStore()
         try:

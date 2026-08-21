@@ -7,7 +7,7 @@ from blacksheep import Request
 from blacksheep.server.responses import redirect
 
 from born_portal import event
-from born_portal.core import is_admin, render, user
+from born_portal.core import render
 from born_portal.event.model import EventData
 from born_portal.festival import store
 
@@ -48,15 +48,14 @@ def register_routes(app):
 
         return render(
             "events.html",
-            user=user(request),
+            request,
             events=upcoming,
             sort_by=sort_by,
-            is_admin=is_admin(request),
         )
 
     @app.router.get("/events/import")
     async def events_import(request: Request):
-        return render("events_import.html", user=user(request))
+        return render("events_import.html", request)
 
     @app.router.post("/events/import")
     async def event_import(request: Request):
@@ -64,16 +63,12 @@ def register_routes(app):
         url = form.get("url", "")
 
         if not url:
-            return render(
-                "events_import.html", user=user(request), error="Please enter a URL"
-            )
+            return render("events_import.html", request, error="Please enter a URL")
 
         try:
             event_data = await event.parse(url)
         except Exception as e:
-            return render(
-                "events_import.html", user=user(request), error=str(e), url=url
-            )
+            return render("events_import.html", request, error=str(e), url=url)
 
         # Check if event already exists by URL
         store = event.EventStore()
@@ -85,15 +80,13 @@ def register_routes(app):
         if existing:
             return render(
                 "event_edit.html",
-                user=user(request),
+                request,
                 event=existing,
                 from_import=True,
                 is_update=True,
             )
 
-        return render(
-            "event_edit.html", user=user(request), event=event_data, from_import=True
-        )
+        return render("event_edit.html", request, event=event_data, from_import=True)
 
     @app.router.get("/events/{event_id}")
     async def event_detail(request: Request, event_id: int):
@@ -101,17 +94,14 @@ def register_routes(app):
         try:
             event_data = store.get_by_id(event_id)
             if not event_data:
-                return render(
-                    "error.html", user=user(request), message="Event not found"
-                )
+                return render("error.html", request, message="Event not found")
         finally:
             store.close()
 
         return render(
             "event_detail.html",
-            user=user(request),
+            request,
             event=event_data,
-            is_admin=is_admin(request),
         )
 
     @app.router.get("/events/edit/{event_id}")
@@ -120,21 +110,17 @@ def register_routes(app):
         try:
             event_data = store.get_by_id(event_id)
             if not event_data:
-                return render(
-                    "error.html", user=user(request), message="Event not found"
-                )
+                return render("error.html", request, message="Event not found")
         finally:
             store.close()
 
-        return render(
-            "event_edit.html", user=user(request), event=event_data, from_import=False
-        )
+        return render("event_edit.html", request, event=event_data, from_import=False)
 
     @app.router.post("/events/save")
     async def event_save(request: Request):
         form = await request.form()
         if not form:
-            return render("error.html", user=user(request), message="No data provided")
+            return render("error.html", request, message="No data provided")
 
         store = event.EventStore()
         try:
@@ -180,7 +166,7 @@ def register_routes(app):
         event_id = form.get("event_id")
 
         if not event_id:
-            return render("error.html", user=user(request), message="No event provided")
+            return render("error.html", request, message="No event provided")
 
         store = event.EventStore()
         try:

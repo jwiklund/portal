@@ -10,7 +10,7 @@ from blacksheep import (ContentDispositionType, Request, Response,
 from blacksheep.exceptions import BadRequest, RangeNotSatisfiable
 from blacksheep.ranges import InvalidRangeValue, Range
 
-from born_portal.core import BASE_URL, SHOWS_CACHE_DIR, SHOWS_DIR, render, user
+from born_portal.core import BASE_URL, SHOWS_CACHE_DIR, SHOWS_DIR, render
 
 SHOWS_DIR = Path(SHOWS_DIR)
 SHOWS_DIR.mkdir(exist_ok=True)
@@ -171,7 +171,7 @@ async def _convert(filepath: Path, output_path: Path):
 def register_routes(app):
     @app.router.get("/shows")
     async def shows_page(request: Request):
-        return render("shows.html", user=user(request), shows=_list_shows())
+        return render("shows.html", request, shows=_list_shows())
 
     @app.router.post("/shows/convert")
     async def shows_convert(request: Request):
@@ -181,7 +181,7 @@ def register_routes(app):
         if not filename:
             return render(
                 "shows.html",
-                user=user(request),
+                request,
                 shows=_list_shows(),
                 error="No filename provided.",
             )
@@ -190,7 +190,7 @@ def register_routes(app):
         if not filepath.exists() or not filepath.is_file():
             return render(
                 "shows.html",
-                user=user(request),
+                request,
                 shows=_list_shows(),
                 error=f"File not found: {filename}",
             )
@@ -198,7 +198,7 @@ def register_routes(app):
         if filepath.suffix.lower() not in VIDEO_EXTENSIONS:
             return render(
                 "shows.html",
-                user=user(request),
+                request,
                 shows=_list_shows(),
                 error=f"Unsupported file type: {filepath.suffix}",
             )
@@ -207,7 +207,7 @@ def register_routes(app):
         if current_status == "converting":
             return render(
                 "shows.html",
-                user=user(request),
+                request,
                 shows=_list_shows(),
                 error=f"Already converting: {filename}",
             )
@@ -222,18 +222,19 @@ def register_routes(app):
     @app.router.get("/shows/{id}")
     async def shows_player(request: Request, id: str):
         if not _stream_filename_pattern(id):
-            return render("error.html", message="Invalid stream ID.")
+            return render("error.html", request, message="Invalid stream ID.")
         shows = [s for s in _list_shows() if s.get("stream_id") == id]
         if len(shows) == 0:
-            return render("error.html", message="Stream not found.")
+            return render("error.html", request, message="Stream not found.")
         stream_file = (
             SHOWS_CACHE_DIR / f"{shows[0]['name']}-{shows[0]['stream_id']}.mp4"
         )
         if not stream_file.exists() or not stream_file.is_file():
-            return render("error.html", message="Stream file not found.")
+            return render("error.html", request, message="Stream file not found.")
 
         return render(
             "shows_player.html",
+            request,
             id=id,
             title=shows[0]["name"],
             video_url=f"{BASE_URL}/shows/video/{id}.mp4",
@@ -242,15 +243,15 @@ def register_routes(app):
     @app.router.get("/shows/video/{id}.mp4")
     async def shows_video(request: Request, id: str):
         if not _stream_filename_pattern(id):
-            return render("error.html", message="Invalid stream ID.")
+            return render("error.html", request, message="Invalid stream ID.")
         shows = [s for s in _list_shows() if s.get("stream_id") == id]
         if len(shows) == 0:
-            return render("error.html", message="Stream not found.")
+            return render("error.html", request, message="Stream not found.")
         stream_file = (
             SHOWS_CACHE_DIR / f"{shows[0]['name']}-{shows[0]['stream_id']}.mp4"
         )
         if not stream_file.exists() or not stream_file.is_file():
-            return render("error.html", message="Stream file not found.")
+            return render("error.html", request, message="Stream file not found.")
 
         file_size = stream_file.stat().st_size
 

@@ -14,7 +14,7 @@ Set these environment variables (or create a .env file):
 
 import os
 
-from blacksheep import Response
+from blacksheep import Request, Response
 from blacksheep.server.responses import html
 from jinja2 import Environment, FileSystemLoader
 
@@ -42,8 +42,10 @@ REDIRECT_URI = f"{BASE_URL}/auth/callback"
 jinja = Environment(loader=FileSystemLoader("templates"), autoescape=True)
 
 
-def user(request) -> dict:
+def user(request) -> dict | None:
     email = request.session.get("user")
+    if not email:
+        return None
     return {"name": email.split("@")[0], "email": email}
 
 
@@ -55,5 +57,8 @@ def is_viewer(request) -> bool:
     return request.session.get("user") in VIEW_USERS
 
 
-def render(template_name: str, **ctx) -> Response:
+def render(template_name: str, request: Request | None = None, **ctx) -> Response:
+    if request is not None:
+        ctx.setdefault("user", user(request))
+        ctx.setdefault("is_admin", is_admin(request))
     return html(jinja.get_template(template_name).render(**ctx))
