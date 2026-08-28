@@ -1,14 +1,13 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
 class EventData:
-    id: Optional[int] = None
+    id: int | None = None
     url: str = ""
     name: str = ""
     description: str = ""
-    location: Optional[str] = None
-    price: Optional[str] = None
-    date: Optional[str] = None
+    location: str | None = None
+    price: str | None = None
+    date: str | None = None
     ticket: bool = False

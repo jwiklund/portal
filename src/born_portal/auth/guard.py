@@ -12,12 +12,9 @@ from blacksheep.server.authorization import UnauthorizedError, allow_anonymous, 
 from blacksheep.server.responses import redirect
 from guardpost import AuthenticationHandler, Identity
 
-from born_portal.core import ADMIN, ADMIN_USERS, VIEW_USERS
+from born_portal.core import ADMIN_ROLE, ADMIN_USERS, VIEW_USERS, VIEWER_ROLE
 
 __all__ = ["allow_anonymous", "auth", "authenticate_failed_redirect", "configure"]
-
-ADMIN_ROLE = ADMIN
-VIEWER_ROLE = "viewer"
 
 
 async def authenticate_failed_redirect(app, request, exc) -> Response:

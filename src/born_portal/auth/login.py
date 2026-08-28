@@ -1,9 +1,8 @@
 import secrets
 import urllib.parse
-from collections.abc import Awaitable, Callable
 
 import httpx
-from blacksheep import Request, Response
+from blacksheep import Request, allow_anonymous
 from blacksheep.server.responses import redirect
 
 from born_portal.core import (
@@ -18,50 +17,9 @@ from born_portal.core import (
 )
 
 
-class AuthMiddleware:
-    def __init__(
-        self,
-        public_paths: set[str],
-        admin_users: set[str],
-        view_users: set[str] | None = None,
-    ):
-        self._public = public_paths or {"/login", "/auth/google", "/auth/callback"}
-        self._admin_users = admin_users
-        self._view_users = view_users or set()
-
-    async def __call__(
-        self, request: Request, handler: Callable[[Request], Awaitable[Response]]
-    ) -> Response:
-        if request.path in self._public or any(
-            request.path.startswith(p) for p in self._public if p.endswith("/")
-        ):
-            return await handler(request)
-
-        if not request.session.get("user"):
-            return redirect("/login")
-
-        if request.session.get("user") in self._admin_users:
-            return await handler(request)
-
-        # Read-only access: GET/HEAD on view pages (paths ending in /view)
-        if (
-            request.session.get("user") in self._view_users
-            and request.method in ("GET", "HEAD")
-            and (
-                request.path.endswith("/view")
-                or request.path == "/"
-                or request.path == "/logout"
-            )
-        ):
-            return await handler(request)
-
-        return render(
-            "error.html", request, message="Access denied: your account is not allowed."
-        )
-
-
 def register_routes(app):
     @app.router.get("/login")
+    @allow_anonymous()
     async def login_page(request: Request):
         if request.session.get("user"):
             if is_viewer(request):
@@ -70,6 +28,7 @@ def register_routes(app):
         return render("login.html")
 
     @app.router.get("/auth/google")
+    @allow_anonymous()
     async def auth_google(request: Request):
         """Kick off the OAuth flow."""
         state = secrets.token_urlsafe(16)
@@ -88,6 +47,7 @@ def register_routes(app):
         return redirect(url)
 
     @app.router.get("/auth/callback")
+    @allow_anonymous()
     async def auth_callback(request: Request):
         """Google redirects here with ?code=… and ?state=…"""
         params = dict(request.query)
@@ -127,6 +87,7 @@ def register_routes(app):
         return redirect("/events")
 
     @app.router.get("/logout")
+    @allow_anonymous()
     async def logout(request: Request):
         del request.session["user"]
         return redirect("/login")

@@ -6,8 +6,8 @@ import logging
 from blacksheep import Application
 
 from born_portal import auth, event, festival, podcast, pwa, routes, show
-from born_portal.auth.guard import configure as configure_auth
-from born_portal.core import ADMIN_USERS, SECRET_KEY, VIEW_USERS
+from born_portal.auth import configure as configure_auth
+from born_portal.core import SECRET_KEY
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,13 +28,6 @@ _PUBLIC_PATHS = {
 }
 
 app.use_sessions(SECRET_KEY)
-app.middlewares.append(
-    auth.AuthMiddleware(
-        public_paths=_PUBLIC_PATHS,
-        admin_users=ADMIN_USERS,
-        view_users=VIEW_USERS,
-    )
-)
 configure_auth(app)
 
 auth.register_routes(app)

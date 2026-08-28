@@ -1,7 +1,6 @@
 import pytest
 
-from born_portal.utils.date_range import (parse_date_range,
-                                          parse_name_with_dates)
+from born_portal.utils.date_range import parse_date_range, parse_name_with_dates
 
 
 def test_empty_string():

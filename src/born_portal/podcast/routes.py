@@ -8,7 +8,7 @@ from blacksheep import Request, file
 from blacksheep.server.responses import ContentDispositionType, redirect
 
 from born_portal.auth.guard import allow_anonymous, auth
-from born_portal.core import ADMIN, form_value, render
+from born_portal.core import ADMIN_ROLE, form_value, render
 
 PODCAST_DIR = Path("podcasts")
 PODCAST_DIR.mkdir(exist_ok=True)
@@ -55,12 +55,12 @@ def _list_podcasts() -> list[dict]:
 
 def register_routes(app):
     @app.router.get("/podcasts")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def podcast_page(request: Request):
         return render("podcasts.html", request, podcasts=_list_podcasts())
 
     @app.router.post("/podcasts/download")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def podcast_download(request: Request):
         form = await request.form()
         url = form_value(form, "url") or ""
@@ -85,7 +85,7 @@ def register_routes(app):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await proc.communicate()
+            _stdout, stderr = await proc.communicate()
 
             if proc.returncode != 0:
                 return render(
@@ -107,7 +107,7 @@ def register_routes(app):
         return redirect("/podcasts")
 
     @app.router.post("/podcasts/delete")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def podcast_delete(request: Request):
         form = await request.form()
         filename = form_value(form, "filename") or ""

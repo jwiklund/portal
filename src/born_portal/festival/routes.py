@@ -8,14 +8,14 @@ from blacksheep.server.responses import redirect
 
 from born_portal import festival
 from born_portal.auth.guard import auth
-from born_portal.core import ADMIN, VIEWER, form_value, render
+from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
 from born_portal.festival.model import ArtistData, FestivalData
 from born_portal.utils.date_range import parse_name_with_dates
 
 
 def register_routes(app):
     @app.router.get("/festivals")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def festivals_list(request: Request):
         store = festival.FestivalStore()
         try:
@@ -30,12 +30,12 @@ def register_routes(app):
         )
 
     @app.router.get("/festivals/view")
-    @auth(roles=[VIEWER])
+    @auth(roles=[VIEWER_ROLE])
     async def view_festivals_list(request: Request):
         return await festivals_list(request)
 
     @app.router.get("/festivals/new")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def festival_new(request: Request):
         store = festival.FestivalStore()
         try:
@@ -51,12 +51,12 @@ def register_routes(app):
         )
 
     @app.router.get("/festivals/import")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def festival_import(request: Request):
         return render("festival_import.html", request)
 
     @app.router.post("/festivals/import")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def festival_import_post(request: Request):
         form = await request.form()
         url = (form_value(form, "url") or "").strip()
@@ -67,7 +67,7 @@ def register_routes(app):
         try:
             page_html = await festival.fetch_album_page(url)
             title = festival.parse_album_title(page_html)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return render("festival_import.html", request, error=str(e), url=url)
 
         name, start_date, end_date = parse_name_with_dates(title or "")
@@ -91,7 +91,7 @@ def register_routes(app):
         )
 
     @app.router.get("/festivals/edit/{festival_id}")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def festival_edit(request: Request, festival_id: int):
         store = festival.FestivalStore()
         try:
@@ -111,7 +111,7 @@ def register_routes(app):
         )
 
     @app.router.get("/festivals/api/spotify/search")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def spotify_search(request: Request):
         params = dict(request.query)
         query = (params.get("q", [""])[0] or "").strip()
@@ -120,13 +120,13 @@ def register_routes(app):
 
         try:
             artists = await festival.search_artists(query)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return json_response({"error": str(e)}, status=502)
 
         return json_response({"artists": artists})
 
     @app.router.get("/festivals/{festival_id}")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def festival_detail(request: Request, festival_id: int):
         store = festival.FestivalStore()
         try:
@@ -142,7 +142,7 @@ def register_routes(app):
         if festival_data.album_uri:
             try:
                 photos = await festival.fetch_album_photos(festival_data.album_uri)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 album_error = f"Could not load album: {e}"
 
         return render(
@@ -154,12 +154,12 @@ def register_routes(app):
         )
 
     @app.router.get("/festivals/{festival_id}/view")
-    @auth(roles=[VIEWER])
+    @auth(roles=[VIEWER_ROLE])
     async def view_festival_detail(request: Request, festival_id: int):
         return await festival_detail(request, festival_id)
 
     @app.router.post("/festivals/save")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def festival_save(request: Request):
         form = await request.form()
         if not form:
@@ -203,7 +203,7 @@ def register_routes(app):
         return redirect(f"/festivals/{saved_id}")
 
     @app.router.post("/festivals/delete")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def festival_delete(request: Request):
         form = await request.form()
         festival_id = form_value(form, "festival_id")

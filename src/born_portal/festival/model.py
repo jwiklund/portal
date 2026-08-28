@@ -1,23 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass(frozen=True)
 class ArtistData:
-    id: Optional[int] = None
+    id: int | None = None
     name: str = ""
-    spotify_uri: Optional[str] = None
+    spotify_uri: str | None = None
 
 
 @dataclass(frozen=True)
 class FestivalData:
-    id: Optional[int] = None
+    id: int | None = None
     name: str = ""
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    location: Optional[str] = None
+    start_date: str | None = None
+    end_date: str | None = None
+    location: str | None = None
     description: str = ""
-    album_uri: Optional[str] = None
+    album_uri: str | None = None
     artists: list[ArtistData] = field(default_factory=list)

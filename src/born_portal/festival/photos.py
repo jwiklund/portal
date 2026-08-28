@@ -30,15 +30,15 @@ _CACHE_TTL_SECONDS = 600
 _cache: dict[str, tuple[float, list[dict]]] = {}
 _html_cache: dict[str, tuple[float, str]] = {}
 
-_CALLBACK_RE = re.compile(r"AF_initDataCallback\((\{.*?\})\);", re.S)
-_DATA_RE = re.compile(r"data:(\[.*\]),\s*sideChannel", re.S)
+_CALLBACK_RE = re.compile(r"AF_initDataCallback\((\{.*?\})\);", re.DOTALL)
+_DATA_RE = re.compile(r"data:(\[.*\]),\s*sideChannel", re.DOTALL)
 _URL_RE = re.compile(
     r'\["https://lh[3-6]\.googleusercontent\.com/(pw/[A-Za-z0-9_-]+)",(\d+),(\d+)'
 )
-_META_TAG_RE = re.compile(r"<meta\b[^>]*>", re.I)
+_META_TAG_RE = re.compile(r"<meta\b[^>]*>", re.IGNORECASE)
 _ATTR_RE = re.compile(r'([\w:-]+)\s*=\s*"([^"]*)"|([\w:-]+)\s*=\s*\'([^\']*)\'')
-_TITLE_TAG_RE = re.compile(r"<title>(.*?)</title>", re.S | re.I)
-_GOOGLE_SUFFIX_RE = re.compile(r"\s*[-–—]\s*Google Photos\s*$", re.I)
+_TITLE_TAG_RE = re.compile(r"<title>(.*?)</title>", re.DOTALL | re.IGNORECASE)
+_GOOGLE_SUFFIX_RE = re.compile(r"\s*[-–—]\s*Google Photos\s*$", re.IGNORECASE)
 
 
 def _walk(value):

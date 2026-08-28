@@ -99,14 +99,16 @@ def _parse_date(date_str: str) -> str | None:
     for format, format_type in _formats:
         try:
             if format_type.startswith("en-"):
-                dt = datetime.strptime(_english_to_swedish_date(date_str), format)
+                dt = datetime.strptime(  # noqa: DTZ007
+                    _english_to_swedish_date(date_str), format
+                )
             elif format_type == "datetime-tz":
                 # Normalize timezone offset: "+02:00" -> "+0200"
-                dt = datetime.strptime(
+                dt = datetime.strptime(  # noqa: DTZ007
                     re.sub(r"([+-]\d{2}):(\d{2})$", r"\1\2", date_str), format
                 )
             else:
-                dt = datetime.strptime(date_str, format)
+                dt = datetime.strptime(date_str, format)  # noqa: DTZ007
         except ValueError:
             continue
         if dt:

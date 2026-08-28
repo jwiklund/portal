@@ -1,93 +1,122 @@
 import asyncio
 
-from born_portal.auth import AuthMiddleware
+import pytest
+from blacksheep import Application, Response
+from blacksheep.server.authentication import get_authentication_middleware
+from blacksheep.server.authorization import auth, get_authorization_middleware
+from blacksheep.sessions import Session
+from guardpost.authorization import AuthorizationError
 
-SENTINEL = object()
+from born_portal.auth.guard import SessionAuthHandler, authenticate_failed_redirect
+from born_portal.core import ADMIN_ROLE, ADMIN_USERS, VIEW_USERS
 
 
 class FakeRequest:
-    def __init__(self, path: str, method: str = "GET", user: str | None = None):
-        self.path = path
-        self.method = method
-        self.session = {"user": user} if user else {}
+    def __init__(self, user: str | None):
+        self.session = Session({"user": user} if user else {})
+        self.path = "/x"
+        self.method = "GET"
+        self._user = None
+
+    @property
+    def identity(self):
+        return self._user
+
+    @identity.setter
+    def identity(self, value):
+        self._user = value
+
+    @property
+    def user(self):
+        return self._user
 
 
-async def passthrough_handler(request):
-    return SENTINEL
+async def passthrough(request):
+    return Response(200)
 
 
-def make_middleware():
-    return AuthMiddleware(
-        public_paths={"/login", "/auth/callback"},
-        admin_users={"admin@example.com"},
-        view_users={"viewer@example.com"},
+def run_auth(email, handler):
+    app = Application()
+    authn = app.use_authentication().add(SessionAuthHandler(ADMIN_USERS, VIEW_USERS))
+    app.use_authorization()
+    request = FakeRequest(email)
+    asyncio.run(get_authentication_middleware(authn)(request, passthrough))
+    return asyncio.run(
+        get_authorization_middleware(app._authorization_strategy)(request, handler)
     )
 
 
-def call(middleware, request):
-    return asyncio.run(middleware(request, passthrough_handler))
+def test_admin_role_assignment():
+    h = SessionAuthHandler({"a@x"}, {"v@x"})
+    identity = asyncio.run(h.authenticate(FakeRequest("a@x")))
+    assert identity.roles == [ADMIN_ROLE, "viewer"]
 
 
-def test_public_path_passes_without_user():
-    mw = make_middleware()
-    resp = call(mw, FakeRequest("/login"))
-    assert resp is SENTINEL
+def test_viewer_role_assignment():
+    h = SessionAuthHandler({"a@x"}, {"v@x"})
+    identity = asyncio.run(h.authenticate(FakeRequest("v@x")))
+    assert identity.roles == ["viewer"]
 
 
-def test_no_user_redirects_to_login():
-    mw = make_middleware()
-    resp = call(mw, FakeRequest("/events"))
-    assert resp is not SENTINEL
+def test_anonymous_gets_no_identity():
+    h = SessionAuthHandler({"a@x"}, {"v@x"})
+    assert asyncio.run(h.authenticate(FakeRequest(None))) is None
 
 
-def test_admin_passes_anywhere():
-    mw = make_middleware()
-    for path in ("/events", "/podcasts", "/shows", "/festivals/edit/1"):
-        resp = call(mw, FakeRequest(path, user="admin@example.com"))
-        assert resp is SENTINEL, path
+def test_admin_can_reach_admin_page():
+    admin_email = next(iter(ADMIN_USERS))
+
+    @auth(roles=[ADMIN_ROLE])
+    async def admin_page(request):
+        return Response(200)
+
+    assert run_auth(admin_email, admin_page).status == 200
 
 
-def test_viewer_get_on_view_pages():
-    mw = make_middleware()
-    for path in (
-        "/events/view",
-        "/events/3/view",
-        "/festivals/view",
-        "/festivals/7/view",
-    ):
-        resp = call(mw, FakeRequest(path, user="viewer@example.com"))
-        assert resp is SENTINEL, path
+def test_viewer_denied_admin_page():
+    viewer_email = next(iter(VIEW_USERS))
+
+    @auth(roles=[ADMIN_ROLE])
+    async def admin_page(request):
+        return Response(200)
+
+    with pytest.raises(AuthorizationError):
+        run_auth(viewer_email, admin_page)
 
 
-def test_viewer_post_denied():
-    mw = make_middleware()
-    for path, method in (
-        ("/festivals/save", "POST"),
-        ("/events/view", "POST"),
-    ):
-        resp = call(mw, FakeRequest(path, method=method, user="viewer@example.com"))
-        assert resp is not SENTINEL, path
+def test_viewer_can_reach_view_page():
+    viewer_email = next(iter(VIEW_USERS))
+
+    @auth(roles=["viewer"])
+    async def view_page(request):
+        return Response(200)
+
+    assert run_auth(viewer_email, view_page).status == 200
 
 
-def test_viewer_denied_non_view_pages():
-    mw = make_middleware()
-    for path in ("/podcasts", "/shows", "/events", "/events/3", "/events/import"):
-        resp = call(mw, FakeRequest(path, user="viewer@example.com"))
-        assert resp is not SENTINEL, path
+def test_admin_can_reach_view_page():
+    admin_email = next(iter(ADMIN_USERS))
+
+    @auth(roles=["viewer"])
+    async def view_page(request):
+        return Response(200)
+
+    assert run_auth(admin_email, view_page).status == 200
 
 
-def test_viewer_denied_admin_pages():
-    mw = make_middleware()
-    for path in (
-        "/festivals/edit/1",
-        "/festivals/new",
-        "/festivals/api/spotify/search",
-    ):
-        resp = call(mw, FakeRequest(path, user="viewer@example.com"))
-        assert resp is not SENTINEL, path
+def test_anonymous_denied_on_view_page():
+    @auth(roles=["viewer"])
+    async def view_page(request):
+        return Response(200)
+
+    with pytest.raises(AuthorizationError):
+        run_auth(None, view_page)
 
 
-def test_unknown_user_denied():
-    mw = make_middleware()
-    resp = call(mw, FakeRequest("/events", user="stranger@example.com"))
-    assert resp is not SENTINEL
+def test_anonymous_redirects_to_login():
+    result = asyncio.run(
+        authenticate_failed_redirect(None, None, Exception("unauthorized"))
+    )
+    assert isinstance(result, Response)
+    assert result.status == 302
+    assert result.get_first_header(b"location") == b"/login"

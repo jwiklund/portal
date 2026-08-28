@@ -133,7 +133,7 @@ uv run python -m pytest tests/
 
 ## Editing notes
 
-- **Formatting**: Black + isort (run `mise format`). No config files — uses defaults.
+- **Formatting**: Black for code layout, ruff's import sort (`ruff check --select I --fix`) for imports (run via `mise format`).
 - **LSP**: Ruff server configured in `crush.json` at project root. Diagnostics appear via LSP.
 - **No Makefile, no CI config** — this is a personal project.
 - **`mise`** is the tool manager (like `direnv` + `asdf`). It sets env vars from `mise.local.toml` and provides shell aliases.

@@ -45,10 +45,13 @@ class _Parser(HTMLParser):
         if self._ld is not None:
             self.parse_ld("".join(self._ld))
             self._ld = None
-        if tag == "h2" and self._header is not None:
-            if "".join(self._header) == "Beskrivning":
-                self._description_div = []
-                self._header = None
+        if (
+            tag == "h2"
+            and self._header is not None
+            and "".join(self._header) == "Beskrivning"
+        ):
+            self._description_div = []
+            self._header = None
         if tag == "style":
             self._style = False
         if tag == "div":

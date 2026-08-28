@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import Optional
 
 from born_portal.festival.model import ArtistData, FestivalData
 
@@ -11,7 +10,7 @@ class FestivalStore:
 
     def __init__(self, db_path: str = "events.db"):
         self.db_path = db_path
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
 
     def _get_connection(self) -> sqlite3.Connection:
         conn = self._conn
@@ -134,7 +133,7 @@ class FestivalStore:
         assert row is not None
         return row["id"]
 
-    def get_by_id(self, id: int) -> Optional[FestivalData]:
+    def get_by_id(self, id: int) -> FestivalData | None:
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM festivals WHERE id = ?", (id,))

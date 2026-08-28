@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass
-from typing import Optional
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
@@ -105,7 +103,7 @@ def _extract_response_text(response) -> str:
     return str(response)
 
 
-def _parse_json_output(raw: str) -> dict[str, Optional[str]]:
+def _parse_json_output(raw: str) -> dict[str, str | None]:
     raw = raw.strip()
     if raw.startswith("```json") and raw.endswith("```"):
         raw = raw[len("```json") : -len("```")].strip()

@@ -1,18 +1,18 @@
 import dataclasses
-from datetime import datetime
+from datetime import UTC, datetime
 
 from blacksheep import Request
 from blacksheep.server.responses import redirect
 
 from born_portal import event
 from born_portal.auth.guard import auth
-from born_portal.core import ADMIN, VIEWER, form_value, render
+from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
 from born_portal.event.model import EventData
 
 
 def register_routes(app):
     @app.router.get("/events")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def events_list(request: Request, sort_by: str | None = None):
         store = event.EventStore()
         try:
@@ -20,7 +20,7 @@ def register_routes(app):
         finally:
             store.close()
 
-        today = datetime.now().date()
+        today = datetime.now(UTC).date()
         today_str = today.isoformat()
 
         future_events = [e for e in all_events if e.date and e.date >= today_str]
@@ -53,12 +53,12 @@ def register_routes(app):
         )
 
     @app.router.get("/events/import")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def events_import(request: Request):
         return render("events_import.html", request)
 
     @app.router.post("/events/import")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def event_import(request: Request):
         form = await request.form()
         url = form_value(form, "url") or ""
@@ -68,7 +68,7 @@ def register_routes(app):
 
         try:
             event_data = await event.parse(url)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return render("events_import.html", request, error=str(e), url=url)
 
         # Check if event already exists by URL
@@ -90,7 +90,7 @@ def register_routes(app):
         return render("event_edit.html", request, event=event_data, from_import=True)
 
     @app.router.get("/events/{event_id}")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def event_detail(request: Request, event_id: int):
         store = event.EventStore()
         try:
@@ -107,7 +107,7 @@ def register_routes(app):
         )
 
     @app.router.get("/events/edit/{event_id}")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def event_edit(request: Request, event_id: int):
         store = event.EventStore()
         try:
@@ -120,7 +120,7 @@ def register_routes(app):
         return render("event_edit.html", request, event=event_data, from_import=False)
 
     @app.router.post("/events/save")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def event_save(request: Request):
         form = await request.form()
         if not form:
@@ -146,7 +146,7 @@ def register_routes(app):
                         ticket=form_value(form, "ticket") == "on",
                     )
                 else:
-                    raise Exception("Event does not exist")
+                    raise ValueError("Event does not exist")
             else:
                 # No event_id, create new one
                 event_data = event.EventData(
@@ -165,7 +165,7 @@ def register_routes(app):
         return redirect(f"/events/{event_id}")
 
     @app.router.post("/events/delete")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def event_delete(request: Request):
         form = await request.form()
         event_id = form_value(form, "event_id")
@@ -185,11 +185,11 @@ def register_routes(app):
         return redirect("/events")
 
     @app.router.get("/events/{event_id}/view")
-    @auth(roles=[VIEWER])
+    @auth(roles=[VIEWER_ROLE])
     async def view_event_detail(request: Request, event_id: int):
         return await event_detail(request, event_id)
 
     @app.router.get("/events/view")
-    @auth(roles=[VIEWER])
+    @auth(roles=[VIEWER_ROLE])
     async def view_events_list(request: Request, sort_by: str | None = None):
         return await events_list(request, sort_by)

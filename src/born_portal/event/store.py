@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import asdict
-from typing import Optional
 
 from born_portal.event.model import EventData
 
@@ -12,7 +11,7 @@ class EventStore:
 
     def __init__(self, db_path: str = "events.db"):
         self.db_path = db_path
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
 
     def _get_connection(self) -> sqlite3.Connection:
         if self._conn is None:
@@ -86,7 +85,7 @@ class EventStore:
         conn.commit()
         return cursor.lastrowid if cursor.lastrowid is not None else 0
 
-    def get(self, url: str) -> Optional[EventData]:
+    def get(self, url: str) -> EventData | None:
         """Retrieve an event by URL."""
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -105,7 +104,7 @@ class EventStore:
             )
         return None
 
-    def get_by_id(self, id: int) -> Optional[EventData]:
+    def get_by_id(self, id: int) -> EventData | None:
         """Retrieve an event by id."""
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -138,7 +137,7 @@ class EventStore:
         cursor.execute("SELECT 1 FROM events WHERE id = ?", (id,))
         return cursor.fetchone() is not None
 
-    def get_url_by_id(self, id: int) -> Optional[str]:
+    def get_url_by_id(self, id: int) -> str | None:
         """Get the URL for an event by id."""
         conn = self._get_connection()
         cursor = conn.cursor()

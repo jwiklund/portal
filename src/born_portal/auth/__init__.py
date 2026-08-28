@@ -11,7 +11,7 @@ from born_portal.auth.guard import (
     authenticate_failed_redirect,
     configure,
 )
-from born_portal.auth.middleware import AuthMiddleware, register_routes
+from born_portal.auth.login import register_routes
 
 __all__ = [
     "AuthMiddleware",

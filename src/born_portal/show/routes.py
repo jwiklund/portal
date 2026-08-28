@@ -16,7 +16,14 @@ from blacksheep.exceptions import BadRequest, RangeNotSatisfiable
 from blacksheep.ranges import InvalidRangeValue, Range
 
 from born_portal.auth.guard import allow_anonymous, auth
-from born_portal.core import ADMIN, BASE_URL, SHOWS_CACHE_DIR, SHOWS_DIR, form_value, render
+from born_portal.core import (
+    ADMIN_ROLE,
+    BASE_URL,
+    SHOWS_CACHE_DIR,
+    SHOWS_DIR,
+    form_value,
+    render,
+)
 
 SHOWS_DIR.mkdir(exist_ok=True)
 
@@ -156,7 +163,7 @@ async def _convert(filepath: Path, output_path: Path):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await proc.communicate()
+        _stdout, stderr = await proc.communicate()
 
         if proc.returncode != 0:
             _conversion_status[filename] = "error"
@@ -167,19 +174,19 @@ async def _convert(filepath: Path, output_path: Path):
     except FileNotFoundError:
         _conversion_status[filename] = "error"
         print(f"ffmpeg/ffprobe not found while converting {filename}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         _conversion_status[filename] = "error"
         print(f"Conversion error for {filename}: {e}")
 
 
 def register_routes(app):
     @app.router.get("/shows")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def shows_page(request: Request):
         return render("shows.html", request, shows=_list_shows())
 
     @app.router.post("/shows/convert")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def shows_convert(request: Request):
         form = await request.form()
         filename = form_value(form, "filename") or ""
@@ -226,7 +233,7 @@ def register_routes(app):
         return redirect("/shows")
 
     @app.router.get("/shows/{id}")
-    @auth(roles=[ADMIN])
+    @auth(roles=[ADMIN_ROLE])
     async def shows_player(request: Request, id: str):
         if not _stream_filename_pattern(id):
             return render("error.html", request, message="Invalid stream ID.")
