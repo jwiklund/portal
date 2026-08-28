@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Born Portal{% endblock %}</title>
+  <link rel="manifest" href="/manifest.json" />
+  <title>{% block title %}Portal{% endblock %}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -42,7 +43,7 @@
 </head>
 <body>
   <nav>
-    <a href="/" class="nav-brand">Born Portal</a>
+    <a href="/" class="nav-brand">Portal</a>
     <div class="nav-links">
       {% if is_admin %}
         <a href="/events">Events</a>

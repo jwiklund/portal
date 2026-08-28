@@ -1,4 +1,4 @@
-# Born Portal
+# Portal
 
 ## Project structure
 
