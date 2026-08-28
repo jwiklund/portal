@@ -5,7 +5,7 @@ import logging
 
 from blacksheep import Application
 
-from born_portal import auth, event, festival, podcast, pwa, routes, show
+from born_portal import auth, backup, event, festival, podcast, pwa, routes, show
 from born_portal.auth import configure as configure_auth
 from born_portal.core import SECRET_KEY
 
@@ -15,17 +15,6 @@ logging.basicConfig(
 )
 
 app = Application()
-
-_PUBLIC_PATHS = {
-    "/login",
-    "/auth/google",
-    "/auth/callback",
-    "/podcasts/audio/",
-    "/shows/video/",
-    "/manifest.json",
-    "/icon.svg",
-    "/icon-180.png",
-}
 
 app.use_sessions(SECRET_KEY)
 configure_auth(app)
@@ -62,6 +51,26 @@ def main(argv=None):
     parse_parser = subparsers.add_parser("parse", help="Parse event example")
     parse_parser.add_argument("--file", help="File to parse", default="biletto.html")
 
+    backup_parser = subparsers.add_parser(
+        "backup", help="Back up the SQLite database to a .sql file"
+    )
+    backup_parser.add_argument(
+        "output", help="Path to the backup file (e.g. events-backup.sql)"
+    )
+    backup_parser.add_argument(
+        "--db", default="events.db", help="Path to the SQLite database"
+    )
+
+    restore_parser = subparsers.add_parser(
+        "restore", help="Restore the SQLite database from a .sql file"
+    )
+    restore_parser.add_argument(
+        "input", help="Path to the backup file (e.g. events-backup.sql)"
+    )
+    restore_parser.add_argument(
+        "--db", default="events.db", help="Path to the SQLite database"
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "fetch":
@@ -73,6 +82,14 @@ def main(argv=None):
         with open(args.file) as r:
             event_data = event.parse_biletto(r.read())
         print(json.dumps(event_data.__dict__, indent=2, ensure_ascii=False))
+        return
+
+    if args.command == "backup":
+        backup.backup_db(args.db, args.output)
+        return
+
+    if args.command == "restore":
+        backup.restore_db(args.input, args.db)
         return
 
     parser.print_help()
