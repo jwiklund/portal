@@ -5,8 +5,11 @@
 ```
 src/born_portal/
   main.py          # App entry point, CLI subcommands, route registration
-  core.py          # Env var config, Jinja2 environment, render() helper
-  auth.py          # AuthMiddleware + Google OAuth routes (/login, /auth/google, /auth/callback, /logout)
+  core.py          # Env var config (ADMIN/VIEWER roles), Jinja2 env, render() helper
+  auth/            # Authentication & authorization
+    __init__.py    # Re-exports AuthMiddleware, register_routes, @auth wiring
+    middleware.py  # AuthMiddleware (session gate) + Google OAuth routes (/login, /auth/google, /auth/callback, /logout)
+    guard.py       # guardpost SessionAuthHandler, configure() @auth integration
   routes.py        # Root redirect (/ → /events)
   event/           # Event CRUD: import (parse from URL), edit, delete, SQLite store
     model.py       # EventData dataclass
@@ -44,9 +47,37 @@ The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
 ### Middleware chain (order matters)
 
 1. **SessionMiddleware** — cookie-based sessions (signed with SECRET_KEY)
-2. **AuthMiddleware** — Google OAuth check (redirects to /login if not authenticated)
+2. **AuthenticationMiddleware** (from `auth/guard.py` `use_authentication`) — builds a guardpost `Identity` from the session via `SessionAuthHandler`
+3. **AuthorizationMiddleware** (from `app.use_authorization`) — enforces `@auth` decorators; anonymous → `UnauthorizedError` → redirect to `/login`
+4. **AuthMiddleware** — outer session gate (redirects to `/login` if not authenticated, lets admins through everywhere, viewers to `/view` pages only)
 
-**Public paths** (no auth required): `/login`, `/auth/google`, `/auth/callback`, `/podcasts/audio/`, `/shows/video/`. The trailing-slash paths use prefix matching — any path starting with those prefixes is public.
+Public paths: `/login`, `/auth/google`, `/auth/callback`, `/podcasts/audio/`, `/shows/video/`, plus `/manifest.json`, `/icon.svg`, `/icon-180.png` (PWA assets).
+
+### Authorization via `@auth`
+
+Handlers are annotated using BlackSheep's built-in authorization (see the [docs](https://www.neoteroi.dev/blacksheep/authorization/)). The default `authenticated` policy (auto-registered by `use_authorization()`) requires a logged-in user, and `roles=[...]` requires any listed role:
+
+```python
+from born_portal.auth import auth
+from born_portal.core import ADMIN, VIEWER
+
+@app.router.get("/events")
+@auth(roles=[ADMIN])
+async def events_list(request): ...
+
+@app.router.get("/events/view")
+@auth(roles=[VIEWER])
+async def view_events_list(request): ...
+
+@app.router.get("/podcasts/audio/{filename}")
+@allow_anonymous
+async def podcast_audio(request, filename): ...
+```
+
+- `@auth(roles=[ADMIN])` — admins only (admins also carry the `VIEWER` role so they can reach view pages).
+- `@auth(roles=[VIEWER])` — viewers and admins.
+- `@allow_anonymous()` — public (used for PWA assets, audio/video streaming). Must use the parentheses form.
+- Anonymous calls to protected handlers raise `UnauthorizedError`, mapped to a redirect to `/login` in `auth/guard.py`.
 
 ### Route registration pattern
 
@@ -58,6 +89,8 @@ routes.register_routes(app)
 event.register_routes(app)
 podcast.register_routes(app)
 show.register_routes(app)
+festival.register_routes(app)
+pwa.register_routes(app)
 ```
 
 ### Rendering
@@ -86,7 +119,8 @@ All templates use `core.render(template_name, **ctx)` which wraps Jinja2 renderi
 
 ### Security
 
-- `AuthMiddleware` checks `request.session["user"]` against `ADMIN_USERS` set
+- `auth/guard.py` maps the session user to guardpost roles (`ADMIN` from `ADMIN_USERS`, `VIEWER` from `VIEW_USERS`); `@auth(roles=...)` enforces them
+- `AuthMiddleware` checks `request.session["user"]` against `ADMIN_USERS`/`VIEW_USERS`
 - Podcast filenames are sanitized with `_safe_filename()` regex to prevent path traversal
 
 ## Testing

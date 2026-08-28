@@ -1,20 +1,19 @@
 import dataclasses
 from datetime import datetime
-from typing import Optional
 
-from aiohttp import request
 from blacksheep import Request
 from blacksheep.server.responses import redirect
 
 from born_portal import event
-from born_portal.core import form_value, render
+from born_portal.auth.guard import auth
+from born_portal.core import ADMIN, VIEWER, form_value, render
 from born_portal.event.model import EventData
-from born_portal.festival import store
 
 
 def register_routes(app):
     @app.router.get("/events")
-    async def events_list(request: Request, sort_by: Optional[str] = None):
+    @auth(roles=[ADMIN])
+    async def events_list(request: Request, sort_by: str | None = None):
         store = event.EventStore()
         try:
             all_events = store.list_all()
@@ -54,10 +53,12 @@ def register_routes(app):
         )
 
     @app.router.get("/events/import")
+    @auth(roles=[ADMIN])
     async def events_import(request: Request):
         return render("events_import.html", request)
 
     @app.router.post("/events/import")
+    @auth(roles=[ADMIN])
     async def event_import(request: Request):
         form = await request.form()
         url = form_value(form, "url") or ""
@@ -89,6 +90,7 @@ def register_routes(app):
         return render("event_edit.html", request, event=event_data, from_import=True)
 
     @app.router.get("/events/{event_id}")
+    @auth(roles=[ADMIN])
     async def event_detail(request: Request, event_id: int):
         store = event.EventStore()
         try:
@@ -105,6 +107,7 @@ def register_routes(app):
         )
 
     @app.router.get("/events/edit/{event_id}")
+    @auth(roles=[ADMIN])
     async def event_edit(request: Request, event_id: int):
         store = event.EventStore()
         try:
@@ -117,6 +120,7 @@ def register_routes(app):
         return render("event_edit.html", request, event=event_data, from_import=False)
 
     @app.router.post("/events/save")
+    @auth(roles=[ADMIN])
     async def event_save(request: Request):
         form = await request.form()
         if not form:
@@ -161,6 +165,7 @@ def register_routes(app):
         return redirect(f"/events/{event_id}")
 
     @app.router.post("/events/delete")
+    @auth(roles=[ADMIN])
     async def event_delete(request: Request):
         form = await request.form()
         event_id = form_value(form, "event_id")
@@ -180,9 +185,11 @@ def register_routes(app):
         return redirect("/events")
 
     @app.router.get("/events/{event_id}/view")
+    @auth(roles=[VIEWER])
     async def view_event_detail(request: Request, event_id: int):
         return await event_detail(request, event_id)
 
     @app.router.get("/events/view")
-    async def view_events_list(request: Request, sort_by: Optional[str] = None):
+    @auth(roles=[VIEWER])
+    async def view_events_list(request: Request, sort_by: str | None = None):
         return await events_list(request, sort_by)

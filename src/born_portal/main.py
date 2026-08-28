@@ -4,10 +4,9 @@ import json
 import logging
 
 from blacksheep import Application
-from blacksheep.sessions import SessionMiddleware
-from blacksheep.sessions.cookies import CookieSessionStore
 
 from born_portal import auth, event, festival, podcast, pwa, routes, show
+from born_portal.auth.guard import configure as configure_auth
 from born_portal.core import ADMIN_USERS, SECRET_KEY, VIEW_USERS
 
 logging.basicConfig(
@@ -28,7 +27,7 @@ _PUBLIC_PATHS = {
     "/icon-180.png",
 }
 
-app.middlewares.append(SessionMiddleware(store=CookieSessionStore(SECRET_KEY)))
+app.use_sessions(SECRET_KEY)
 app.middlewares.append(
     auth.AuthMiddleware(
         public_paths=_PUBLIC_PATHS,
@@ -36,6 +35,7 @@ app.middlewares.append(
         view_users=VIEW_USERS,
     )
 )
+configure_auth(app)
 
 auth.register_routes(app)
 routes.register_routes(app)

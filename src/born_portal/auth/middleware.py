@@ -1,15 +1,21 @@
 import secrets
 import urllib.parse
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 import httpx
 from blacksheep import Request, Response
 from blacksheep.server.responses import redirect
 
-from born_portal.core import (GOOGLE_AUTH_URL, GOOGLE_CLIENT_ID,
-                              GOOGLE_CLIENT_SECRET, GOOGLE_TOKEN_URL,
-                              GOOGLE_USERINFO_URL, REDIRECT_URI, is_viewer,
-                              render)
+from born_portal.core import (
+    GOOGLE_AUTH_URL,
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_TOKEN_URL,
+    GOOGLE_USERINFO_URL,
+    REDIRECT_URI,
+    is_viewer,
+    render,
+)
 
 
 class AuthMiddleware:

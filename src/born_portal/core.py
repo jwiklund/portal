@@ -29,6 +29,10 @@ GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
 ADMIN_USERS = set(os.environ.get("ADMIN_USERS", "").split(","))
 VIEW_USERS = set(os.environ.get("VIEW_USERS", "").split(","))
+
+# Role names used by the @auth authorization policies.
+ADMIN = "admin"
+VIEWER = "viewer"
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
 SHOWS_DIR = Path(os.environ.get("SHOWS_DIR", "shows"))
