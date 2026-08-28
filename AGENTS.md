@@ -8,7 +8,7 @@ src/born_portal/
   core.py          # Env var config (ADMIN/VIEWER roles), Jinja2 env, render() helper
   auth/            # Authentication & authorization
     __init__.py    # Re-exports AuthMiddleware, register_routes, @auth wiring
-    middleware.py  # AuthMiddleware (session gate) + Google OAuth routes (/login, /auth/google, /auth/callback, /logout)
+    login.py       # Google OAuth routes (/login, /auth/google, /auth/callback, /logout)
     guard.py       # guardpost SessionAuthHandler, configure() @auth integration
   routes.py        # Root redirect (/ → /events)
   event/           # Event CRUD: import (parse from URL), edit, delete, SQLite store
