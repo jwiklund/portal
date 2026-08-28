@@ -60,8 +60,10 @@ def main(argv=None):
     fetch_parser = subparsers.add_parser(
         "fetch", help="Fetch an event URL and parse event data"
     )
-    parse_parser = subparsers.add_parser("parse", help="Parse event example")
     fetch_parser.add_argument("url", help="URL to fetch and parse")
+
+    parse_parser = subparsers.add_parser("parse", help="Parse event example")
+    parse_parser.add_argument("--file", help="File to parse", default="biletto.html")
 
     args = parser.parse_args(argv)
 
@@ -71,9 +73,9 @@ def main(argv=None):
         return
 
     if args.command == "parse":
-        with open("biletto.html") as r:
+        with open(args.file) as r:
             event_data = event.parse_biletto(r.read())
-            print(event_data.description)
+        print(json.dumps(event_data.__dict__, indent=2, ensure_ascii=False))
         return
 
     parser.print_help()
