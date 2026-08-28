@@ -25,6 +25,7 @@ _PUBLIC_PATHS = {
     "/shows/video/",
     "/manifest.json",
     "/icon.svg",
+    "/icon-180.png",
 }
 
 app.middlewares.append(SessionMiddleware(store=CookieSessionStore(SECRET_KEY)))
