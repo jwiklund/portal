@@ -5,3 +5,4 @@ events.db
 podcasts
 shows_cache
 crush.json
+backup.sql
