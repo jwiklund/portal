@@ -22,16 +22,52 @@
     nav {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       padding: 1rem 2rem;
       border-bottom: 1px solid #2e2e2e;
       background: #1a1a1a;
     }
 
-    .nav-brand { font-size: 1.2rem; text-decoration: none; color: #e8e8e8; letter-spacing: 0.03em; }
-    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
-    .nav-links a { color: #999; text-decoration: none; font-size: 0.9rem; transition: color 0.15s; }
-    .nav-links a:hover { color: #e8e8e8; }
+    .nav-main { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-main a, .nav-links a { color: #999; text-decoration: none; font-size: 0.9rem; transition: color 0.15s; }
+    .nav-main a:hover, .nav-links a:hover { color: #e8e8e8; }
+    .nav-main a.active, .nav-links a.active { color: #e8e8e8; font-weight: bold; }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; margin-left: 1.5rem; }
+
+    .nav-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: #e8e8e8;
+      font-size: 1.6rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+
+    @media (max-width: 640px) {
+      nav {
+        position: relative;
+        flex-wrap: wrap;
+        padding-right: 3.5rem;
+      }
+      .nav-toggle {
+        display: block;
+        position: absolute;
+        top: 0.75rem;
+        right: 1.25rem;
+      }
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        gap: 0.75rem;
+        padding: 1rem 0 0.5rem;
+      }
+      .nav-links.open {
+        display: flex;
+      }
+    }
 
     .avatar {
       width: 32px; height: 32px;
@@ -47,16 +83,20 @@
 </head>
 <body>
   <nav>
-    <a href="/" class="nav-brand">Portal</a>
-    <div class="nav-links">
+    <div class="nav-main">
       {% if is_admin %}
-        <a href="/events">Events</a>
-        <a href="/festivals">Festivals</a>
-        <a href="/podcasts">Podcasts</a>
-        <a href="/shows">Shows</a>
+        <a href="/events" class="{{ 'active' if current_path.startswith('/events') else '' }}">Events</a>
+        <a href="/festivals" class="{{ 'active' if current_path.startswith('/festivals') else '' }}">Festivals</a>
       {% else %}
-        <a href="/events/view">Events</a>
-        <a href="/festivals/view">Festivals</a>
+        <a href="/events/view" class="{{ 'active' if current_path.startswith('/events') else '' }}">Events</a>
+        <a href="/festivals/view" class="{{ 'active' if current_path.startswith('/festivals') else '' }}">Festivals</a>
+      {% endif %}
+    </div>
+    <button class="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="toggleMenu()">&#9776;</button>
+    <div class="nav-links" id="nav-links">
+      {% if is_admin %}
+        <a href="/podcasts" class="{{ 'active' if current_path.startswith('/podcasts') else '' }}">Podcasts</a>
+        <a href="/shows" class="{{ 'active' if current_path.startswith('/shows') else '' }}">Shows</a>
       {% endif %}
       {% if user and user.picture %}
         <img src="{{ user.picture }}" class="avatar" alt="{{ user.name }}" />
@@ -69,5 +109,14 @@
   </main>
 
 {% block extra_scripts %}{% endblock %}
+
+<script>
+  function toggleMenu() {
+    var links = document.getElementById('nav-links');
+    var btn = document.querySelector('.nav-toggle');
+    var open = links.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+</script>
 </body>
 </html>

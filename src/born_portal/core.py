@@ -82,4 +82,7 @@ def render(template_name: str, request: Request | None = None, **ctx) -> Respons
     if request is not None:
         ctx.setdefault("user", user(request))
         ctx.setdefault("is_admin", is_admin(request))
+        ctx.setdefault("current_path", request.path)
+    else:
+        ctx.setdefault("current_path", "/")
     return html(jinja.get_template(template_name).render(**ctx))
