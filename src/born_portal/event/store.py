@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, select
 
 from born_portal.event.model import EventData
 
@@ -8,12 +8,8 @@ from born_portal.event.model import EventData
 class EventStore:
     """SQLite storage for parsed event data."""
 
-    def __init__(self, db_path: str = "events.db"):
-        self._engine = create_engine(f"sqlite:///{db_path}")
-        SQLModel.metadata.create_all(self._engine)
-
-    def close(self) -> None:
-        self._engine.dispose()
+    def __init__(self, engine):
+        self._engine = engine
 
     def save(self, event: EventData) -> int:
         """Save an event to the database. Returns the row id."""

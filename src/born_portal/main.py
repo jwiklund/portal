@@ -4,10 +4,11 @@ import json
 import logging
 
 from blacksheep import Application
+from sqlmodel import SQLModel, create_engine
 
 from born_portal import auth, backup, event, festival, podcast, pwa, routes, show
 from born_portal.auth import configure as configure_auth
-from born_portal.core import SECRET_KEY
+from born_portal.core import DB_URL, SECRET_KEY
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,10 +20,13 @@ app = Application()
 app.use_sessions(SECRET_KEY)
 configure_auth(app)
 
+engine = create_engine(DB_URL)
+SQLModel.metadata.create_all(engine)
+
 auth.register_routes(app)
 routes.register_routes(app)
-event.register_routes(app)
-festival.register_routes(app)
+event.register_routes(app, engine)
+festival.register_routes(app, engine)
 podcast.register_routes(app)
 show.register_routes(app)
 pwa.register_routes(app)

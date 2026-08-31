@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlalchemy import Engine
+from sqlmodel import Session, select
 
 from born_portal.festival.model import ArtistData, FestivalArtist, FestivalData
 
@@ -8,12 +9,8 @@ from born_portal.festival.model import ArtistData, FestivalArtist, FestivalData
 class FestivalStore:
     """SQLite storage for festivals and their artists."""
 
-    def __init__(self, db_path: str = "events.db"):
-        self._engine = create_engine(f"sqlite:///{db_path}")
-        SQLModel.metadata.create_all(self._engine)
-
-    def close(self) -> None:
-        self._engine.dispose()
+    def __init__(self, engine: Engine):
+        self._engine = engine
 
     def save(self, festival: FestivalData) -> int:
         """Save a festival with its artist list. Returns the row id."""

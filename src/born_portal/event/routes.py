@@ -9,15 +9,13 @@ from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
 from born_portal.event.model import EventData
 
 
-def register_routes(app):
+def register_routes(app, engine):
+    store = event.EventStore(engine)
+
     @app.router.get("/events")
     @auth(roles=[ADMIN_ROLE])
     async def events_list(request: Request, sort_by: str | None = None):
-        store = event.EventStore()
-        try:
-            all_events = store.list_all()
-        finally:
-            store.close()
+        all_events = store.list_all()
 
         today = datetime.now(UTC).date()
         today_str = today.isoformat()
@@ -71,12 +69,7 @@ def register_routes(app):
             return render("events_import.html", request, error=str(e), url=url)
 
         # Check if event already exists by URL
-        store = event.EventStore()
-        try:
-            existing = store.get(url)
-        finally:
-            store.close()
-
+        existing = store.get(url)
         if existing:
             return render(
                 "event_edit.html",
@@ -91,13 +84,9 @@ def register_routes(app):
     @app.router.get("/events/{event_id}")
     @auth(roles=[ADMIN_ROLE])
     async def event_detail(request: Request, event_id: int):
-        store = event.EventStore()
-        try:
-            event_data = store.get_by_id(event_id)
-            if not event_data:
-                return render("error.html", request, message="Event not found")
-        finally:
-            store.close()
+        event_data = store.get_by_id(event_id)
+        if not event_data:
+            return render("error.html", request, message="Event not found")
 
         return render(
             "event_detail.html",
@@ -108,13 +97,9 @@ def register_routes(app):
     @app.router.get("/events/edit/{event_id}")
     @auth(roles=[ADMIN_ROLE])
     async def event_edit(request: Request, event_id: int):
-        store = event.EventStore()
-        try:
-            event_data = store.get_by_id(event_id)
-            if not event_data:
-                return render("error.html", request, message="Event not found")
-        finally:
-            store.close()
+        event_data = store.get_by_id(event_id)
+        if not event_data:
+            return render("error.html", request, message="Event not found")
 
         return render("event_edit.html", request, event=event_data, from_import=False)
 
@@ -125,31 +110,15 @@ def register_routes(app):
         if not form:
             return render("error.html", request, message="No data provided")
 
-        store = event.EventStore()
-        try:
-            event_id = form_value(form, "event_id")
-
-            # Determine if we're updating an existing event
-            if event_id and event_id != "None":
-                # Get existing event and update its fields
-                existing = store.get_by_id(int(event_id))
-                if existing:
-                    event_data = event.EventData(
-                        id=existing.id,
-                        url=existing.url,  # Preserve original URL
-                        name=form_value(form, "name") or "",
-                        description=form_value(form, "description") or "",
-                        location=form_value(form, "location"),
-                        price=form_value(form, "price"),
-                        date=form_value(form, "date"),
-                        ticket=form_value(form, "ticket") == "on",
-                    )
-                else:
-                    raise ValueError("Event does not exist")
-            else:
-                # No event_id, create new one
+        event_id = form_value(form, "event_id")
+        # Determine if we're updating an existing event
+        if event_id and event_id != "None":
+            # Get existing event and update its fields
+            existing = store.get_by_id(int(event_id))
+            if existing:
                 event_data = event.EventData(
-                    url=form_value(form, "url") or "",
+                    id=existing.id,
+                    url=existing.url,  # Preserve original URL
                     name=form_value(form, "name") or "",
                     description=form_value(form, "description") or "",
                     location=form_value(form, "location"),
@@ -157,9 +126,20 @@ def register_routes(app):
                     date=form_value(form, "date"),
                     ticket=form_value(form, "ticket") == "on",
                 )
-            event_id = store.save(event_data)
-        finally:
-            store.close()
+            else:
+                raise ValueError("Event does not exist")
+        else:
+            # No event_id, create new one
+            event_data = event.EventData(
+                url=form_value(form, "url") or "",
+                name=form_value(form, "name") or "",
+                description=form_value(form, "description") or "",
+                location=form_value(form, "location"),
+                price=form_value(form, "price"),
+                date=form_value(form, "date"),
+                ticket=form_value(form, "ticket") == "on",
+            )
+        event_id = store.save(event_data)
 
         return redirect(f"/events/{event_id}")
 
@@ -172,14 +152,10 @@ def register_routes(app):
         if not event_id:
             return render("error.html", request, message="No event provided")
 
-        store = event.EventStore()
-        try:
-            # Get the URL before deleting
-            event_data = store.get_by_id(int(event_id))
-            if event_data:
-                store.delete(event_data.url)
-        finally:
-            store.close()
+        # Get the URL before deleting
+        event_data = store.get_by_id(int(event_id))
+        if event_data:
+            store.delete(event_data.url)
 
         return redirect("/events")
 

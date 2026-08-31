@@ -13,15 +13,13 @@ from born_portal.festival.model import ArtistData, FestivalData
 from born_portal.utils.date_range import parse_name_with_dates
 
 
-def register_routes(app):
+def register_routes(app, engine):
+    store = festival.FestivalStore(engine)
+
     @app.router.get("/festivals")
     @auth(roles=[ADMIN_ROLE])
     async def festivals_list(request: Request):
-        store = festival.FestivalStore()
-        try:
-            festivals = store.list_all()
-        finally:
-            store.close()
+        festivals = store.list_all()
 
         return render(
             "festivals.html",
@@ -37,11 +35,7 @@ def register_routes(app):
     @app.router.get("/festivals/new")
     @auth(roles=[ADMIN_ROLE])
     async def festival_new(request: Request):
-        store = festival.FestivalStore()
-        try:
-            known_album_uris = store.known_album_uris()
-        finally:
-            store.close()
+        known_album_uris = store.known_album_uris()
 
         return render(
             "festival_edit.html",
@@ -72,11 +66,7 @@ def register_routes(app):
 
         name, start_date, end_date = parse_name_with_dates(title or "")
 
-        store = festival.FestivalStore()
-        try:
-            known_album_uris = store.known_album_uris()
-        finally:
-            store.close()
+        known_album_uris = store.known_album_uris()
 
         return render(
             "festival_edit.html",
@@ -93,12 +83,8 @@ def register_routes(app):
     @app.router.get("/festivals/edit/{festival_id}")
     @auth(roles=[ADMIN_ROLE])
     async def festival_edit(request: Request, festival_id: int):
-        store = festival.FestivalStore()
-        try:
-            festival_data = store.get_by_id(festival_id)
-            known_album_uris = store.known_album_uris()
-        finally:
-            store.close()
+        festival_data = store.get_by_id(festival_id)
+        known_album_uris = store.known_album_uris()
 
         if not festival_data:
             return render("error.html", request, message="Festival not found")
@@ -128,11 +114,7 @@ def register_routes(app):
     @app.router.get("/festivals/{festival_id}")
     @auth(roles=[ADMIN_ROLE])
     async def festival_detail(request: Request, festival_id: int):
-        store = festival.FestivalStore()
-        try:
-            festival_data = store.get_by_id(festival_id)
-        finally:
-            store.close()
+        festival_data = store.get_by_id(festival_id)
 
         if not festival_data:
             return render("error.html", request, message="Festival not found")
@@ -194,11 +176,7 @@ def register_routes(app):
             artists=artists,
         )
 
-        store = festival.FestivalStore()
-        try:
-            saved_id = store.save(festival_data)
-        finally:
-            store.close()
+        saved_id = store.save(festival_data)
 
         return redirect(f"/festivals/{saved_id}")
 
@@ -210,10 +188,6 @@ def register_routes(app):
         if not festival_id:
             return render("error.html", request, message="No festival provided")
 
-        store = festival.FestivalStore()
-        try:
-            store.delete(int(festival_id))
-        finally:
-            store.close()
+        store.delete(int(festival_id))
 
         return redirect("/festivals")

@@ -47,21 +47,21 @@ def run_auth(email, handler):
 
 def test_admin_role_assignment():
     h = SessionAuthHandler({"a@x"}, {"v@x"})
-    identity = asyncio.run(h.authenticate(FakeRequest("a@x")))
+    identity = h.authenticate(FakeRequest("a@x"))
     assert identity is not None
     assert identity.roles == [ADMIN_ROLE, "viewer"]
 
 
 def test_viewer_role_assignment():
     h = SessionAuthHandler({"a@x"}, {"v@x"})
-    identity = asyncio.run(h.authenticate(FakeRequest("v@x")))
+    identity = h.authenticate(FakeRequest("v@x"))
     assert identity is not None
     assert identity.roles == ["viewer"]
 
 
 def test_anonymous_gets_no_identity():
     h = SessionAuthHandler({"a@x"}, {"v@x"})
-    assert asyncio.run(h.authenticate(FakeRequest(None))) is None
+    assert h.authenticate(FakeRequest(None)) is None
 
 
 def test_admin_can_reach_admin_page():
