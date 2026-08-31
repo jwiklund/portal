@@ -11,6 +11,7 @@ dependencies = [
     "jinja2",
     "litellm",
     "markdownify",
+    "sqlmodel>=0.0.42",
     "uvicorn[standard]",
 ]
 
@@ -23,6 +24,9 @@ dev = [
     "pyright",
     "pytest",
 ]
+
+[tool.pyright]
+pythonPath = ".venv/bin/python"
 
 [project.scripts]
 app = "born_portal.main:main"

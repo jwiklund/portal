@@ -75,13 +75,13 @@ def main(argv=None):
 
     if args.command == "fetch":
         event_data = asyncio.run(event.parse(args.url))
-        print(json.dumps(event_data.__dict__, indent=2, ensure_ascii=False))
+        print(json.dumps(event_data.model_dump(), indent=2, ensure_ascii=False))
         return
 
     if args.command == "parse":
         with open(args.file) as r:
             event_data = event.parse_biletto(r.read())
-        print(json.dumps(event_data.__dict__, indent=2, ensure_ascii=False))
+        print(json.dumps(event_data.model_dump(), indent=2, ensure_ascii=False))
         return
 
     if args.command == "backup":

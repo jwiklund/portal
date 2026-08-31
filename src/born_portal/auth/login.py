@@ -89,5 +89,6 @@ def register_routes(app):
     @app.router.get("/logout")
     @allow_anonymous()
     async def logout(request: Request):
-        request.session.pop("user", None)
+        if "user" in request.session:
+            del request.session["user"]
         return redirect("/login")

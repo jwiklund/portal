@@ -41,20 +41,21 @@ def run_auth(email, handler):
     app.use_authorization()
     request = FakeRequest(email)
     asyncio.run(get_authentication_middleware(authn)(request, passthrough))
-    return asyncio.run(
-        get_authorization_middleware(app._authorization_strategy)(request, handler)
-    )
+    middleware = get_authorization_middleware(app._authorization_strategy)
+    return asyncio.run(middleware(request, handler))
 
 
 def test_admin_role_assignment():
     h = SessionAuthHandler({"a@x"}, {"v@x"})
     identity = asyncio.run(h.authenticate(FakeRequest("a@x")))
+    assert identity is not None
     assert identity.roles == [ADMIN_ROLE, "viewer"]
 
 
 def test_viewer_role_assignment():
     h = SessionAuthHandler({"a@x"}, {"v@x"})
     identity = asyncio.run(h.authenticate(FakeRequest("v@x")))
+    assert identity is not None
     assert identity.roles == ["viewer"]
 
 

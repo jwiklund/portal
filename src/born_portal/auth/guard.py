@@ -7,10 +7,13 @@ Anonymous calls that require authentication raise ``UnauthorizedError``, which i
 mapped (below) to a redirect to the login page so the app keeps its redirect UX.
 """
 
-from blacksheep import Request, Response
-from blacksheep.server.authorization import UnauthorizedError, allow_anonymous, auth
+from typing import Any
+
+from blacksheep import Response
+from blacksheep.server.authorization import allow_anonymous, auth
 from blacksheep.server.responses import redirect
 from guardpost import AuthenticationHandler, Identity
+from guardpost.authorization import UnauthorizedError
 
 from born_portal.core import ADMIN_ROLE, ADMIN_USERS, VIEW_USERS, VIEWER_ROLE
 
@@ -29,7 +32,7 @@ class SessionAuthHandler(AuthenticationHandler):
         self._admin_users = admin_users
         self._view_users = view_users
 
-    async def authenticate(self, context: Request) -> Identity | None:
+    def authenticate(self, context: Any) -> Identity | None:
         email = context.session.get("user")
         if email is None:
             return None

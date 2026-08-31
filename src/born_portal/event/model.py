@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+from sqlmodel import Field, SQLModel
 
 
-@dataclass(frozen=True)
-class EventData:
-    id: int | None = None
-    url: str = ""
+class EventData(SQLModel, table=True):
+    __tablename__ = "events"  # type: ignore[assignment]
+
+    id: int | None = Field(default=None, primary_key=True)
+    url: str = Field(unique=True, index=True)
     name: str = ""
     description: str = ""
     location: str | None = None

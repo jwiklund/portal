@@ -1,3 +1,5 @@
+from sqlmodel import Session, func, select
+
 from born_portal.festival.model import ArtistData, FestivalData
 from born_portal.festival.store import FestivalStore
 
@@ -5,6 +7,12 @@ from born_portal.festival.store import FestivalStore
 def make_store(tmp_path):
     store = FestivalStore(str(tmp_path / "test.db"))
     return store
+
+
+def artist_count(store) -> int:
+    with Session(store._engine) as conn:
+        query = select(func.count()).select_from(ArtistData)
+        return conn.exec(query).one()
 
 
 def test_save_and_get_roundtrip(tmp_path):
@@ -72,9 +80,7 @@ def test_artist_deduplicated_across_festivals(tmp_path):
         store.save(FestivalData(name="F1", artists=[ArtistData(name="Shared")]))
         store.save(FestivalData(name="F2", artists=[ArtistData(name="Shared")]))
 
-        with store._get_connection() as conn:
-            count = conn.execute("SELECT COUNT(*) FROM artists").fetchone()[0]
-        assert count == 1
+        assert artist_count(store) == 1
     finally:
         store.close()
 
@@ -104,9 +110,7 @@ def test_relinking_existing_artists_keeps_correct_ids(tmp_path):
         assert loaded is not None
         assert [a.name for a in loaded.artists] == ["C"]
 
-        with store._get_connection() as conn:
-            count = conn.execute("SELECT COUNT(*) FROM artists").fetchone()[0]
-        assert count == 3
+        assert artist_count(store) == 3
     finally:
         store.close()
 

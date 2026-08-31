@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import sqlite3
-from dataclasses import asdict
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from born_portal.event.model import EventData
 
@@ -10,173 +9,110 @@ class EventStore:
     """SQLite storage for parsed event data."""
 
     def __init__(self, db_path: str = "events.db"):
-        self.db_path = db_path
-        self._conn: sqlite3.Connection | None = None
-
-    def _get_connection(self) -> sqlite3.Connection:
-        if self._conn is None:
-            self._conn = sqlite3.connect(self.db_path)
-            self._conn.row_factory = sqlite3.Row
-            self._create_table(self._conn)
-        return self._conn
-
-    def _create_table(self, conn: sqlite3.Connection) -> None:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT UNIQUE NOT NULL,
-                name TEXT NOT NULL,
-                description TEXT NOT NULL,
-                location TEXT,
-                price TEXT,
-                date TEXT,
-                ticket INTEGER DEFAULT 0
-            )
-        """
-        )
-        conn.commit()
+        self._engine = create_engine(f"sqlite:///{db_path}")
+        SQLModel.metadata.create_all(self._engine)
 
     def close(self) -> None:
-        if self._conn is not None:
-            self._conn.close()
-            self._conn = None
+        self._engine.dispose()
 
     def save(self, event: EventData) -> int:
         """Save an event to the database. Returns the row id."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        if event.id:
-            # Update existing event by id
-            cursor.execute(
-                """
-                UPDATE events SET
-                    url = :url,
-                    name = :name,
-                    description = :description,
-                    location = :location,
-                    price = :price,
-                    date = :date,
-                    ticket = :ticket
-                WHERE id = :id
-            """,
-                asdict(event),
-            )
-            conn.commit()
-            # If update affected rows, return the id; otherwise insert new
-            if cursor.rowcount > 0:
-                return event.id
-        # Insert new event (or update by URL if id was not valid)
-        cursor.execute(
-            """
-            INSERT INTO events (url, name, description, location, price, date, ticket)
-            VALUES (:url, :name, :description, :location, :price, :date, :ticket)
-            ON CONFLICT(url) DO UPDATE SET
-                name = excluded.name,
-                description = excluded.description,
-                location = excluded.location,
-                price = excluded.price,
-                date = excluded.date,
-                ticket = excluded.ticket
-            """,
-            asdict(event),
-        )
-        conn.commit()
-        return cursor.lastrowid if cursor.lastrowid is not None else 0
+        with Session(self._engine) as session:
+            if event.id is not None:
+                existing = session.get(EventData, event.id)
+                if existing is not None:
+                    existing.url = event.url
+                    existing.name = event.name
+                    existing.description = event.description
+                    existing.location = event.location
+                    existing.price = event.price
+                    existing.date = event.date
+                    existing.ticket = event.ticket
+                    session.add(existing)
+                    session.commit()
+                    session.refresh(existing)
+                    assert existing.id is not None
+                    return existing.id
+
+            # Insert new event, or update the row with the same URL.
+            existing = session.exec(
+                select(EventData).where(EventData.url == event.url)
+            ).first()
+            if existing is None:
+                existing = EventData(
+                    url=event.url,
+                    name=event.name,
+                    description=event.description,
+                    location=event.location,
+                    price=event.price,
+                    date=event.date,
+                    ticket=event.ticket,
+                )
+                session.add(existing)
+            else:
+                existing.name = event.name
+                existing.description = event.description
+                existing.location = event.location
+                existing.price = event.price
+                existing.date = event.date
+                existing.ticket = event.ticket
+                session.add(existing)
+            session.commit()
+            session.refresh(existing)
+            assert existing.id is not None
+            return existing.id
 
     def get(self, url: str) -> EventData | None:
         """Retrieve an event by URL."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM events WHERE url = ?", (url,))
-        row = cursor.fetchone()
-        if row:
-            return EventData(
-                id=row["id"],
-                url=row["url"],
-                name=row["name"],
-                description=row["description"],
-                location=row["location"],
-                price=row["price"],
-                date=row["date"],
-                ticket=bool(row["ticket"]),
-            )
-        return None
+        with Session(self._engine) as session:
+            return session.exec(select(EventData).where(EventData.url == url)).first()
 
     def get_by_id(self, id: int) -> EventData | None:
         """Retrieve an event by id."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM events WHERE id = ?", (id,))
-        row = cursor.fetchone()
-        if row:
-            return EventData(
-                id=row["id"],
-                url=row["url"],
-                name=row["name"],
-                description=row["description"],
-                location=row["location"],
-                price=row["price"],
-                date=row["date"],
-                ticket=bool(row["ticket"]),
-            )
-        return None
+        with Session(self._engine) as session:
+            return session.get(EventData, id)
 
     def exists(self, url: str) -> bool:
         """Check if an event exists in the database."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM events WHERE url = ?", (url,))
-        return cursor.fetchone() is not None
+        with Session(self._engine) as session:
+            return (
+                session.exec(select(EventData.id).where(EventData.url == url)).first()
+                is not None
+            )
 
     def exists_by_id(self, id: int) -> bool:
         """Check if an event exists by id."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM events WHERE id = ?", (id,))
-        return cursor.fetchone() is not None
+        with Session(self._engine) as session:
+            return session.get(EventData, id) is not None
 
     def get_url_by_id(self, id: int) -> str | None:
         """Get the URL for an event by id."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT url FROM events WHERE id = ?", (id,))
-        row = cursor.fetchone()
-        return row["url"] if row else None
+        with Session(self._engine) as session:
+            return session.exec(select(EventData.url).where(EventData.id == id)).first()
 
     def list_all(self) -> list[EventData]:
         """List all events in the database."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM events ORDER BY date DESC")
-        rows = cursor.fetchall()
-        return [
-            EventData(
-                id=row["id"],
-                url=row["url"],
-                name=row["name"],
-                description=row["description"],
-                location=row["location"],
-                price=row["price"],
-                date=row["date"],
-                ticket=bool(row["ticket"]),
-            )
-            for row in rows
-        ]
+        with Session(self._engine) as session:
+            events = list(session.exec(select(EventData)))
+        events.sort(key=lambda e: e.date or "", reverse=True)
+        return events
 
     def delete(self, url: str) -> bool:
         """Delete an event by URL. Returns True if deleted."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM events WHERE url = ?", (url,))
-        conn.commit()
-        return cursor.rowcount > 0
+        with Session(self._engine) as session:
+            result = session.exec(select(EventData).where(EventData.url == url)).first()
+            if result is None:
+                return False
+            session.delete(result)
+            session.commit()
+            return True
 
     def delete_by_id(self, id: int) -> bool:
         """Delete an event by id. Returns True if deleted."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM events WHERE id = ?", (id,))
-        conn.commit()
-        return cursor.rowcount > 0
+        with Session(self._engine) as session:
+            result = session.get(EventData, id)
+            if result is None:
+                return False
+            session.delete(result)
+            session.commit()
+            return True

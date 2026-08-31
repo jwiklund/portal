@@ -1,4 +1,3 @@
-import dataclasses
 from datetime import UTC, datetime
 
 from blacksheep import Request
@@ -31,7 +30,7 @@ def register_routes(app):
             future_events.sort(key=lambda e: e.date or "")
 
         def render_event(e: EventData) -> dict:
-            d = dataclasses.asdict(e)
+            d = e.model_dump()
             i = d.get("date", "").find(" - ")
             if i != -1:
                 d["date_end"] = d["date"][i + 3 :]
