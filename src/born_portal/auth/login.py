@@ -1,7 +1,7 @@
 import secrets
 import urllib.parse
 
-import httpx
+import httpx2
 from blacksheep import Request, allow_anonymous
 from blacksheep.server.responses import redirect
 
@@ -60,7 +60,7 @@ def register_routes(app):
             )
 
         # Exchange code for tokens
-        async with httpx.AsyncClient() as client:
+        async with httpx2.AsyncClient() as client:
             token_resp = await client.post(
                 GOOGLE_TOKEN_URL,
                 data={

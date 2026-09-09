@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 
-import httpx
+import httpx2
 
 from born_portal.core import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 
@@ -22,7 +22,7 @@ class SpotifyError(Exception):
 async def search_artists(query: str, limit: int = 8) -> list[dict]:
     """Search Spotify for artists. Returns [{name, spotify_uri, image}]."""
     token = await _get_token()
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         resp = await client.get(
             _SEARCH_URL,
             params={"q": query, "type": "artist", "limit": limit},
@@ -57,7 +57,7 @@ async def _get_token() -> str:
     if _token and time.monotonic() < _token_expires_at - 60:
         return _token
 
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         resp = await client.post(
             _TOKEN_URL,
             data={"grant_type": "client_credentials"},

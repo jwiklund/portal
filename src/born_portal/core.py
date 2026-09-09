@@ -31,6 +31,8 @@ ADMIN_USERS = set(os.environ.get("ADMIN_USERS", "").split(","))
 VIEW_USERS = set(os.environ.get("VIEW_USERS", "").split(","))
 DB_URL = os.environ.get("DB_URL", "sqlite:///events.db")
 MODEL = os.environ.get("MODEL")
+API_KEY = os.environ.get("API_KEY")
+API_URL = os.environ.get("API_URL") or "https://openrouter.ai/api/v1"
 
 # Role names used by the @auth authorization policies.
 ADMIN_ROLE = "admin"

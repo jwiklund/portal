@@ -18,7 +18,7 @@ import json
 import re
 import time
 
-import httpx
+import httpx2
 
 _THUMB_SIZE = "=w400-h400-c"
 _VIEW_SIZE = "=w1920"
@@ -185,7 +185,7 @@ async def fetch_album_page(album_uri: str) -> str:
     if cached and time.monotonic() - cached[0] < _CACHE_TTL_SECONDS:
         return cached[1]
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
+    async with httpx2.AsyncClient(follow_redirects=True) as client:
         resp = await client.get(album_uri, headers={"User-Agent": "Mozilla/5.0"})
         resp.raise_for_status()
 

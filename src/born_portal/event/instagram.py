@@ -4,15 +4,13 @@ import base64
 import html
 import re
 
-import httpx
+import httpx2
 
-from born_portal.core import MODEL
+from born_portal import llm
 from born_portal.event.model import EventData
 
 
 async def parse_instagram(html_content: str, url: str) -> EventData:
-    from litellm import acompletion
-
     from born_portal.event.event import _extract_response_text, _parse_json_output
 
     image_url = _meta(html_content, "og:image")
@@ -21,9 +19,6 @@ async def parse_instagram(html_content: str, url: str) -> EventData:
 
     if not image_url:
         raise ValueError("No image found in Instagram post")
-
-    if not MODEL:
-        raise ValueError("MODEL environment variable is not set")
 
     image_b64 = await _fetch_image_base64(image_url)
 
@@ -36,7 +31,7 @@ async def parse_instagram(html_content: str, url: str) -> EventData:
     if description:
         text += f"\n\nDescription: {description}"
 
-    response = await acompletion(
+    response = await llm.completions(
         messages=[
             {
                 "role": "system",
@@ -52,9 +47,7 @@ async def parse_instagram(html_content: str, url: str) -> EventData:
                     },
                 ],
             },
-        ],
-        model=MODEL,
-        max_tokens=1024,
+        ]
     )
 
     content = _extract_response_text(response)
@@ -83,7 +76,7 @@ def _meta(html_content: str, name: str) -> str | None:
 
 
 async def _fetch_image_base64(image_url: str) -> str:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx2.AsyncClient(timeout=30.0) as client:
         response = await client.get(image_url)
         response.raise_for_status()
         return base64.b64encode(response.content).decode()

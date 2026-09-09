@@ -4,10 +4,10 @@ import json
 import re
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-import httpx
+import httpx2
 import markdownify
 
-from born_portal.core import MODEL
+from born_portal import llm
 from born_portal.event.biletto import parse_biletto
 from born_portal.event.instagram import parse_instagram
 from born_portal.event.model import EventData
@@ -29,8 +29,6 @@ GOOGLEBOT_HEADERS = {
 
 
 async def parse(url: str, debug: bool = False) -> EventData:
-    from litellm import acompletion
-
     clean_url = _clean_url(url)
     hostname = urlparse(clean_url).hostname or ""
     html = await _fetch_html(clean_url)
@@ -46,19 +44,14 @@ async def parse(url: str, debug: bool = False) -> EventData:
 
     markdown = _html_to_markdown(html)
 
-    if not MODEL:
-        raise ValueError("MODEL environment variable is not set")
-
-    response = await acompletion(
+    response = await llm.completions(
         messages=[
             {
                 "role": "system",
                 "content": "Extract name, location, date/time, price and description as JSON",
             },
             {"role": "user", "content": markdown},
-        ],
-        model=MODEL,
-        max_tokens=1024,
+        ]
     )
 
     content = _extract_response_text(response)
@@ -99,7 +92,7 @@ def _clean_parameter(key: str) -> bool:
 
 
 async def _fetch_html(url: str) -> str:
-    async with httpx.AsyncClient(
+    async with httpx2.AsyncClient(
         timeout=30.0, headers=GOOGLEBOT_HEADERS, follow_redirects=True
     ) as client:
         response = await client.get(url)
@@ -113,13 +106,8 @@ def _html_to_markdown(html: str) -> str:
 
 
 def _extract_response_text(response) -> str:
-    if hasattr(response, "choices") and response.choices:
-        choice = response.choices[0]
-        message = getattr(choice, "message", None)
-        if message is not None:
-            return getattr(message, "content", "") or ""
-    if hasattr(response, "text"):
-        return response.text
+    if response.choices:
+        return response.choices[0].message.content or ""
     return str(response)
 
 

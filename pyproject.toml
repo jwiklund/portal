@@ -8,10 +8,10 @@ dependencies = [
     "aiofiles",
     "blacksheep",
     "brotli",
-    "httpx",
+    "httpx2",
     "jinja2",
-    "litellm",
     "markdownify",
+    "openai",
     "sqlmodel>=0.0.42",
     "uvicorn[standard]",
 ]
