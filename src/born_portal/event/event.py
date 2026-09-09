@@ -94,8 +94,8 @@ def _clean_parameter(key: str) -> bool:
     # instagram tracking
     if key == "stkn":
         return False
-    # tickster tracking
-    return key == "fbclid"
+    # facebook tracking
+    return key != "fbclid"
 
 
 async def _fetch_html(url: str) -> str:
