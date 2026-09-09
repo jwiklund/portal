@@ -51,9 +51,7 @@ def main(argv=None):
         "fetch", help="Fetch an event URL and parse event data"
     )
     fetch_parser.add_argument("url", help="URL to fetch and parse")
-
-    parse_parser = subparsers.add_parser("parse", help="Parse event example")
-    parse_parser.add_argument("--file", help="File to parse", default="biletto.html")
+    fetch_parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 
     backup_parser = subparsers.add_parser(
         "backup", help="Back up the SQLite database to a .sql file"
@@ -78,13 +76,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.command == "fetch":
-        event_data = asyncio.run(event.parse(args.url))
-        print(json.dumps(event_data.model_dump(), indent=2, ensure_ascii=False))
-        return
-
-    if args.command == "parse":
-        with open(args.file) as r:
-            event_data = event.parse_biletto(r.read())
+        event_data = asyncio.run(event.parse(args.url, debug=args.debug))
         print(json.dumps(event_data.model_dump(), indent=2, ensure_ascii=False))
         return
 

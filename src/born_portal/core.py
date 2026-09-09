@@ -30,6 +30,7 @@ BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
 ADMIN_USERS = set(os.environ.get("ADMIN_USERS", "").split(","))
 VIEW_USERS = set(os.environ.get("VIEW_USERS", "").split(","))
 DB_URL = os.environ.get("DB_URL", "sqlite:///events.db")
+MODEL = os.environ.get("MODEL")
 
 # Role names used by the @auth authorization policies.
 ADMIN_ROLE = "admin"

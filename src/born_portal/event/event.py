@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
 import markdownify
 
+from born_portal.core import MODEL
 from born_portal.event.biletto import parse_biletto
+from born_portal.event.instagram import parse_instagram
 from born_portal.event.model import EventData
 from born_portal.utils import date_range
 
-_model = os.environ.get("MODEL")
-
-FIREFOX_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0",
+GOOGLEBOT_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.5",
     "Accept-Encoding": "gzip, deflate, br",
@@ -29,17 +28,25 @@ FIREFOX_HEADERS = {
 }
 
 
-async def parse(url: str) -> EventData:
+async def parse(url: str, debug: bool = False) -> EventData:
     from litellm import acompletion
 
     clean_url = _clean_url(url)
+    hostname = urlparse(clean_url).hostname or ""
     html = await _fetch_html(clean_url)
-    if url.startswith("https://billetto.se/"):
+
+    if debug:
+        print(f"Fetched HTML from {clean_url}:\n{html}\n")
+
+    if hostname == "billetto.se":
         return parse_biletto(html)
+
+    if hostname.endswith("instagram.com"):
+        return await parse_instagram(html, clean_url)
 
     markdown = _html_to_markdown(html)
 
-    if not _model:
+    if not MODEL:
         raise ValueError("MODEL environment variable is not set")
 
     response = await acompletion(
@@ -50,7 +57,7 @@ async def parse(url: str) -> EventData:
             },
             {"role": "user", "content": markdown},
         ],
-        model=_model,
+        model=MODEL,
         max_tokens=1024,
     )
 
@@ -81,7 +88,9 @@ def _clean_url(url: str) -> str:
 
 
 async def _fetch_html(url: str) -> str:
-    async with httpx.AsyncClient(timeout=30.0, headers=FIREFOX_HEADERS) as client:
+    async with httpx.AsyncClient(
+        timeout=30.0, headers=GOOGLEBOT_HEADERS, follow_redirects=True
+    ) as client:
         response = await client.get(url)
         response.raise_for_status()
         return response.text
