@@ -80,11 +80,22 @@ def _clean_url(url: str) -> str:
     params = {
         key: value
         for key, value in parse_qs(parsed.query).items()
-        if not key.startswith("utm_")
+        if _clean_parameter(key)
     }
     new_query = urlencode(params, doseq=True)
     filtered_url = urlunparse(parsed._replace(query=new_query))
     return filtered_url
+
+
+def _clean_parameter(key: str) -> bool:
+    # google analytics
+    if key.startswith("utm_"):
+        return False
+    # instagram tracking
+    if key == "stkn":
+        return False
+    # tickster tracking
+    return key == "fbclid"
 
 
 async def _fetch_html(url: str) -> str:
