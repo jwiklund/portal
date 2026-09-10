@@ -27,11 +27,28 @@ GOOGLEBOT_HEADERS = {
     "Sec-Fetch-User": "?1",
 }
 
+FIREFOX_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    "DNT": "1",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "cross-site",
+    "Sec-Fetch-User": "?1",
+}
+
 
 async def parse(url: str, debug: bool = False) -> EventData:
     clean_url = _clean_url(url)
     hostname = urlparse(clean_url).hostname or ""
-    html = await _fetch_html(clean_url)
+    headers = _headers_for(hostname)
+    html = await _fetch_html(clean_url, headers=headers)
 
     if debug:
         print(f"Fetched HTML from {clean_url}:\n{html}\n")
@@ -91,9 +108,15 @@ def _clean_parameter(key: str) -> bool:
     return key != "fbclid"
 
 
-async def _fetch_html(url: str) -> str:
+def _headers_for(hostname: str) -> dict:
+    if hostname.endswith("instagram.com"):
+        return GOOGLEBOT_HEADERS
+    return FIREFOX_HEADERS
+
+
+async def _fetch_html(url: str, headers: dict) -> str:
     async with httpx2.AsyncClient(
-        timeout=30.0, headers=GOOGLEBOT_HEADERS, follow_redirects=True
+        timeout=30.0, headers=headers, follow_redirects=True
     ) as client:
         response = await client.get(url)
         response.raise_for_status()
