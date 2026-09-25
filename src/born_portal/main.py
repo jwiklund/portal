@@ -61,7 +61,7 @@ class HardenedCookieSessionStore(CookieSessionStore):
     def _prepare_cookie(self, value: str) -> Cookie:
         cookie = super()._prepare_cookie(value)
         cookie.secure = self._secure
-        cookie.same_site = CookieSameSiteMode.LAX
+        cookie.same_site = CookieSameSiteMode.STRICT
         return cookie
 
 
