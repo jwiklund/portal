@@ -148,11 +148,11 @@ document.getElementById('castBtn').addEventListener('click', function() {
 
   castContext.requestSession().then(function() {
     var session = castContext.getCurrentSession();
-    var mediaInfo = new chrome.cast.media.MediaInfo('{{ video_url }}', 'video/mp4');
+    var mediaInfo = new chrome.cast.media.MediaInfo({{ video_url | tojson }}, 'video/mp4');
     mediaInfo.streamType = chrome.cast.media.StreamType.BUFFERED;
 
     var metadata = new chrome.cast.media.GenericMediaMetadata();
-    metadata.title = '{{ title }}';
+    metadata.title = {{ title | tojson }};
     mediaInfo.metadata = metadata;
 
     var request = new chrome.cast.media.LoadRequest(mediaInfo);

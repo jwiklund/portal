@@ -27,8 +27,14 @@ from jinja2 import Environment, FileSystemLoader
 GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
 GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
-ADMIN_USERS = set(os.environ.get("ADMIN_USERS", "").split(","))
-VIEW_USERS = set(os.environ.get("VIEW_USERS", "").split(","))
+# Production by default; set ENV=development locally for insecure cookies.
+ENV = os.environ.get("ENV", "production")
+ADMIN_USERS = {
+    u.strip() for u in os.environ.get("ADMIN_USERS", "").split(",") if u.strip()
+}
+VIEW_USERS = {
+    u.strip() for u in os.environ.get("VIEW_USERS", "").split(",") if u.strip()
+}
 DB_URL = os.environ.get("DB_URL", "sqlite:///events.db")
 MODEL = os.environ.get("MODEL")
 API_KEY = os.environ.get("API_KEY")

@@ -3,12 +3,14 @@ import asyncio
 import json
 import logging
 
-from blacksheep import Application
+from blacksheep import Application, Request
+from blacksheep.cookies import Cookie, CookieSameSiteMode
+from blacksheep.sessions.cookies import CookieSessionStore
 from sqlmodel import SQLModel, create_engine
 
 from born_portal import auth, backup, event, festival, podcast, pwa, routes, show
 from born_portal.auth import configure as configure_auth
-from born_portal.core import DB_URL, SECRET_KEY
+from born_portal.core import DB_URL, ENV, SECRET_KEY
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,7 +19,60 @@ logging.basicConfig(
 
 app = Application()
 
-app.use_sessions(SECRET_KEY)
+# Session cookies: 7-day expiry, SameSite=Lax, Secure outside development.
+_SESSION_MAX_AGE = 7 * 24 * 3600
+
+# Google Cast SDK script, Google-hosted avatars/album photos, and inline
+# scripts/styles used across templates.
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://www.gstatic.com; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: https://*.googleusercontent.com; "
+    "media-src 'self'; "
+    "connect-src 'self'; "
+    "font-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'none'"
+)
+
+_SECURITY_HEADERS = {
+    "Content-Security-Policy": CONTENT_SECURITY_POLICY,
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+}
+
+
+async def security_headers_middleware(request: Request, handler):
+    response = await handler(request)
+    for name, value in _SECURITY_HEADERS.items():
+        response.set_header(name.encode(), value.encode())
+    return response
+
+
+class HardenedCookieSessionStore(CookieSessionStore):
+    def __init__(self, *args, secure: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._secure = secure
+
+    def _prepare_cookie(self, value: str) -> Cookie:
+        cookie = super()._prepare_cookie(value)
+        cookie.secure = self._secure
+        cookie.same_site = CookieSameSiteMode.LAX
+        return cookie
+
+
+app.use_sessions(
+    HardenedCookieSessionStore(
+        SECRET_KEY,
+        session_max_age=_SESSION_MAX_AGE,
+        secure=ENV != "development",
+    )
+)
+app.middlewares.append(security_headers_middleware)
 configure_auth(app)
 
 engine = create_engine(DB_URL)

@@ -12,6 +12,7 @@ from born_portal.event.biletto import parse_biletto
 from born_portal.event.instagram import parse_instagram
 from born_portal.event.model import EventData
 from born_portal.utils import date_range
+from born_portal.utils.url_guard import validate_public_http_url
 
 GOOGLEBOT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
@@ -45,7 +46,7 @@ FIREFOX_HEADERS = {
 
 
 async def parse(url: str, debug: bool = False) -> EventData:
-    clean_url = _clean_url(url)
+    clean_url = validate_public_http_url(_clean_url(url))
     hostname = urlparse(clean_url).hostname or ""
     headers = _headers_for(hostname)
     html = await _fetch_html(clean_url, headers=headers)

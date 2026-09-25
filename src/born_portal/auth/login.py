@@ -58,6 +58,8 @@ def register_routes(app):
             return render(
                 "error.html", message="Invalid OAuth state. Please try again."
             )
+        if "oauth_state" in request.session:
+            del request.session["oauth_state"]
 
         # Exchange code for tokens
         async with httpx2.AsyncClient() as client:
@@ -81,7 +83,12 @@ def register_routes(app):
             userinfo_resp.raise_for_status()
             user = userinfo_resp.json()
 
-        request.session["user"] = user.get("email", "")
+        email = user.get("email")
+        if not email:
+            return render(
+                "error.html", message="No verified email returned from Google."
+            )
+        request.session["user"] = email
         if is_viewer(request):
             return redirect("/events/view")
         return redirect("/events")
@@ -89,6 +96,5 @@ def register_routes(app):
     @app.router.get("/logout")
     @allow_anonymous()
     async def logout(request: Request):
-        if "user" in request.session:
-            del request.session["user"]
+        request.session.clear()
         return redirect("/login")

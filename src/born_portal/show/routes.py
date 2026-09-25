@@ -199,8 +199,8 @@ def register_routes(app):
                 error="No filename provided.",
             )
 
-        filepath = SHOWS_DIR / filename
-        if not filepath.exists() or not filepath.is_file():
+        filepath = (SHOWS_DIR / filename).resolve()
+        if not filepath.is_relative_to(SHOWS_DIR.resolve()) or not filepath.is_file():
             return render(
                 "shows.html",
                 request,

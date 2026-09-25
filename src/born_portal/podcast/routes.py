@@ -65,12 +65,12 @@ def register_routes(app):
         form = await request.form()
         url = form_value(form, "url") or ""
 
-        if not url:
+        if not url or not url.startswith(("http://", "https://")):
             return render(
                 "podcasts.html",
                 request,
                 podcasts=_list_podcasts(),
-                error="Please enter a URL",
+                error="Please enter a valid http(s) URL",
             )
 
         try:
@@ -81,6 +81,7 @@ def register_routes(app):
                 "mp3",
                 "-o",
                 f"{PODCAST_DIR}/%(title)s.%(ext)s",
+                "--",
                 url,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
