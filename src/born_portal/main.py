@@ -20,6 +20,10 @@ logging.basicConfig(
 app = Application()
 
 # Session cookies: 7-day expiry, SameSite=Lax, Secure outside development.
+# Lax is deliberate: the OAuth callback (/auth/callback) arrives via a
+# cross-site top-level navigation, so a Strict cookie would not be sent
+# there and the oauth_state check would fail. Lax still blocks all
+# cross-site POSTs, and every mutating route in this app is a POST.
 _SESSION_MAX_AGE = 7 * 24 * 3600
 
 # Google Cast SDK script, Google-hosted avatars/album photos, and inline
@@ -61,7 +65,7 @@ class HardenedCookieSessionStore(CookieSessionStore):
     def _prepare_cookie(self, value: str) -> Cookie:
         cookie = super()._prepare_cookie(value)
         cookie.secure = self._secure
-        cookie.same_site = CookieSameSiteMode.STRICT
+        cookie.same_site = CookieSameSiteMode.LAX
         return cookie
 
 
