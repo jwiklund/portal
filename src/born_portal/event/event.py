@@ -2,54 +2,20 @@ from __future__ import annotations
 
 import json
 import re
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
-
-import httpx2
-import markdownify
 
 from born_portal import llm
 from born_portal.event.biletto import parse_biletto
 from born_portal.event.instagram import parse_instagram
 from born_portal.event.model import EventData
 from born_portal.utils import date_range
-from born_portal.utils.url_guard import validate_public_http_url
-
-GOOGLEBOT_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
-    "Accept-Encoding": "gzip, deflate, br",
-    "DNT": "1",
-    "Connection": "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-}
-
-FIREFOX_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (X11; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
-    "Accept-Encoding": "gzip, deflate, br",
-    "DNT": "1",
-    "Connection": "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "cross-site",
-    "Sec-Fetch-User": "?1",
-}
+from born_portal.utils.fetch import fetch_public_html, html_to_markdown
 
 
 async def parse(url: str, debug: bool = False) -> EventData:
-    clean_url = validate_public_http_url(_clean_url(url))
-    hostname = urlparse(clean_url).hostname or ""
-    headers = _headers_for(hostname)
-    html = await _fetch_html(clean_url, headers=headers)
+    page = await fetch_public_html(url)
+    clean_url = page.url
+    hostname = page.hostname
+    html = page.html
 
     if debug:
         print(f"Fetched HTML from {clean_url}:\n{html}\n")
@@ -60,7 +26,7 @@ async def parse(url: str, debug: bool = False) -> EventData:
     if hostname.endswith("instagram.com"):
         return await parse_instagram(html, clean_url)
 
-    markdown = _html_to_markdown(html)
+    markdown = html_to_markdown(html)
 
     response = await llm.completions(
         messages=[
@@ -83,50 +49,6 @@ async def parse(url: str, debug: bool = False) -> EventData:
         price=(parsed.get("price") or None),
         date=(parsed.get("date") or None),
     )
-
-
-def _clean_url(url: str) -> str:
-    parsed = urlparse(url)
-
-    params = {
-        key: value
-        for key, value in parse_qs(parsed.query).items()
-        if _clean_parameter(key)
-    }
-    new_query = urlencode(params, doseq=True)
-    filtered_url = urlunparse(parsed._replace(query=new_query))
-    return filtered_url
-
-
-def _clean_parameter(key: str) -> bool:
-    # google analytics
-    if key.startswith("utm_"):
-        return False
-    # instagram tracking
-    if key == "stkn":
-        return False
-    # facebook tracking
-    return key != "fbclid"
-
-
-def _headers_for(hostname: str) -> dict:
-    if hostname.endswith("instagram.com"):
-        return GOOGLEBOT_HEADERS
-    return FIREFOX_HEADERS
-
-
-async def _fetch_html(url: str, headers: dict) -> str:
-    async with httpx2.AsyncClient(
-        timeout=30.0, headers=headers, follow_redirects=True
-    ) as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        return response.text
-
-
-def _html_to_markdown(html: str) -> str:
-    """Convert HTML to Markdown using markdownify."""
-    return markdownify.markdownify(html, heading_style="ATX").strip()
 
 
 def _extract_response_text(response) -> str:

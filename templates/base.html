@@ -87,6 +87,7 @@
       {% if is_admin %}
         <a href="/events" class="{{ 'active' if current_path.startswith('/events') else '' }}">Events</a>
         <a href="/festivals" class="{{ 'active' if current_path.startswith('/festivals') else '' }}">Festivals</a>
+        <a href="/playlists" class="{{ 'active' if current_path.startswith('/playlists') else '' }}">Playlists</a>
       {% else %}
         <a href="/events/view" class="{{ 'active' if current_path.startswith('/events') else '' }}">Events</a>
         <a href="/festivals/view" class="{{ 'active' if current_path.startswith('/festivals') else '' }}">Festivals</a>

@@ -23,6 +23,7 @@ src/born_portal/
     routes.py      # Podcast web routes + audio serving
   utils/
     date_range.py  # Date parsing (Swedish/English/ISO), handles ranges and timezone offsets
+    fetch.py       # Safe public-page fetching (SSRF guard, tracking cleanup, headers, HTML→Markdown)
 templates/         # Jinja2 templates (extends base.html)
 tests/             # pytest tests
 ```
@@ -90,6 +91,7 @@ event.register_routes(app)
 podcast.register_routes(app)
 show.register_routes(app)
 festival.register_routes(app)
+playlist.register_routes(app)
 pwa.register_routes(app)
 ```
 

@@ -8,7 +8,17 @@ from blacksheep.cookies import Cookie, CookieSameSiteMode
 from blacksheep.sessions.cookies import CookieSessionStore
 from sqlmodel import SQLModel, create_engine
 
-from born_portal import auth, backup, event, festival, podcast, pwa, routes, show
+from born_portal import (
+    auth,
+    backup,
+    event,
+    festival,
+    playlist,
+    podcast,
+    pwa,
+    routes,
+    show,
+)
 from born_portal.auth import configure as configure_auth
 from born_portal.core import DB_URL, ENV, SECRET_KEY
 
@@ -86,6 +96,7 @@ auth.register_routes(app)
 routes.register_routes(app)
 event.register_routes(app, engine)
 festival.register_routes(app, engine)
+playlist.register_routes(app)
 podcast.register_routes(app)
 show.register_routes(app)
 pwa.register_routes(app)

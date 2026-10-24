@@ -5,8 +5,8 @@ from born_portal.festival.photos import (
     parse_album_title,
 )
 from born_portal.festival.routes import register_routes
-from born_portal.festival.spotify import SpotifyError, search_artists
 from born_portal.festival.store import FestivalStore
+from born_portal.spotify import SpotifyError, search_artists
 
 __all__ = [
     "ArtistData",

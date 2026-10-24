@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% block title %}Playlists{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
+  h3 { font-size: 1.15rem; font-weight: normal; margin: 2rem 0 0.75rem; color: #ccc; }
+  .import-form { display: flex; gap: 0.75rem; max-width: 700px; margin-bottom: 0.75rem; }
+  .import-form input[type="url"] {
+    flex: 1;
+    padding: 0.75rem;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e8e8e8;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  .import-form input[type="url"]:focus { outline: none; border-color: #555; }
+  .text-form { max-width: 700px; margin-bottom: 0.75rem; }
+  .text-form textarea {
+    width: 100%;
+    min-height: 110px;
+    resize: vertical;
+    padding: 0.75rem;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e8e8e8;
+    font-size: 0.95rem;
+    font-family: inherit;
+    margin-bottom: 0.5rem;
+  }
+  .text-form textarea:focus { outline: none; border-color: #555; }
+  .or { color: #777; font-size: 0.8rem; margin: 0.5rem 0; }
+  .import-form button, .text-form button {
+    background: #d4b483;
+    color: #1a1a1a;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .import-form button:hover, .text-form button:hover { opacity: 0.9; }
+  .error { color: #e76f51; background: #2a1a1a; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; }
+  .hint { color: #888; font-size: 0.85rem; margin-bottom: 1.5rem; }
+
+  .editor { border: 1px solid #3a3a3a; border-radius: 6px; padding: 1rem; background: #161616; }
+  .rows { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #1f1f1f;
+    border: 1px solid #2e2e2e;
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+  }
+  .row img { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; }
+  .row.artist img { border-radius: 50%; }
+  .row .name { flex: 1; font-size: 0.95rem; }
+  .row .name .sub { color: #888; font-size: 0.82rem; }
+  .row .spotify-link { color: #1db954; text-decoration: none; font-size: 0.8rem; }
+  .row .remove-btn {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.25rem;
+  }
+  .row .remove-btn:hover { color: #e07b7b; }
+  .empty { color: #777; font-size: 0.85rem; margin-bottom: 0.75rem; }
+  .search-wrap { position: relative; }
+  .search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: #1f1f1f;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+    display: none;
+  }
+  .search-result {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .search-result:hover { background: #2a2a2a; }
+  .search-result img { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; }
+  .search-result .sub { color: #888; font-size: 0.82rem; }
+  .search-status { color: #888; font-size: 0.8rem; margin-top: 0.35rem; min-height: 1em; }
+  .search-wrap input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e8e8e8;
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  .search-wrap input:focus { outline: none; border-color: #555; }
+  .add-manual-btn {
+    margin-top: 0.5rem;
+    background: #d4b483;
+    color: #1a1a1a;
+    border: none;
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .add-manual-btn:hover { opacity: 0.9; }
+{% endblock %}
+
+{% block content %}
+  <h2>Playlists</h2>
+
+  <form method="POST" action="/playlists" class="import-form">
+    <input type="url" id="url" name="url" placeholder="Paste a link to an event…"
+           required {% if url %}value="{{ url }}"{% endif %}>
+    <button type="submit">Fetch &amp; Match</button>
+  </form>
+
+  <p class="or">— or —</p>
+
+  <form method="POST" action="/playlists" class="text-form">
+    <textarea id="text" name="text"
+              placeholder="Paste a lineup, setlist or tracklist here…">{% if text %}{{ text }}{% endif %}</textarea>
+    <button type="submit">Extract from Text</button>
+  </form>
+
+  <p class="hint">Either fetch an event page or paste text directly. The model
+    extracts the artist and track names and each one is matched on Spotify. You
+    can also add entries manually with the search bars below.</p>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <h3>Artists</h3>
+  <div class="editor">
+    <div class="rows" id="artist-rows"></div>
+    <div class="search-wrap">
+      <input type="text" id="artist-search" placeholder="Search artist on Spotify…"
+             autocomplete="off">
+      <div class="search-results" id="artist-results"></div>
+    </div>
+    <p class="search-status" id="artist-status"></p>
+    <button type="button" class="add-manual-btn" id="artist-add-manual">Add manually</button>
+  </div>
+
+  <h3>Tracks</h3>
+  <div class="editor">
+    <div class="rows" id="track-rows"></div>
+    <div class="search-wrap">
+      <input type="text" id="track-search" placeholder="Search track on Spotify…"
+             autocomplete="off">
+      <div class="search-results" id="track-results"></div>
+    </div>
+    <p class="search-status" id="track-status"></p>
+    <button type="button" class="add-manual-btn" id="track-add-manual">Add manually</button>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    const artists = {{ artists | tojson }};
+    const tracks = {{ tracks | tojson }};
+
+    function spotifyUrl(uri, kind) {
+      if (!uri) return null;
+      if (uri.startsWith("spotify:")) return "https://open.spotify.com/" + kind + "/" + uri.split(":")[2];
+      return uri;
+    }
+
+    function renderRows(container, items, kind) {
+      container.innerHTML = "";
+      items.forEach((item, i) => {
+        const row = document.createElement("div");
+        row.className = "row " + kind;
+
+        if (item.image) {
+          const img = document.createElement("img");
+          img.src = item.image;
+          img.alt = "";
+          row.appendChild(img);
+        }
+
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = item.name;
+        if (kind === "track" && item.artist) {
+          const sub = document.createElement("span");
+          sub.className = "sub";
+          sub.textContent = " — " + item.artist;
+          name.appendChild(sub);
+        }
+        row.appendChild(name);
+
+        const url = spotifyUrl(item.spotify_uri, kind);
+        if (url) {
+          const link = document.createElement("a");
+          link.className = "spotify-link";
+          link.href = url;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = "Spotify";
+          row.appendChild(link);
+        }
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "remove-btn";
+        remove.textContent = "✕";
+        remove.onclick = () => { items.splice(i, 1); refresh(kind); };
+        row.appendChild(remove);
+
+        container.appendChild(row);
+      });
+
+      const empty = container.parentElement.querySelector(".empty");
+      if (items.length === 0 && !empty) {
+        const p = document.createElement("p");
+        p.className = "empty";
+        p.textContent = "Nothing yet — paste an event link or search on Spotify.";
+        container.after(p);
+      } else if (items.length > 0 && empty) {
+        empty.remove();
+      }
+    }
+
+    function refresh(kind) {
+      if (kind === "artist") renderRows(artistRows, artists, "artist");
+      else renderRows(trackRows, tracks, "track");
+    }
+
+    function makeSearch({ input, results, status, kind, onPick }) {
+      let timer = null;
+      input.addEventListener("input", () => {
+        clearTimeout(timer);
+        const q = input.value.trim();
+        if (!q) { results.style.display = "none"; status.textContent = ""; return; }
+        timer = setTimeout(() => run(q), 300);
+      });
+
+      async function run(q) {
+        status.textContent = "Searching…";
+        try {
+          const resp = await fetch(
+            `/playlists/api/spotify/search?type=${kind}&q=${encodeURIComponent(q)}`
+          );
+          const data = await resp.json();
+          if (data.error) { status.textContent = data.error; return; }
+          const items = data.results || [];
+          show(items);
+          status.textContent = items.length ? "" : "No results — use “Add manually”.";
+        } catch (err) {
+          status.textContent = "Search failed: " + err;
+        }
+      }
+
+      function show(items) {
+        results.innerHTML = "";
+        items.forEach((r) => {
+          const item = document.createElement("div");
+          item.className = "search-result";
+          if (r.image) {
+            const img = document.createElement("img");
+            img.src = r.image;
+            img.alt = "";
+            item.appendChild(img);
+          }
+          const label = document.createElement("span");
+          label.textContent = r.name;
+          if (kind === "track" && r.artist) {
+            const sub = document.createElement("span");
+            sub.className = "sub";
+            sub.textContent = " — " + r.artist;
+            label.appendChild(sub);
+          }
+          item.appendChild(label);
+          item.onclick = () => onPick(r);
+          results.appendChild(item);
+        });
+        results.style.display = items.length ? "block" : "none";
+      }
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const first = results.querySelector(".search-result");
+        if (first) first.click();
+        else onPick({ name: input.value.trim(), artist: "", spotify_uri: "", image: "" });
+      });
+
+      return { input, results, status };
+    }
+
+    const artistRows = document.getElementById("artist-rows");
+    const trackRows = document.getElementById("track-rows");
+
+    function addArtist(name, spotifyUri, image) {
+      if (!name) return;
+      artists.push({ name, spotify_uri: spotifyUri || "", image: image || "" });
+      refresh("artist");
+    }
+
+    function addTrack(name, artist, spotifyUri, image) {
+      if (!name) return;
+      tracks.push({ name, artist: artist || "", spotify_uri: spotifyUri || "", image: image || "" });
+      refresh("track");
+    }
+
+    const artistSearch = makeSearch({
+      input: document.getElementById("artist-search"),
+      results: document.getElementById("artist-results"),
+      status: document.getElementById("artist-status"),
+      kind: "artist",
+      onPick: (r) => {
+        addArtist(r.name, r.spotify_uri, r.image);
+        resetSearch("artist");
+      },
+    });
+
+    const trackSearch = makeSearch({
+      input: document.getElementById("track-search"),
+      results: document.getElementById("track-results"),
+      status: document.getElementById("track-status"),
+      kind: "track",
+      onPick: (r) => {
+        addTrack(r.name, r.artist, r.spotify_uri, r.image);
+        resetSearch("track");
+      },
+    });
+
+    function resetSearch(kind) {
+      const s = kind === "artist" ? artistSearch : trackSearch;
+      s.input.value = "";
+      s.results.style.display = "none";
+      s.status.textContent = "";
+    }
+
+    document.getElementById("artist-add-manual").onclick = () => {
+      addArtist(document.getElementById("artist-search").value.trim());
+      resetSearch("artist");
+    };
+    document.getElementById("track-add-manual").onclick = () => {
+      addTrack(document.getElementById("track-search").value.trim());
+      resetSearch("track");
+    };
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".search-wrap")) {
+        document.getElementById("artist-results").style.display = "none";
+        document.getElementById("track-results").style.display = "none";
+      }
+    });
+
+    refresh("artist");
+    refresh("track");
+  </script>
+{% endblock %}
