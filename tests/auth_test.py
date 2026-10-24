@@ -1,7 +1,8 @@
 import asyncio
+from typing import cast
 
 import pytest
-from blacksheep import Application, Response
+from blacksheep import Application, Request, Response
 from blacksheep.server.authentication import get_authentication_middleware
 from blacksheep.server.authorization import auth, get_authorization_middleware
 from blacksheep.sessions import Session
@@ -41,8 +42,15 @@ def run_auth(email, handler):
     app.use_authorization()
     request = FakeRequest(email)
     asyncio.run(get_authentication_middleware(authn)(request, passthrough))
-    middleware = get_authorization_middleware(app._authorization_strategy)
-    return asyncio.run(middleware(request, handler))
+
+    strategy = app._authorization_strategy
+    assert strategy is not None
+    middleware = get_authorization_middleware(strategy)
+
+    async def call_middleware() -> Response:
+        return await middleware(cast(Request, request), handler)
+
+    return asyncio.run(call_middleware())
 
 
 def test_admin_role_assignment():
