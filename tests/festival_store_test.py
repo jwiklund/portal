@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Session, create_engine, func, select
+from sqlmodel import Session, SQLModel, create_engine, func, select
 
 from born_portal.festival.model import ArtistData, FestivalData
 from born_portal.festival.store import FestivalStore
@@ -80,9 +80,7 @@ def test_artist_deduplicated_across_festivals(tmp_path):
 def test_relinking_existing_artists_keeps_correct_ids(tmp_path):
     store = make_store(tmp_path)
     f1 = store.save(
-        FestivalData(
-            name="F1", artists=[ArtistData(name="A"), ArtistData(name="B")]
-        )
+        FestivalData(name="F1", artists=[ArtistData(name="A"), ArtistData(name="B")])
     )
     f2 = store.save(FestivalData(name="F2", artists=[ArtistData(name="C")]))
 
@@ -116,12 +114,8 @@ def test_list_all_orders_by_start_date_desc(tmp_path):
 
 def test_known_album_uris(tmp_path):
     store = make_store(tmp_path)
-    store.save(
-        FestivalData(name="A", album_uri="https://photos.google.com/share/x")
-    )
-    store.save(
-        FestivalData(name="B", album_uri="https://photos.google.com/share/x")
-    )
+    store.save(FestivalData(name="A", album_uri="https://photos.google.com/share/x"))
+    store.save(FestivalData(name="B", album_uri="https://photos.google.com/share/x"))
     store.save(FestivalData(name="C"))
 
     assert store.known_album_uris() == ["https://photos.google.com/share/x"]
@@ -140,9 +134,7 @@ def test_delete_removes_festival_and_links(tmp_path):
 def test_blank_artist_names_skipped(tmp_path):
     store = make_store(tmp_path)
     festival_id = store.save(
-        FestivalData(
-            name="F", artists=[ArtistData(name="  "), ArtistData(name="Real")]
-        )
+        FestivalData(name="F", artists=[ArtistData(name="  "), ArtistData(name="Real")])
     )
     loaded = store.get_by_id(festival_id)
     assert loaded is not None

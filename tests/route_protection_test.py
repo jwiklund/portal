@@ -22,6 +22,7 @@ _PUBLIC_HANDLERS = {
     "auth_google",
     "auth_callback",
     "logout",
+    "spotify_callback",
     "podcast_audio",
     "shows_video",
     "manifest",

@@ -1,4 +1,8 @@
 [env]
+# When configuring Spotify, add this redirect URI in the developer dashboard:
+# ${BASE_URL}/spotify/callback  (e.g. http://127.0.0.1:8080/spotify/callback)
+# BASE_URL below must match exactly, including the host. Use 127.0.0.1, not
+# localhost, so both the Google and Spotify redirect URIs match the dashboards.
 ENV="development"
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
@@ -10,4 +14,4 @@ SPOTIFY_CLIENT_SECRET=""
 MODEL=""
 API_KEY=""
 API_URL="https://openrouter.ai/api/v1"
-BASE_URL="http://localhost:8080"
+BASE_URL="http://127.0.0.1:8080"

@@ -42,7 +42,7 @@ CONTENT_SECURITY_POLICY = (
     "default-src 'self'; "
     "script-src 'self' 'unsafe-inline' https://www.gstatic.com; "
     "style-src 'self' 'unsafe-inline'; "
-    "img-src 'self' data: https://*.googleusercontent.com; "
+    "img-src 'self' data: https://*.googleusercontent.com https://*.scdn.co; "
     "media-src 'self'; "
     "connect-src 'self'; "
     "font-src 'self'; "

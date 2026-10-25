@@ -1,33 +1,36 @@
-"""Extract artist and track names from event content, then match on Spotify.
+"""Extract the event name, year and lineup from event content.
 
 Content comes either from a fetched event URL (same safe-fetch path as event
 import) or from text pasted directly by the user. In both cases the text is
-handed to the LLM, which returns artist and track names as JSON. Each name is
-then looked up on Spotify so the page can show playable links.
+handed to the LLM, which returns the event metadata and artist names as JSON.
+Each artist is then looked up on Spotify so the page can show and match them.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass, field
 
 from born_portal import llm, spotify
 from born_portal.utils.fetch import fetch_page_markdown
 
 _SYSTEM_PROMPT = (
     "You extract the music lineup from a single event page or from pasted "
-    "event/lineup text. Reply with ONLY a JSON object with two arrays: "
-    '"artists" (performing artists or DJs) and "tracks" (song titles). '
-    'Each "tracks" entry must be an object {"artist": string, "name": string}. '
-    "Extract ONLY the artists and tracks that belong to the event this page "
-    "is about (its headline lineup or set list). Ignore everything else: "
-    "navigation, menus, footers, newsletters, social links, cookie notices, "
-    '"other events"/"upcoming events" lists, embedded Instagram or Facebook '
-    "feeds, related-event promos, and artist biographies or descriptions of "
-    "other events. Do not extract DJ or producer real names from biography "
-    'text. Skip placeholders such as "TBA", "More TBA" or "TBC", and skip '
-    "unknown/unreleased track IDs. Use the exact names as written; do not "
-    "invent or translate names. Use empty arrays when none are found."
+    "event/lineup text. Reply with ONLY a JSON object of the shape "
+    '{"event": {"name": string, "year": number or null}, "artists": [string, ...]}. '
+    '"event.name" is the title of the event itself (the party or festival '
+    'name), never the venue, city or website name. "event.year" is the '
+    "four-digit year the event takes place, or null when it is not stated. "
+    '"artists" are the performing artists or DJs. Extract ONLY the artists '
+    "that belong to the event this page is about (its headline lineup). Ignore "
+    "everything else: navigation, menus, footers, newsletters, social links, "
+    'cookie notices, "other events"/"upcoming events" lists, embedded '
+    "Instagram or Facebook feeds, related-event promos, and artist biographies "
+    "or descriptions of other events. Do not extract DJ or producer real names "
+    'from biography text. Skip placeholders such as "TBA", "More TBA" or '
+    '"TBC". Use the exact names as written; do not invent or translate names. '
+    "Use an empty array when no artists are found."
 )
 
 # Names that are not real entries and should be dropped even if the model
@@ -49,14 +52,23 @@ _PLACEHOLDERS = {
 }
 
 
-async def extract(url: str) -> tuple[list[dict], list[dict]]:
-    """Fetch an event page and return (artists, tracks) matched on Spotify."""
+@dataclass
+class Lineup:
+    """Event metadata plus the Spotify-matched artists for the page."""
+
+    name: str = ""
+    year: int | None = None
+    artists: list[dict] = field(default_factory=list)
+
+
+async def extract(url: str) -> Lineup:
+    """Fetch an event page and return its event metadata and matched artists."""
     markdown = await fetch_page_markdown(url)
     return await extract_from_text(markdown)
 
 
-async def extract_from_text(text: str) -> tuple[list[dict], list[dict]]:
-    """Extract artists/tracks from pasted text and match them on Spotify."""
+async def extract_from_text(text: str) -> Lineup:
+    """Extract event name/year and artists from pasted text."""
     response = await llm.completions(
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
@@ -66,12 +78,13 @@ async def extract_from_text(text: str) -> tuple[list[dict], list[dict]]:
     )
 
     data = _parse_json(_response_text(response))
-    artist_names = _clean_artist_names(data.get("artists"))
-    track_specs = _clean_tracks(data.get("tracks"))
-
-    artists = await _resolve_artists(artist_names)
-    tracks = await _resolve_tracks(track_specs)
-    return artists, tracks
+    event = data.get("event")
+    artists = await _resolve_artists(_clean_artist_names(data.get("artists")))
+    return Lineup(
+        name=_clean_event_name(event),
+        year=_clean_year(event),
+        artists=artists,
+    )
 
 
 def _response_text(response) -> str:
@@ -104,6 +117,29 @@ def _is_placeholder(name: str) -> bool:
     return cleaned in _PLACEHOLDERS or cleaned.startswith("more tba")
 
 
+def _clean_event_name(raw) -> str:
+    if not isinstance(raw, dict):
+        return ""
+    name = raw.get("name")
+    return name.strip() if isinstance(name, str) else ""
+
+
+def _clean_year(raw) -> int | None:
+    if not isinstance(raw, dict):
+        return None
+    value = raw.get("year")
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if 1990 <= value <= 2100 else None
+    if isinstance(value, str):
+        match = re.search(r"\b(19|20)\d{2}\b", value)
+        if match:
+            year = int(match.group(0))
+            return year if 1990 <= year <= 2100 else None
+    return None
+
+
 def _clean_artist_names(raw) -> list[str]:
     if not isinstance(raw, list):
         return []
@@ -112,20 +148,6 @@ def _clean_artist_names(raw) -> list[str]:
         if isinstance(item, str) and item.strip() and not _is_placeholder(item):
             names.append(item.strip())
     return names
-
-
-def _clean_tracks(raw) -> list[dict]:
-    if not isinstance(raw, list):
-        return []
-    tracks = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        name = (item.get("name") or "").strip()
-        artist = (item.get("artist") or "").strip()
-        if name and not _is_placeholder(name):
-            tracks.append({"name": name, "artist": artist})
-    return tracks
 
 
 async def _resolve_artists(names: list[str]) -> list[dict]:
@@ -146,28 +168,3 @@ async def _match_artist(name: str) -> dict:
     except spotify.SpotifyError:
         match = None
     return match or {"name": name, "spotify_uri": None, "image": None}
-
-
-async def _resolve_tracks(specs: list[dict]) -> list[dict]:
-    resolved = []
-    seen: set[tuple[str, str]] = set()
-    for spec in specs:
-        key = (spec["name"].lower(), spec["artist"].lower())
-        if key in seen:
-            continue
-        seen.add(key)
-        resolved.append(await _match_track(spec["name"], spec["artist"]))
-    return resolved
-
-
-async def _match_track(name: str, artist: str) -> dict:
-    try:
-        match = await spotify.lookup_track(name, artist or None)
-    except spotify.SpotifyError:
-        match = None
-    return match or {
-        "name": name,
-        "artist": artist,
-        "spotify_uri": None,
-        "image": None,
-    }

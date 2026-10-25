@@ -14,6 +14,7 @@ Set these environment variables (or create a .env file):
 
 import os
 from collections.abc import Mapping
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -54,6 +55,9 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 REDIRECT_URI = f"{BASE_URL}/auth/callback"
+# Spotify redirect must be registered in the Spotify developer dashboard as
+# <host>/spotify/callback.
+SPOTIFY_REDIRECT_URI = f"{BASE_URL}/spotify/callback"
 
 # Jinja2 templates
 jinja = Environment(loader=FileSystemLoader("templates"), autoescape=True)
@@ -86,6 +90,11 @@ def is_admin(request) -> bool:
 
 def is_viewer(request) -> bool:
     return request.session.get("user") in VIEW_USERS
+
+
+def current_year() -> int:
+    """The current local year (timezone-aware, for playlist naming)."""
+    return datetime.now(UTC).astimezone().year
 
 
 def render(template_name: str, request: Request | None = None, **ctx) -> Response:

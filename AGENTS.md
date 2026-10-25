@@ -52,7 +52,7 @@ The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
 3. **AuthorizationMiddleware** (from `app.use_authorization`) — enforces `@auth` decorators; anonymous → `UnauthorizedError` → redirect to `/login`
 4. **AuthMiddleware** — outer session gate (redirects to `/login` if not authenticated, lets admins through everywhere, viewers to `/view` pages only)
 
-Public paths: `/login`, `/auth/google`, `/auth/callback`, `/podcasts/audio/`, `/shows/video/`, plus `/manifest.json`, `/icon.svg`, `/icon-180.png` (PWA assets).
+Public paths: `/login`, `/auth/google`, `/auth/callback`, `/spotify/callback`, `/podcasts/audio/`, `/shows/video/`, plus `/manifest.json`, `/icon.svg`, `/icon-180.png` (PWA assets).
 
 ### Authorization via `@auth`
 
@@ -136,6 +136,5 @@ uv run python -m pytest tests/
 ## Editing notes
 
 - **Formatting**: Black for code layout, ruff's import sort (`ruff check --select I --fix`) for imports (run via `mise format`).
-- **LSP**: Ruff server configured in `crush.json` at project root. Diagnostics appear via LSP.
 - **No Makefile, no CI config** — this is a personal project.
 - **`mise`** is the tool manager (like `direnv` + `asdf`). It sets env vars from `mise.local.toml` and provides shell aliases.
