@@ -52,7 +52,7 @@ The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
 3. **AuthorizationMiddleware** (from `app.use_authorization`) — enforces `@auth` decorators; anonymous → `UnauthorizedError` → redirect to `/login`
 4. **AuthMiddleware** — outer session gate (redirects to `/login` if not authenticated, lets admins through everywhere, viewers to `/view` pages only)
 
-Public paths: `/login`, `/auth/google`, `/auth/callback`, `/spotify/callback`, `/test`, `/test/spotify`, `/podcasts/audio/`, `/shows/video/`, plus `/manifest.json`, `/icon.svg`, `/icon-180.png` (PWA assets).
+Public paths: `/login`, `/auth/google`, `/auth/callback`, `/spotify/callback`, `/podcasts/audio/`, `/shows/video/`, plus `/manifest.json`, `/icon.svg`, `/icon-180.png` (PWA assets).
 
 ### Authorization via `@auth`
 

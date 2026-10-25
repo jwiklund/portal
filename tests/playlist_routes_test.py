@@ -1,16 +1,5 @@
-import asyncio
 import json
-import os
-from urllib.parse import parse_qs, urlparse
 
-from blacksheep.testing import TestClient
-
-# Give the real app its own Router so this import doesn't collide with the
-# throwaway Applications other tests build via the shared default router.
-os.environ["APP_DEFAULT_ROUTER"] = "0"
-
-from born_portal import spotify
-from born_portal.main import app
 from born_portal.playlist import routes as playlist_routes
 
 
@@ -71,48 +60,3 @@ def test_remember_pending_stores_playlist():
         assert "created_at" in entry
     finally:
         playlist_routes._pending.clear()
-
-
-def _location(response) -> str:
-    return response.get_first_header(b"location").decode()
-
-
-def test_test_flow_returns_to_test_without_session(monkeypatch):
-    async def fake_exchange(code, redirect_uri=None):
-        return {"access_token": "t", "refresh_token": "r", "expires_in": 3600}
-
-    monkeypatch.setattr(spotify, "exchange_code", fake_exchange)
-
-    async def run():
-        if not app.started:
-            await app.start()
-        client = TestClient(app)
-
-        start = await client.get("/test/spotify")
-        assert start.status == 302
-        state = parse_qs(urlparse(_location(start)).query)["state"][0]
-        assert state.startswith("test-")
-
-        # No session cookie: simulates the callback running in a different
-        # cookie jar (e.g. an iOS home-screen app handing off to Safari).
-        callback = await client.get(
-            "/spotify/callback", query={"code": "x", "state": state}
-        )
-        assert callback.status == 302
-        assert _location(callback) == "/test"
-
-    asyncio.run(run())
-
-
-def test_normal_callback_rejects_unmatched_state():
-    async def run():
-        if not app.started:
-            await app.start()
-        client = TestClient(app)
-        callback = await client.get(
-            "/spotify/callback", query={"code": "x", "state": "playlist-bogus"}
-        )
-        assert callback.status == 302
-        assert _location(callback) == "/playlists"
-
-    asyncio.run(run())

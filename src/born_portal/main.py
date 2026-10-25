@@ -48,7 +48,9 @@ CONTENT_SECURITY_POLICY = (
     "font-src 'self'; "
     "object-src 'none'; "
     "base-uri 'self'; "
-    "form-action 'self'; "
+    # Chrome/Safari enforce form-action across redirects, so the Spotify
+    # authorize redirect after the create-playlist form POST must be allowed.
+    "form-action 'self' https://accounts.spotify.com; "
     "frame-ancestors 'none'"
 )
 

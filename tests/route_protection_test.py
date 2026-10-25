@@ -23,8 +23,6 @@ _PUBLIC_HANDLERS = {
     "auth_callback",
     "logout",
     "spotify_callback",
-    "test_page",
-    "test_spotify",
     "podcast_audio",
     "shows_video",
     "manifest",
@@ -34,14 +32,7 @@ _PUBLIC_HANDLERS = {
 
 
 def _routes():
-    # The framework adds a catch-all "default_fallback" route when the app is
-    # started (e.g. by another test). It is not part of the app's declared
-    # surface, so ignore it.
-    return [
-        route
-        for route in app.router.iter_all()
-        if getattr(route.handler, "__name__", "") != "default_fallback"
-    ]
+    return list(app.router.iter_all())
 
 
 def test_every_route_is_explicitly_protected():
