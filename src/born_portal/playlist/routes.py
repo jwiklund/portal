@@ -12,6 +12,8 @@ from born_portal import playlist, spotify
 from born_portal.auth.guard import allow_anonymous, auth
 from born_portal.core import (
     ADMIN_ROLE,
+    BASE_URL,
+    SPOTIFY_CLIENT_ID,
     SPOTIFY_REDIRECT_URI,
     current_year,
     form_value,
@@ -125,7 +127,7 @@ def register_routes(app):
 
         # Not logged in to Spotify yet: remember the playlist, then send the
         # user through the authorization code flow, which redirects back here.
-        state = secrets.token_urlsafe(16)
+        state = "playlist-" + secrets.token_urlsafe(16)
         _remember_pending(state, name, artist_names)
         request.session[_STATE_KEY] = state
         return redirect(spotify.authorize_url(state, SPOTIFY_REDIRECT_URI))
@@ -138,26 +140,40 @@ def register_routes(app):
         state = params.get("state", [None])[0]
         error = params.get("error", [None])[0]
 
+        # The public /test flow marks its state with a "test-" prefix. Detecting
+        # it from the state (rather than the session) means the callback still
+        # returns to /test when it runs in a different cookie jar than the one
+        # that started the flow — e.g. an iOS home-screen app handing off to
+        # Safari. The session state is not required for test flows.
+        is_test = bool(state and state.startswith("test-"))
+        destination = "/test" if is_test else "/playlists"
+
         session_state = request.session.get(_STATE_KEY)
         if error:
             if state and state == session_state:
                 _pending.pop(state, None)
-                del request.session[_STATE_KEY]
+                if _STATE_KEY in request.session:
+                    del request.session[_STATE_KEY]
             _flash(request.session, error=f"Spotify login was cancelled: {error}")
-            return redirect("/playlists")
-        if not code or not state or state != session_state:
+            return redirect(destination)
+        if not code or not state or (not is_test and state != session_state):
             _flash(request.session, error="Invalid Spotify login state. Please retry.")
-            return redirect("/playlists")
-        del request.session[_STATE_KEY]
+            return redirect(destination)
+        if _STATE_KEY in request.session:
+            del request.session[_STATE_KEY]
 
         try:
             tokens = await spotify.exchange_code(code, SPOTIFY_REDIRECT_URI)
         except Exception as e:  # noqa: BLE001
             _pending.pop(state, None)
             _flash(request.session, error=f"Spotify login failed: {e}")
-            return redirect("/playlists")
+            return redirect(destination)
 
         spotify.store_user_tokens(request.session, tokens)
+
+        if is_test:
+            _flash(request.session, logged_in=True)
+            return redirect(destination)
 
         pending = _pending.pop(state, None)
         if pending:
@@ -176,7 +192,7 @@ def register_routes(app):
                     "Please try creating it again."
                 ),
             )
-        return redirect("/playlists")
+        return redirect(destination)
 
     @app.router.get("/playlists/api/spotify/search")
     @auth(roles=[ADMIN_ROLE])
@@ -193,6 +209,32 @@ def register_routes(app):
             return json_response({"error": str(e)}, status=502)
 
         return json_response({"results": results})
+
+    # ----- Public test surface -------------------------------------------
+    # These two routes require no portal login and exist purely to exercise the
+    # Spotify OAuth handshake in isolation. They expose no secrets: the client
+    # ID and redirect URI are already visible in the authorize URL.
+
+    @app.router.get("/test")
+    @allow_anonymous()
+    async def test_page(request: Request):
+        flash = _take_flash(request.session)
+        return render(
+            "test.html",
+            request,
+            error=flash.get("error"),
+            logged_in=flash.get("logged_in"),
+            base_url=BASE_URL,
+            redirect_uri=SPOTIFY_REDIRECT_URI,
+            client_id_set=bool(SPOTIFY_CLIENT_ID),
+        )
+
+    @app.router.get("/test/spotify")
+    @allow_anonymous()
+    async def test_spotify(request: Request):
+        state = "test-" + secrets.token_urlsafe(16)
+        request.session[_STATE_KEY] = state
+        return redirect(spotify.authorize_url(state, SPOTIFY_REDIRECT_URI))
 
 
 def _render_page(
@@ -219,8 +261,12 @@ def _render_page(
     )
 
 
-def _flash(session, *, created=None, error=None):
-    session[_FLASH_KEY] = {"created": created, "error": error}
+def _flash(session, *, created=None, error=None, logged_in=None):
+    session[_FLASH_KEY] = {
+        "created": created,
+        "error": error,
+        "logged_in": logged_in,
+    }
 
 
 def _take_flash(session):
