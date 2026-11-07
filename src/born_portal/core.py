@@ -40,7 +40,7 @@ DB_URL = os.environ.get("DB_URL", "sqlite:///portal.db")
 # Browser User-Agent used for all public page/API fetches.
 USER_AGENT = os.environ.get(
     "USER_AGENT",
-    "Mozilla/5.0 (X11; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:159.0) Gecko/20100101 Firefox/159.0",
 )
 MODEL = os.environ.get("MODEL")
 API_KEY = os.environ.get("API_KEY")
