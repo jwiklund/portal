@@ -11,7 +11,6 @@ from sqlmodel import SQLModel, create_engine
 from born_portal import (
     auth,
     backup,
-    migrate,
     past,
     playlist,
     podcast,
@@ -130,28 +129,20 @@ def main(argv=None):
         "backup", help="Back up the SQLite database to a .sql file"
     )
     backup_parser.add_argument(
-        "output", help="Path to the backup file (e.g. events-backup.sql)"
+        "output", help="Path to the backup file (e.g. portal-backup.sql)"
     )
     backup_parser.add_argument(
-        "--db", default="events.db", help="Path to the SQLite database"
+        "--db", default="portal.db", help="Path to the SQLite database"
     )
 
     restore_parser = subparsers.add_parser(
         "restore", help="Restore the SQLite database from a .sql file"
     )
     restore_parser.add_argument(
-        "input", help="Path to the backup file (e.g. events-backup.sql)"
+        "input", help="Path to the backup file (e.g. portal-backup.sql)"
     )
     restore_parser.add_argument(
-        "--db", default="events.db", help="Path to the SQLite database"
-    )
-
-    migrate_parser = subparsers.add_parser(
-        "migrate",
-        help="Migrate legacy events/festivals tables to upcoming/past",
-    )
-    migrate_parser.add_argument(
-        "--db", default="events.db", help="Path to the SQLite database"
+        "--db", default="portal.db", help="Path to the SQLite database"
     )
 
     args = parser.parse_args(argv)
@@ -159,10 +150,6 @@ def main(argv=None):
     if args.command == "fetch":
         upcoming_data = asyncio.run(upcoming.parse(args.url, debug=args.debug))
         print(json.dumps(upcoming_data.model_dump(), indent=2, ensure_ascii=False))
-        return
-
-    if args.command == "migrate":
-        migrate.migrate_db(args.db)
         return
 
     if args.command == "backup":

@@ -36,7 +36,7 @@ ADMIN_USERS = {
 VIEW_USERS = {
     u.strip() for u in os.environ.get("VIEW_USERS", "").split(",") if u.strip()
 }
-DB_URL = os.environ.get("DB_URL", "sqlite:///events.db")
+DB_URL = os.environ.get("DB_URL", "sqlite:///portal.db")
 MODEL = os.environ.get("MODEL")
 API_KEY = os.environ.get("API_KEY")
 API_URL = os.environ.get("API_URL", "https://openrouter.ai/api/v1")

@@ -1,7 +1,7 @@
 *~
 mise.local.toml
 __pycache__
-events.db
+portal.db
 podcasts
 shows_cache
 crush.json

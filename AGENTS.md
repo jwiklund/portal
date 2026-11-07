@@ -22,7 +22,6 @@ src/born_portal/
     store.py       # PastStore — SQLite persistence
     photos.py      # Google Photos album scraping
     routes.py      # Past web routes
-  migrate.py       # Migrate legacy events/festivals tables to upcoming/past
   show/            # Video file management: ffmpeg conversion, streaming with Range support
     routes.py      # Shows web routes + video streaming
   podcast/         # Audio file management: yt-dlp download, delete, serve
@@ -36,7 +35,7 @@ tests/             # pytest tests
 
 ### Infrastructure
 
-- **Database**: `events.db` (SQLite, gitignored) — auto-created by the stores on first use. The file keeps its historical name; its tables are `upcoming`, `past`, `past_artists`, and `artists`.
+- **Database**: `portal.db` (SQLite, gitignored) — auto-created by the stores on first use. Its tables are `upcoming`, `past`, `past_artists`, and `artists`.
 - **Directories**: `shows/` (video source files), `shows_cache/` (converted mp4 streams), `podcasts/` (downloaded audio) — all gitignored via `.gitignore`.
 - **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ADMIN_USERS`, `MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`.
 
@@ -48,7 +47,6 @@ tests/             # pytest tests
 - `serve` (default) — starts uvicorn on port 8080
 - `fetch <url>` — parse event URL, print JSON
 - `backup <output>` / `restore <input>` — dump/load the SQLite database
-- `migrate` — copy legacy `events`/`festivals`/`festival_artists` (and intermediate `previous`/`previous_artists`) rows into `upcoming`/`past`/`past_artists` (idempotent, non-destructive)
 
 The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
 

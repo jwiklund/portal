@@ -3,7 +3,6 @@ run = "uv run uvicorn born_portal.main:app --reload --port 8080 --log-level debu
 fetch = "uv run python -m born_portal.main fetch"
 backup = "uv run python -m born_portal.main backup backup.sql"
 restore = "uv run python -m born_portal.main restore backup.sql"
-migrate = "uv run python -m born_portal.main migrate"
 check = "uv run pytest"
 pyright = "uv run pyright"
 sync = "uv sync"
