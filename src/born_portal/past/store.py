@@ -3,38 +3,38 @@ from __future__ import annotations
 from sqlalchemy import Engine
 from sqlmodel import Session, select
 
-from born_portal.festival.model import ArtistData, FestivalArtist, FestivalData
+from born_portal.past.model import ArtistData, PastArtist, PastData
 
 
-class FestivalStore:
-    """SQLite storage for festivals and their artists."""
+class PastStore:
+    """SQLite storage for past events and their artists."""
 
     def __init__(self, engine: Engine):
         self._engine = engine
 
-    def save(self, festival: FestivalData) -> int:
-        """Save a festival with its artist list. Returns the row id."""
+    def save(self, past: PastData) -> int:
+        """Save a past event with its artist list. Returns the row id."""
         with Session(self._engine) as session:
-            if festival.id:
-                existing = session.get(FestivalData, festival.id)
+            if past.id:
+                existing = session.get(PastData, past.id)
                 if existing is not None:
-                    self._copy_fields(existing, festival)
+                    self._copy_fields(existing, past)
                     session.add(existing)
-                    festival_id = festival.id
+                    past_id = past.id
                 else:
-                    festival_id = self._insert_festival(session, festival)
+                    past_id = self._insert_past(session, past)
             else:
-                festival_id = self._insert_festival(session, festival)
+                past_id = self._insert_past(session, past)
 
-            assert festival_id is not None
+            assert past_id is not None
 
             # Replace the artist list
-            self._replace_artists(session, festival_id, festival.artists)
+            self._replace_artists(session, past_id, past.artists)
             session.commit()
-            return festival_id
+            return past_id
 
     @staticmethod
-    def _copy_fields(target: FestivalData, source: FestivalData) -> None:
+    def _copy_fields(target: PastData, source: PastData) -> None:
         target.name = source.name
         target.start_date = source.start_date
         target.end_date = source.end_date
@@ -43,16 +43,16 @@ class FestivalStore:
         target.album_uri = source.album_uri
 
     @staticmethod
-    def _insert_festival(session: Session, festival: FestivalData) -> int:
+    def _insert_past(session: Session, past: PastData) -> int:
         # Build a fresh row without the relationship collection so no
         # transient artists are cascade-inserted from the caller's object.
-        row = FestivalData(
-            name=festival.name,
-            start_date=festival.start_date,
-            end_date=festival.end_date,
-            location=festival.location,
-            description=festival.description,
-            album_uri=festival.album_uri,
+        row = PastData(
+            name=past.name,
+            start_date=past.start_date,
+            end_date=past.end_date,
+            location=past.location,
+            description=past.description,
+            album_uri=past.album_uri,
         )
         session.add(row)
         session.flush()
@@ -62,21 +62,21 @@ class FestivalStore:
     @staticmethod
     def _replace_artists(
         session: Session,
-        festival_id: int,
+        past_id: int,
         artists: list[ArtistData],
     ) -> None:
         links = session.exec(
-            select(FestivalArtist).where(FestivalArtist.festival_id == festival_id)
+            select(PastArtist).where(PastArtist.past_id == past_id)
         ).all()
         for link in links:
             session.delete(link)
         for position, artist in enumerate(artists):
             if not artist.name.strip():
                 continue
-            artist_id = FestivalStore._upsert_artist(session, artist)
+            artist_id = PastStore._upsert_artist(session, artist)
             session.add(
-                FestivalArtist(
-                    festival_id=festival_id,
+                PastArtist(
+                    past_id=past_id,
                     artist_id=artist_id,
                     position=position,
                 )
@@ -98,31 +98,31 @@ class FestivalStore:
         assert row.id is not None
         return row.id
 
-    def get_by_id(self, id: int) -> FestivalData | None:
+    def get_by_id(self, id: int) -> PastData | None:
         with Session(self._engine) as session:
-            return session.get(FestivalData, id)
+            return session.get(PastData, id)
 
-    def list_all(self) -> list[FestivalData]:
+    def list_all(self) -> list[PastData]:
         with Session(self._engine) as session:
-            festivals = list(session.exec(select(FestivalData)))
-        festivals.sort(key=lambda f: f.start_date or "", reverse=True)
-        return festivals
+            items = list(session.exec(select(PastData)))
+        items.sort(key=lambda f: f.start_date or "", reverse=True)
+        return items
 
     def known_album_uris(self) -> list[str]:
         with Session(self._engine) as session:
             uris = session.exec(
-                select(FestivalData.album_uri).where(
-                    FestivalData.album_uri != None,
-                    FestivalData.album_uri != "",
+                select(PastData.album_uri).where(
+                    PastData.album_uri != None,  # noqa: E711
+                    PastData.album_uri != "",
                 )
             )
         return list(dict.fromkeys(uri for uri in uris if uri))
 
     def delete(self, id: int) -> bool:
         with Session(self._engine) as session:
-            festival = session.get(FestivalData, id)
-            if festival is None:
+            past = session.get(PastData, id)
+            if past is None:
                 return False
-            session.delete(festival)
+            session.delete(past)
             session.commit()
             return True

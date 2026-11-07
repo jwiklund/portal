@@ -1,8 +1,8 @@
 from sqlmodel import Field, SQLModel
 
 
-class EventData(SQLModel, table=True):
-    __tablename__ = "events"  # type: ignore[assignment]
+class UpcomingData(SQLModel, table=True):
+    __tablename__ = "upcoming"  # type: ignore[assignment]
 
     id: int | None = Field(default=None, primary_key=True)
     url: str = Field(unique=True, index=True)

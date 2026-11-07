@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ festival.name }}{% endblock %}
+{% block title %}{{ past.name }}{% endblock %}
 
 {% block extra_styles %}
-  .festival-header { margin-bottom: 1.5rem; }
-  .festival-title { font-size: 2rem; font-weight: normal; }
-  .festival-meta { color: #aaa; font-size: 0.9rem; margin-top: 0.25rem; }
-  .festival-description { color: #ccc; margin-top: 0.75rem; line-height: 1.5; white-space: pre-line; }
+  .past-header { margin-bottom: 1.5rem; }
+  .past-title { font-size: 2rem; font-weight: normal; }
+  .past-meta { color: #aaa; font-size: 0.9rem; margin-top: 0.25rem; }
+  .past-description { color: #ccc; margin-top: 0.75rem; line-height: 1.5; white-space: pre-line; }
   .artist-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
   .chip {
     font-size: 0.78rem;
@@ -91,18 +91,18 @@
 {% endblock %}
 
 {% block content %}
-  <div class="festival-header">
-    <h2 class="festival-title">{{ festival.name }}</h2>
-    <div class="festival-meta">
-      {{ festival.start_date or "TBD" }}{% if festival.end_date and festival.end_date != festival.start_date %} – {{ festival.end_date }}{% endif %}
-      {% if festival.location %} • {{ festival.location }}{% endif %}
+  <div class="past-header">
+    <h2 class="past-title">{{ past.name }}</h2>
+    <div class="past-meta">
+      {{ past.start_date or "TBD" }}{% if past.end_date and past.end_date != past.start_date %} – {{ past.end_date }}{% endif %}
+      {% if past.location %} • {{ past.location }}{% endif %}
     </div>
-    {% if festival.description %}
-      <div class="festival-description">{{ festival.description }}</div>
+    {% if past.description %}
+      <div class="past-description">{{ past.description }}</div>
     {% endif %}
-    {% if festival.artists %}
+    {% if past.artists %}
       <div class="artist-chips">
-        {% for a in festival.artists %}
+        {% for a in past.artists %}
           {% if a.spotify_uri and a.spotify_uri.startswith("spotify:") %}
             <a class="chip" href="https://open.spotify.com/artist/{{ a.spotify_uri.split(':')[2] }}" target="_blank" rel="noopener">{{ a.name }}</a>
           {% elif a.spotify_uri %}
@@ -116,15 +116,15 @@
   </div>
 
   <div class="actions">
-    <a href="{{ "/festivals" if is_admin else "/festivals/view" }}" style="color: #999; text-decoration: none; font-size: 0.9rem;">← All festivals</a>
-    {% if festival.album_uri %}
-      <a href="{{ festival.album_uri }}" target="_blank" rel="noopener" style="color: #d4b483; text-decoration: none; font-size: 0.9rem;">Gallery ↗</a>
+    <a href="{{ "/past" if is_admin else "/past/view" }}" style="color: #999; text-decoration: none; font-size: 0.9rem;">← All past</a>
+    {% if past.album_uri %}
+      <a href="{{ past.album_uri }}" target="_blank" rel="noopener" style="color: #d4b483; text-decoration: none; font-size: 0.9rem;">Gallery ↗</a>
     {% endif %}
     {% if is_admin %}
-      <a href="/festivals/edit/{{ festival.id }}" class="btn">Edit</a>
-      <form method="post" action="/festivals/delete"
-            onsubmit="return confirm('Delete {{ festival.name }}?');">
-        <input type="hidden" name="festival_id" value="{{ festival.id }}" />
+      <a href="/past/edit/{{ past.id }}" class="btn">Edit</a>
+      <form method="post" action="/past/delete"
+            onsubmit="return confirm('Delete {{ past.name }}?');">
+        <input type="hidden" name="past_id" value="{{ past.id }}" />
         <button type="submit" class="btn btn-danger">Delete</button>
       </form>
     {% endif %}
@@ -132,8 +132,8 @@
 
   {% if album_error %}
     <div class="error-box">{{ album_error }}</div>
-  {% elif not festival.album_uri %}
-    <p style="color: #aaa;">No photo album linked to this festival.</p>
+  {% elif not past.album_uri %}
+    <p style="color: #aaa;">No photo album linked to this event.</p>
   {% elif photos %}
     <div class="album-grid" id="album-grid">
       {% for p in photos %}

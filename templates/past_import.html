@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Import Festival{% endblock %}
+{% block title %}Import Past{% endblock %}
 
 {% block extra_styles %}
   h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1.5rem; }
@@ -31,13 +31,13 @@
 {% endblock %}
 
 {% block content %}
-  <h2>Import Festival from Photos</h2>
+  <h2>Import Past from Photos</h2>
 
   {% if error %}
     <div class="error">{{ error }}</div>
   {% endif %}
 
-  <form method="POST" action="/festivals/import" class="import-form">
+  <form method="POST" action="/past/import" class="import-form">
     <div class="form-group">
       <label for="url">Google Photos album URL</label>
       <input type="url" id="url" name="url" placeholder="https://photos.google.com/share/..." required {% if url %}value="{{ url }}"{% endif %}>

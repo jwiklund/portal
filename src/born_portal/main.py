@@ -11,13 +11,14 @@ from sqlmodel import SQLModel, create_engine
 from born_portal import (
     auth,
     backup,
-    event,
-    festival,
+    migrate,
+    past,
     playlist,
     podcast,
     pwa,
     routes,
     show,
+    upcoming,
 )
 from born_portal.auth import configure as configure_auth
 from born_portal.core import DB_URL, ENV, SECRET_KEY
@@ -96,8 +97,8 @@ SQLModel.metadata.create_all(engine)
 
 auth.register_routes(app)
 routes.register_routes(app)
-event.register_routes(app, engine)
-festival.register_routes(app, engine)
+upcoming.register_routes(app, engine)
+past.register_routes(app, engine)
 playlist.register_routes(app)
 podcast.register_routes(app)
 show.register_routes(app)
@@ -145,11 +146,23 @@ def main(argv=None):
         "--db", default="events.db", help="Path to the SQLite database"
     )
 
+    migrate_parser = subparsers.add_parser(
+        "migrate",
+        help="Migrate legacy events/festivals tables to upcoming/past",
+    )
+    migrate_parser.add_argument(
+        "--db", default="events.db", help="Path to the SQLite database"
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "fetch":
-        event_data = asyncio.run(event.parse(args.url, debug=args.debug))
-        print(json.dumps(event_data.model_dump(), indent=2, ensure_ascii=False))
+        upcoming_data = asyncio.run(upcoming.parse(args.url, debug=args.debug))
+        print(json.dumps(upcoming_data.model_dump(), indent=2, ensure_ascii=False))
+        return
+
+    if args.command == "migrate":
+        migrate.migrate_db(args.db)
         return
 
     if args.command == "backup":

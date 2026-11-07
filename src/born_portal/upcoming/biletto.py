@@ -1,11 +1,11 @@
 import json
 from html.parser import HTMLParser
 
-from born_portal.event.model import EventData
+from born_portal.upcoming.model import UpcomingData
 from born_portal.utils import date_range
 
 
-def parse_biletto(html: str) -> EventData:
+def parse_biletto(html: str) -> UpcomingData:
     p = _Parser()
     p.feed(html)
     return p.result()
@@ -85,8 +85,8 @@ class _Parser(HTMLParser):
             offers = ld["offers"]
         self._price = offers[0]["price"] + offers[0]["priceCurrency"]
 
-    def result(self) -> EventData:
-        return EventData(
+    def result(self) -> UpcomingData:
+        return UpcomingData(
             url=self._url or "",
             name=self._name,
             description=self._description,

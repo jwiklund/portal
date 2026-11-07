@@ -2,7 +2,7 @@ from blacksheep.server.responses import redirect
 
 from born_portal.auth.guard import auth
 from born_portal.core import is_viewer
-from born_portal.event import biletto, model, store
+from born_portal.upcoming import biletto, model, store
 
 __all__ = ["biletto", "model", "store"]
 
@@ -12,5 +12,5 @@ def register_routes(app):
     @auth()
     async def index(request):
         if is_viewer(request):
-            return redirect("/events/view")
-        return redirect("/events")
+            return redirect("/upcoming/view")
+        return redirect("/upcoming")

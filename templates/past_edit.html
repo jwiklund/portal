@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{% if festival.id %}Edit{% else %}New{% endif %} Festival{% endblock %}
+{% block title %}{% if past.id %}Edit{% else %}New{% endif %} Past{% endblock %}
 
 {% block extra_styles %}
   h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
@@ -93,42 +93,42 @@
 {% endblock %}
 
 {% block content %}
-  <h2>{% if festival.id %}Edit{% else %}New{% endif %} Festival</h2>
+  <h2>{% if past.id %}Edit{% else %}New{% endif %} Past</h2>
 
-  <form method="POST" action="/festivals/save" class="edit-form" id="festival-form">
-    <input type="hidden" name="festival_id" value="{{ festival.id or '' }}">
+  <form method="POST" action="/past/save" class="edit-form" id="past-form">
+    <input type="hidden" name="past_id" value="{{ past.id or '' }}">
     <input type="hidden" name="artists_json" id="artists_json">
 
     <div class="form-group">
       <label for="name">Name</label>
-      <input type="text" id="name" name="name" value="{{ festival.name }}" required>
+      <input type="text" id="name" name="name" value="{{ past.name }}" required>
     </div>
 
     <div class="date-row">
       <div class="form-group">
         <label for="start_date">Start date</label>
-        <input type="date" id="start_date" name="start_date" value="{{ festival.start_date or '' }}">
+        <input type="date" id="start_date" name="start_date" value="{{ past.start_date or '' }}">
       </div>
       <div class="form-group">
         <label for="end_date">End date</label>
-        <input type="date" id="end_date" name="end_date" value="{{ festival.end_date or '' }}">
+        <input type="date" id="end_date" name="end_date" value="{{ past.end_date or '' }}">
       </div>
     </div>
 
     <div class="form-group">
       <label for="location">Location</label>
-      <input type="text" id="location" name="location" value="{{ festival.location or '' }}">
+      <input type="text" id="location" name="location" value="{{ past.location or '' }}">
     </div>
 
     <div class="form-group">
       <label for="description">Description</label>
-      <textarea id="description" name="description">{{ festival.description }}</textarea>
+      <textarea id="description" name="description">{{ past.description }}</textarea>
     </div>
 
     <div class="form-group">
       <label for="album_uri">Google Photos album</label>
       <input type="text" id="album_uri" name="album_uri"
-             value="{{ festival.album_uri or '' }}" list="known-albums"
+             value="{{ past.album_uri or '' }}" list="known-albums"
              placeholder="https://photos.google.com/share/…">
       <datalist id="known-albums">
         {% for uri in known_album_uris %}
@@ -155,8 +155,8 @@
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="save-btn">Save Festival</button>
-      <a href="/festivals" class="cancel-btn">Cancel</a>
+      <button type="submit" class="save-btn">Save Past</button>
+      <a href="/past" class="cancel-btn">Cancel</a>
     </div>
   </form>
 {% endblock %}
@@ -164,7 +164,7 @@
 {% block extra_scripts %}
   <script>
     const artists = [
-      {% for a in festival.artists %}
+      {% for a in past.artists %}
         { name: {{ a.name | tojson }}, spotify_uri: {{ (a.spotify_uri or '') | tojson }} },
       {% endfor %}
     ];
@@ -226,7 +226,7 @@
     async function searchSpotify(q) {
       statusEl.textContent = "Searching…";
       try {
-        const resp = await fetch(`/festivals/api/spotify/search?q=${encodeURIComponent(q)}`);
+        const resp = await fetch(`/past/api/spotify/search?q=${encodeURIComponent(q)}`);
         const data = await resp.json();
         if (data.error) { statusEl.textContent = data.error; return; }
         showResults(data.artists || []);

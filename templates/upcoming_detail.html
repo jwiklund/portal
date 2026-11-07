@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ event.name }}{% endblock %}
+{% block title %}{{ upcoming.name }}{% endblock %}
 
 {% block extra_styles %}
   h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
@@ -31,80 +31,80 @@
 {% endblock %}
 
 {% block content %}
-  {% set events_base = "/events" if is_admin else "/events/view" %}
-  <a href="{{ events_base }}" class="back-link">← Back to events</a>
+  {% set upcoming_base = "/upcoming" if is_admin else "/upcoming/view" %}
+  <a href="{{ upcoming_base }}" class="back-link">← Back to upcoming</a>
 
   {% if is_admin %}
     <div style="margin-bottom: 1.5rem;">
-      <a href="/events/edit/{{ event.id }}" style="background: #2a2a2a; color: #e8e8e8; padding: 0.5rem 1rem; border: 1px solid #3a3a3a; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">Edit</a>
-      <button onclick="confirmDelete({{ event.id }})" style="background: #e76f51; color: #1a1a1a; border: none; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem; cursor: pointer; margin-left: 0.5rem;">Delete</button>
+      <a href="/upcoming/edit/{{ upcoming.id }}" style="background: #2a2a2a; color: #e8e8e8; padding: 0.5rem 1rem; border: 1px solid #3a3a3a; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">Edit</a>
+      <button onclick="confirmDelete({{ upcoming.id }})" style="background: #e76f51; color: #1a1a1a; border: none; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem; cursor: pointer; margin-left: 0.5rem;">Delete</button>
     </div>
   {% endif %}
 
   <div class="event-header">
     <h1 class="event-title">
-      {{ event.name }}
-      {% if event.ticket %}<span class="event-ticket"></span>{% endif %}
+      {{ upcoming.name }}
+      {% if upcoming.ticket %}<span class="event-ticket"></span>{% endif %}
     </h1>
     <div class="event-subtitle">
-      {% if event.date %}<span>{{ event.date }}</span>{% endif %}
-      {% if event.location %} • <span>{{ event.location }}</span>{% endif %}
-      {% if event.price %} • <span>{{ event.price }}</span>{% endif %}
+      {% if upcoming.date %}<span>{{ upcoming.date }}</span>{% endif %}
+      {% if upcoming.location %} • <span>{{ upcoming.location }}</span>{% endif %}
+      {% if upcoming.price %} • <span>{{ upcoming.price }}</span>{% endif %}
     </div>
   </div>
 
   <div class="event-meta">
-    {% if event.date %}
+    {% if upcoming.date %}
       <div class="meta-item">
         <span class="meta-label">Date</span>
         <span class="meta-value">
-          {% if event._date_parts and event._date_parts.start_date %}
-            <div>{{ event._date_parts.start_date }}</div>
-            <div style="margin-left: 1rem;">{{ event._date_parts.start_time }}</div>
-            {% if event._date_parts.end_time %}
+          {% if upcoming._date_parts and upcoming._date_parts.start_date %}
+            <div>{{ upcoming._date_parts.start_date }}</div>
+            <div style="margin-left: 1rem;">{{ upcoming._date_parts.start_time }}</div>
+            {% if upcoming._date_parts.end_time %}
               <div style="margin-left: 1rem;">to</div>
-              <div style="margin-left: 1rem;">{{ event._date_parts.end_time }}</div>
+              <div style="margin-left: 1rem;">{{ upcoming._date_parts.end_time }}</div>
             {% endif %}
           {% else %}
-            {{ event.date or "TBD" }}
+            {{ upcoming.date or "TBD" }}
           {% endif %}
         </span>
       </div>
     {% endif %}
-    {% if event.location %}
+    {% if upcoming.location %}
       <div class="meta-item">
         <span class="meta-label">Location</span>
-        <span class="meta-value">{{ event.location }}</span>
+        <span class="meta-value">{{ upcoming.location }}</span>
       </div>
     {% endif %}
-    {% if event.price %}
+    {% if upcoming.price %}
       <div class="meta-item">
         <span class="meta-label">Cost</span>
-        <span class="meta-value">{{ event.price }}</span>
+        <span class="meta-value">{{ upcoming.price }}</span>
       </div>
     {% endif %}
     <div class="meta-item">
       <span class="meta-label">Source</span>
-      <span class="meta-value"><a href="{{ event.url }}" style="color:#d4b483">{{ event.url }}</a></span>
+      <span class="meta-value"><a href="{{ upcoming.url }}" style="color:#d4b483">{{ upcoming.url }}</a></span>
     </div>
   </div>
 
-  {% if event.description %}
-    <div class="event-description">{{ event.description }}</div>
+  {% if upcoming.description %}
+    <div class="event-description">{{ upcoming.description }}</div>
   {% endif %}
 
   {% if is_admin %}
     <script>
-      function confirmDelete(eventId) {
+      function confirmDelete(upcomingId) {
         if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-          fetch('/events/delete', {
+          fetch('/upcoming/delete', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: 'event_id=' + encodeURIComponent(eventId)
+            body: 'upcoming_id=' + encodeURIComponent(upcomingId)
           }).then(function(response) {
-            window.location.href = '/events';
+            window.location.href = '/upcoming';
           });
         }
       }

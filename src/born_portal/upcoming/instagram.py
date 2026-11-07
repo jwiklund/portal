@@ -7,11 +7,11 @@ import re
 import httpx2
 
 from born_portal import llm
-from born_portal.event.model import EventData
+from born_portal.upcoming.model import UpcomingData
 
 
-async def parse_instagram(html_content: str, url: str) -> EventData:
-    from born_portal.event.event import _extract_response_text, _parse_json_output
+async def parse_instagram(html_content: str, url: str) -> UpcomingData:
+    from born_portal.upcoming.upcoming import _extract_response_text, _parse_json_output
 
     image_url = _meta(html_content, "og:image")
     title = _meta(html_content, "og:title")
@@ -53,7 +53,7 @@ async def parse_instagram(html_content: str, url: str) -> EventData:
     content = _extract_response_text(response)
     parsed = _parse_json_output(content)
 
-    return EventData(
+    return UpcomingData(
         url=url,
         name=(parsed.get("name") or "").strip(),
         description=(parsed.get("description") or "").strip(),

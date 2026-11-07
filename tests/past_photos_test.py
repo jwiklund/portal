@@ -1,6 +1,6 @@
 import json
 
-from born_portal.festival.photos import parse_album_html, parse_album_title
+from born_portal.past.photos import parse_album_html, parse_album_title
 
 PHOTO_A = "https://lh3.googleusercontent.com/pw/PHOTO_A"
 PHOTO_B = "https://lh3.googleusercontent.com/pw/PHOTO_B"

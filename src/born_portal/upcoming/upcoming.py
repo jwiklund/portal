@@ -4,14 +4,14 @@ import json
 import re
 
 from born_portal import llm
-from born_portal.event.biletto import parse_biletto
-from born_portal.event.instagram import parse_instagram
-from born_portal.event.model import EventData
+from born_portal.upcoming.biletto import parse_biletto
+from born_portal.upcoming.instagram import parse_instagram
+from born_portal.upcoming.model import UpcomingData
 from born_portal.utils import date_range
 from born_portal.utils.fetch import fetch_public_html, html_to_markdown
 
 
-async def parse(url: str, debug: bool = False) -> EventData:
+async def parse(url: str, debug: bool = False) -> UpcomingData:
     page = await fetch_public_html(url)
     clean_url = page.url
     hostname = page.hostname
@@ -41,7 +41,7 @@ async def parse(url: str, debug: bool = False) -> EventData:
     content = _extract_response_text(response)
     parsed = _parse_json_output(content)
 
-    return EventData(
+    return UpcomingData(
         url=clean_url,
         name=(parsed.get("name") or "").strip(),
         description=(parsed.get("description") or "").strip(),

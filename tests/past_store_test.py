@@ -1,13 +1,13 @@
 from sqlmodel import Session, SQLModel, create_engine, func, select
 
-from born_portal.festival.model import ArtistData, FestivalData
-from born_portal.festival.store import FestivalStore
+from born_portal.past.model import ArtistData, PastData
+from born_portal.past.store import PastStore
 
 
 def make_store(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}")
     SQLModel.metadata.create_all(engine)
-    return FestivalStore(engine)
+    return PastStore(engine)
 
 
 def artist_count(store) -> int:
@@ -18,8 +18,8 @@ def artist_count(store) -> int:
 
 def test_save_and_get_roundtrip(tmp_path):
     store = make_store(tmp_path)
-    festival_id = store.save(
-        FestivalData(
+    past_id = store.save(
+        PastData(
             name="Way Out West",
             start_date="2026-08-12",
             end_date="2026-08-14",
@@ -33,7 +33,7 @@ def test_save_and_get_roundtrip(tmp_path):
         )
     )
 
-    loaded = store.get_by_id(festival_id)
+    loaded = store.get_by_id(past_id)
     assert loaded is not None
     assert loaded.name == "Way Out West"
     assert loaded.start_date == "2026-08-12"
@@ -47,32 +47,32 @@ def test_save_and_get_roundtrip(tmp_path):
 
 def test_update_preserves_id_and_replaces_artists(tmp_path):
     store = make_store(tmp_path)
-    festival_id = store.save(
-        FestivalData(
+    past_id = store.save(
+        PastData(
             name="Original",
             artists=[ArtistData(name="A"), ArtistData(name="B")],
         )
     )
     store.save(
-        FestivalData(
-            id=festival_id,
+        PastData(
+            id=past_id,
             name="Updated",
             start_date="2027-01-01",
             artists=[ArtistData(name="C", spotify_uri="spotify:artist:3")],
         )
     )
 
-    loaded = store.get_by_id(festival_id)
+    loaded = store.get_by_id(past_id)
     assert loaded is not None
     assert loaded.name == "Updated"
     assert loaded.start_date == "2027-01-01"
     assert [a.name for a in loaded.artists] == ["C"]
 
 
-def test_artist_deduplicated_across_festivals(tmp_path):
+def test_artist_deduplicated_across_past(tmp_path):
     store = make_store(tmp_path)
-    store.save(FestivalData(name="F1", artists=[ArtistData(name="Shared")]))
-    store.save(FestivalData(name="F2", artists=[ArtistData(name="Shared")]))
+    store.save(PastData(name="F1", artists=[ArtistData(name="Shared")]))
+    store.save(PastData(name="F2", artists=[ArtistData(name="Shared")]))
 
     assert artist_count(store) == 1
 
@@ -80,12 +80,12 @@ def test_artist_deduplicated_across_festivals(tmp_path):
 def test_relinking_existing_artists_keeps_correct_ids(tmp_path):
     store = make_store(tmp_path)
     f1 = store.save(
-        FestivalData(name="F1", artists=[ArtistData(name="A"), ArtistData(name="B")])
+        PastData(name="F1", artists=[ArtistData(name="A"), ArtistData(name="B")])
     )
-    f2 = store.save(FestivalData(name="F2", artists=[ArtistData(name="C")]))
+    f2 = store.save(PastData(name="F2", artists=[ArtistData(name="C")]))
 
     store.save(
-        FestivalData(
+        PastData(
             id=f1,
             name="F1",
             artists=[ArtistData(name="A"), ArtistData(name="B")],
@@ -104,9 +104,9 @@ def test_relinking_existing_artists_keeps_correct_ids(tmp_path):
 
 def test_list_all_orders_by_start_date_desc(tmp_path):
     store = make_store(tmp_path)
-    store.save(FestivalData(name="Newest", start_date="2026-08-12"))
-    store.save(FestivalData(name="Oldest", start_date="2024-07-01"))
-    store.save(FestivalData(name="No Date"))
+    store.save(PastData(name="Newest", start_date="2026-08-12"))
+    store.save(PastData(name="Oldest", start_date="2024-07-01"))
+    store.save(PastData(name="No Date"))
 
     names = [f.name for f in store.list_all()]
     assert names == ["Newest", "Oldest", "No Date"]
@@ -114,28 +114,26 @@ def test_list_all_orders_by_start_date_desc(tmp_path):
 
 def test_known_album_uris(tmp_path):
     store = make_store(tmp_path)
-    store.save(FestivalData(name="A", album_uri="https://photos.google.com/share/x"))
-    store.save(FestivalData(name="B", album_uri="https://photos.google.com/share/x"))
-    store.save(FestivalData(name="C"))
+    store.save(PastData(name="A", album_uri="https://photos.google.com/share/x"))
+    store.save(PastData(name="B", album_uri="https://photos.google.com/share/x"))
+    store.save(PastData(name="C"))
 
     assert store.known_album_uris() == ["https://photos.google.com/share/x"]
 
 
-def test_delete_removes_festival_and_links(tmp_path):
+def test_delete_removes_past_and_links(tmp_path):
     store = make_store(tmp_path)
-    festival_id = store.save(
-        FestivalData(name="Doomed", artists=[ArtistData(name="A")])
-    )
-    assert store.delete(festival_id) is True
-    assert store.get_by_id(festival_id) is None
+    past_id = store.save(PastData(name="Doomed", artists=[ArtistData(name="A")]))
+    assert store.delete(past_id) is True
+    assert store.get_by_id(past_id) is None
     assert store.list_all() == []
 
 
 def test_blank_artist_names_skipped(tmp_path):
     store = make_store(tmp_path)
-    festival_id = store.save(
-        FestivalData(name="F", artists=[ArtistData(name="  "), ArtistData(name="Real")])
+    past_id = store.save(
+        PastData(name="F", artists=[ArtistData(name="  "), ArtistData(name="Real")])
     )
-    loaded = store.get_by_id(festival_id)
+    loaded = store.get_by_id(past_id)
     assert loaded is not None
     assert [a.name for a in loaded.artists] == ["Real"]

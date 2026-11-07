@@ -37,7 +37,7 @@
     <div class="error">{{ error }}</div>
   {% endif %}
 
-  <form method="POST" action="/events/import" class="import-form">
+  <form method="POST" action="/upcoming/import" class="import-form">
     <div class="form-group">
       <label for="url">Event URL</label>
       <input type="url" id="url" name="url" placeholder="https://..." required {% if url %}value="{{ url }}"{% endif %}>

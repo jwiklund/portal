@@ -10,13 +10,19 @@ src/born_portal/
     __init__.py    # Re-exports AuthMiddleware, register_routes, @auth wiring
     login.py       # Google OAuth routes (/login, /auth/google, /auth/callback, /logout)
     guard.py       # guardpost SessionAuthHandler, configure() @auth integration
-  routes.py        # Root redirect (/ → /events)
-  event/           # Event CRUD: import (parse from URL), edit, delete, SQLite store
-    model.py       # EventData dataclass
-    store.py       # EventStore — SQLite persistence
+  routes.py        # Root redirect (/ → /upcoming)
+  upcoming/        # Upcoming event CRUD: import (parse from URL), edit, delete, SQLite store
+    model.py       # UpcomingData dataclass (table: upcoming)
+    store.py       # UpcomingStore — SQLite persistence
     biletto.py     # HTMLParser for billetto.se
-    event.py       # Generic event parser (uses openai SDK LLM for non-biletto URLs)
-    routes.py      # Event web routes
+    upcoming.py    # Generic event parser (uses openai SDK LLM for non-biletto URLs)
+    routes.py      # Upcoming web routes
+  past/            # Past event CRUD: import from Google Photos, artists, SQLite store
+    model.py       # PastData + ArtistData (tables: past, artists, past_artists)
+    store.py       # PastStore — SQLite persistence
+    photos.py      # Google Photos album scraping
+    routes.py      # Past web routes
+  migrate.py       # Migrate legacy events/festivals tables to upcoming/past
   show/            # Video file management: ffmpeg conversion, streaming with Range support
     routes.py      # Shows web routes + video streaming
   podcast/         # Audio file management: yt-dlp download, delete, serve
@@ -30,7 +36,7 @@ tests/             # pytest tests
 
 ### Infrastructure
 
-- **Database**: `events.db` (SQLite, gitignored) — auto-created by EventStore on first use.
+- **Database**: `events.db` (SQLite, gitignored) — auto-created by the stores on first use. The file keeps its historical name; its tables are `upcoming`, `past`, `past_artists`, and `artists`.
 - **Directories**: `shows/` (video source files), `shows_cache/` (converted mp4 streams), `podcasts/` (downloaded audio) — all gitignored via `.gitignore`.
 - **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ADMIN_USERS`, `MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`.
 
@@ -41,7 +47,8 @@ tests/             # pytest tests
 `main.py:main()` is the CLI entry point. It supports subcommands:
 - `serve` (default) — starts uvicorn on port 8080
 - `fetch <url>` — parse event URL, print JSON
-- `parse` — parse local `biletto.html` for debugging
+- `backup <output>` / `restore <input>` — dump/load the SQLite database
+- `migrate` — copy legacy `events`/`festivals`/`festival_artists` (and intermediate `previous`/`previous_artists`) rows into `upcoming`/`past`/`past_artists` (idempotent, non-destructive)
 
 The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
 
@@ -62,13 +69,13 @@ Handlers are annotated using BlackSheep's built-in authorization (see the [docs]
 from born_portal.auth import auth
 from born_portal.core import ADMIN, VIEWER
 
-@app.router.get("/events")
+@app.router.get("/upcoming")
 @auth(roles=[ADMIN])
-async def events_list(request): ...
+async def upcoming_list(request): ...
 
-@app.router.get("/events/view")
+@app.router.get("/upcoming/view")
 @auth(roles=[VIEWER])
-async def view_events_list(request): ...
+async def view_upcoming_list(request): ...
 
 @app.router.get("/podcasts/audio/{filename}")
 @allow_anonymous
@@ -87,11 +94,11 @@ Each module exports a `register_routes(app)` function that adds route handlers. 
 ```python
 auth.register_routes(app)
 routes.register_routes(app)
-event.register_routes(app)
+upcoming.register_routes(app, engine)
+past.register_routes(app, engine)
+playlist.register_routes(app)
 podcast.register_routes(app)
 show.register_routes(app)
-festival.register_routes(app)
-playlist.register_routes(app)
 pwa.register_routes(app)
 ```
 
@@ -101,7 +108,7 @@ All templates use `core.render(template_name, **ctx)` which wraps Jinja2 renderi
 
 ### Data flow
 
-1. **Events**: Import URL → `event.parse(url)` → either Biletto HTMLParser or openai SDK LLM extraction → `EventData` dataclass → preview/edit form → `EventStore.save()` → SQLite
+1. **Upcoming**: Import URL → `upcoming.parse(url)` → either Biletto HTMLParser or openai SDK LLM extraction → `UpcomingData` dataclass → preview/edit form → `UpcomingStore.save()` → SQLite
 2. **Shows**: Video files in `shows/` → POST `/shows/convert` → ffprobe check codecs → ffmpeg remux/re-encode → cached mp4 in `shows_cache/` → streaming via Range headers
 3. **Podcasts**: URL → yt-dlp extract audio → mp3 in `podcasts/` → serve via `aiofiles`
 
@@ -110,7 +117,7 @@ All templates use `core.render(template_name, **ctx)` which wraps Jinja2 renderi
 ### Python
 
 - **Python 3.13+** required (uses `from __future__ import annotations` in some files, `|` union types)
-- **EventStore requires manual `close()`** — always use `try/finally` pattern (see `event/routes.py` for examples)
+- **Stores require manual `close()`** — always use `try/finally` pattern (see `upcoming/routes.py` for examples)
 
 ### BlackSheep
 

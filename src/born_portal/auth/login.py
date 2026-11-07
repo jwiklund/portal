@@ -23,8 +23,8 @@ def register_routes(app):
     async def login_page(request: Request):
         if request.session.get("user"):
             if is_viewer(request):
-                return redirect("/events/view")
-            return redirect("/events")
+                return redirect("/upcoming/view")
+            return redirect("/upcoming")
         return render("login.html")
 
     @app.router.get("/auth/google")
@@ -90,8 +90,8 @@ def register_routes(app):
             )
         request.session["user"] = email
         if is_viewer(request):
-            return redirect("/events/view")
-        return redirect("/events")
+            return redirect("/upcoming/view")
+        return redirect("/upcoming")
 
     @app.router.get("/logout")
     @allow_anonymous()

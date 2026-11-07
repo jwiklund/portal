@@ -1,10 +1,10 @@
 from sqlmodel import Field, Relationship, SQLModel
 
 
-class FestivalArtist(SQLModel, table=True):
-    __tablename__ = "festival_artists"  # type: ignore[assignment]
+class PastArtist(SQLModel, table=True):
+    __tablename__ = "past_artists"  # type: ignore[assignment]
 
-    festival_id: int = Field(primary_key=True, foreign_key="festivals.id")
+    past_id: int = Field(primary_key=True, foreign_key="past.id")
     artist_id: int = Field(primary_key=True, foreign_key="artists.id")
     position: int = Field(default=0)
 
@@ -17,8 +17,8 @@ class ArtistData(SQLModel, table=True):
     spotify_uri: str | None = None
 
 
-class FestivalData(SQLModel, table=True):
-    __tablename__ = "festivals"  # type: ignore[assignment]
+class PastData(SQLModel, table=True):
+    __tablename__ = "past"  # type: ignore[assignment]
 
     id: int | None = Field(default=None, primary_key=True)
     name: str = ""
@@ -28,9 +28,9 @@ class FestivalData(SQLModel, table=True):
     description: str = ""
     album_uri: str | None = None
     artists: list[ArtistData] = Relationship(
-        link_model=FestivalArtist,
+        link_model=PastArtist,
         sa_relationship_kwargs={
             "lazy": "selectin",
-            "order_by": FestivalArtist.position,
+            "order_by": PastArtist.position,
         },
     )

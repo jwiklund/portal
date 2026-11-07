@@ -32,4 +32,4 @@ venv = ".venv"
 
 [project.scripts]
 app = "born_portal.main:main"
-event = "born_portal.event:main"
+upcoming = "born_portal.main:main"
