@@ -112,7 +112,7 @@ class PastStore:
         with Session(self._engine) as session:
             uris = session.exec(
                 select(PastData.album_uri).where(
-                    PastData.album_uri != None,  # noqa: E711
+                    PastData.album_uri != None,
                     PastData.album_uri != "",
                 )
             )

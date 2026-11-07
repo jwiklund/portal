@@ -1,6 +1,6 @@
 import locale
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 _PARTIAL_RANGE_RE = re.compile(r"^(\d{1,2})\s*[-–—]\s*(\d{1,2})\s+(.+)$")
 
@@ -250,3 +250,19 @@ def parse_name_with_dates(name: str) -> tuple[str, str | None, str | None]:
             break
 
     return title, None, None
+
+
+def upcoming_weekend(reference: date | None = None) -> tuple[str, str]:
+    """Return the upcoming weekend as inclusive ISO dates (Friday, Sunday).
+
+    The current weekend is used when today is Friday, Saturday or Sunday;
+    otherwise the next Friday-Sunday window is returned.
+    """
+    today = reference or datetime.now().astimezone().date()
+    weekday = today.weekday()  # Monday=0 ... Sunday=6
+    if weekday >= 4:
+        friday = today - timedelta(days=weekday - 4)
+    else:
+        friday = today + timedelta(days=4 - weekday)
+    sunday = friday + timedelta(days=2)
+    return friday.isoformat(), sunday.isoformat()

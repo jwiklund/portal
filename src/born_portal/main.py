@@ -145,6 +145,26 @@ def main(argv=None):
         "--db", default="portal.db", help="Path to the SQLite database"
     )
 
+    potential_parser = subparsers.add_parser(
+        "potential", help="List events from the supported event sources"
+    )
+    potential_parser.add_argument(
+        "source",
+        nargs="?",
+        help="Only list a single source (e.g. ra, raveoclock)",
+    )
+    potential_parser.add_argument(
+        "--json", action="store_true", help="Output JSON instead of text"
+    )
+    potential_parser.add_argument(
+        "--refresh", action="store_true", help="Bypass the in-memory cache"
+    )
+    potential_parser.add_argument(
+        "--duplicates",
+        action="store_true",
+        help="Group similar events and show merge options",
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "fetch":
@@ -160,7 +180,117 @@ def main(argv=None):
         backup.restore_db(args.input, args.db)
         return
 
+    if args.command == "potential":
+        _list_potential(args.source, args.json, args.refresh, args.duplicates)
+        return
+
     parser.print_help()
+
+
+def _list_potential(
+    source_key: str | None,
+    as_json: bool,
+    refresh: bool,
+    duplicates: bool = False,
+) -> None:
+    from born_portal.utils.date_range import upcoming_weekend
+
+    sources = [
+        source
+        for source in upcoming.sources.all_sources()
+        if source_key is None or source.key == source_key
+    ]
+    if not sources:
+        print(f"Unknown source: {source_key}")
+        print(
+            "Supported sources: "
+            + ", ".join(s.key for s in upcoming.sources.all_sources())
+        )
+        return
+
+    start, end = upcoming_weekend()
+
+    async def fetch_all():
+        results = []
+        for source in sources:
+            try:
+                events = await upcoming.potential.source_events(
+                    source, start, end, refresh=refresh
+                )
+                results.append((source, events, None))
+            except Exception as e:  # noqa: BLE001
+                results.append((source, [], str(e)))
+        return results
+
+    results = asyncio.run(fetch_all())
+
+    if duplicates:
+        source_results = [
+            upcoming.potential.SourceResult(source=source, events=events, error=error)
+            for source, events, error in results
+        ]
+        clusters = upcoming.potential.cluster_results(source_results)
+        if as_json:
+            payload = [
+                {
+                    "primary": {
+                        "source": cluster.primary.source.key,
+                        "name": cluster.primary.source.name,
+                        "event": cluster.primary.event.model_dump(),
+                    },
+                    "alternatives": [
+                        {
+                            "source": alternative.source.key,
+                            "name": alternative.source.name,
+                            "event": alternative.event.model_dump(),
+                        }
+                        for alternative in cluster.alternatives
+                    ],
+                }
+                for cluster in clusters
+            ]
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            return
+
+        print(f"Merged events — {start} to {end}")
+        for cluster in clusters:
+            primary = cluster.primary
+            location = f"  {primary.event.location}" if primary.event.location else ""
+            print(
+                f"  {cluster.date or 'TBD'}  {primary.event.name}"
+                f"  [{primary.source.name}]{location}"
+            )
+            for alternative in cluster.alternatives:
+                print(
+                    f"      also: {alternative.source.name} — "
+                    f"{alternative.event.name}"
+                )
+        return
+
+    if as_json:
+        payload = [
+            {
+                "source": source.key,
+                "name": source.name,
+                "error": error,
+                "events": [event.model_dump() for event in events],
+            }
+            for source, events, error in results
+        ]
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    for source, events, error in results:
+        print(f"{source.name} ({source.key}) — {start} to {end}")
+        if error:
+            print(f"  error: {error}")
+            continue
+        if not events:
+            print("  no events")
+            continue
+        for event in events:
+            location = f"  {event.location}" if event.location else ""
+            print(f"  {event.date or 'TBD'}  {event.name}{location}")
 
 
 if __name__ == "__main__":

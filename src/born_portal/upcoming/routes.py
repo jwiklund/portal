@@ -6,7 +6,22 @@ from blacksheep.server.responses import redirect
 from born_portal import upcoming
 from born_portal.auth.guard import auth
 from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
+from born_portal.upcoming import potential
 from born_portal.upcoming.model import UpcomingData
+from born_portal.utils.date_range import upcoming_weekend
+
+
+def _split_date(date: str | None) -> tuple[str | None, str | None]:
+    """Split a rendered date string into (start, end) parts for display."""
+    if not date:
+        return None, None
+    i = date.find(" - ")
+    if i != -1:
+        return date[:i], date[i + 3 :]
+    i = date.find(" ")
+    if i != -1:
+        return date[:i], date[i + 1 :]
+    return date, None
 
 
 def register_routes(app, engine):
@@ -29,15 +44,7 @@ def register_routes(app, engine):
 
         def render_upcoming(e: UpcomingData) -> dict:
             d = e.model_dump()
-            i = d.get("date", "").find(" - ")
-            if i != -1:
-                d["date_end"] = d["date"][i + 3 :]
-                d["date"] = d["date"][:i]
-            else:
-                i = d.get("date", "").find(" ")
-                if i != -1:
-                    d["date_end"] = d["date"][i + 1 :]
-                    d["date"] = d["date"][:i]
+            d["date"], d["date_end"] = _split_date(d.get("date"))
             return d
 
         upcoming_items = [render_upcoming(e) for e in future_upcoming[:20]]
@@ -85,6 +92,73 @@ def register_routes(app, engine):
             upcoming=upcoming_data,
             from_import=True,
         )
+
+    @app.router.get("/upcoming/potential")
+    @auth(roles=[ADMIN_ROLE])
+    async def upcoming_potential(request: Request):
+        params = dict(request.query)
+        refresh = params.get("refresh", [None])[0] == "1"
+
+        start, end = upcoming_weekend()
+        results = await potential.all_potential(start, end, refresh=refresh)
+        existing = {e.url for e in store.list_all()}
+        errors = [result for result in results if result.error]
+
+        def render_source_event(
+            source_event: potential.SourceEvent, date: str | None = None
+        ) -> dict:
+            start_date, end_date = _split_date(date or source_event.event.date)
+            return {
+                "source": source_event.source,
+                "event": source_event.event,
+                "date": start_date,
+                "date_end": end_date,
+            }
+
+        clusters = [
+            {
+                "primary": render_source_event(cluster.primary, cluster.date),
+                "alternatives": [
+                    render_source_event(alternative)
+                    for alternative in cluster.alternatives
+                ],
+                "imported": any(
+                    source_event.event.url in existing
+                    for source_event in [cluster.primary, *cluster.alternatives]
+                ),
+            }
+            for cluster in potential.cluster_results(results)
+        ]
+
+        return render(
+            "upcoming_potential.html",
+            request,
+            clusters=clusters,
+            errors=errors,
+            sources=potential.all_sources(),
+            existing=existing,
+            weekend_start=start,
+            weekend_end=end,
+        )
+
+    @app.router.post("/upcoming/potential/import")
+    @auth(roles=[ADMIN_ROLE])
+    async def upcoming_potential_import(request: Request):
+        form = await request.form()
+        source_key = form_value(form, "source") or ""
+        url = form_value(form, "url") or ""
+
+        start, end = upcoming_weekend()
+        event = await potential.find_event(source_key, url, start, end)
+        if event is None:
+            return render(
+                "error.html",
+                request,
+                message="Event is no longer available from the source.",
+            )
+
+        store.save(event)
+        return redirect("/upcoming/potential")
 
     @app.router.get("/upcoming/{upcoming_id}")
     @auth(roles=[ADMIN_ROLE])
