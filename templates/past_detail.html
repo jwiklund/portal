@@ -122,8 +122,8 @@
     {% endif %}
     {% if is_admin %}
       <a href="/past/edit/{{ past.id }}" class="btn">Edit</a>
-      <form method="post" action="/past/delete"
-            onsubmit="return confirm('Delete {{ past.name }}?');">
+      <form method="post" action="/past/delete" class="delete-form"
+            data-name="{{ past.name }}">
         <input type="hidden" name="past_id" value="{{ past.id }}" />
         <button type="submit" class="btn btn-danger">Delete</button>
       </form>
@@ -161,6 +161,13 @@
     const caption = document.querySelector(".lightbox-caption");
     const images = [...document.querySelectorAll("#album-grid img[data-view]")];
     let current = -1;
+
+    const deleteForm = document.querySelector("form.delete-form");
+    if (deleteForm) {
+      deleteForm.addEventListener("submit", (e) => {
+        if (!confirm(`Delete ${deleteForm.dataset.name}?`)) e.preventDefault();
+      });
+    }
 
     function show(i) {
       current = (i + images.length) % images.length;

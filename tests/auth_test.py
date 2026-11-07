@@ -9,6 +9,7 @@ from blacksheep.sessions import Session
 from guardpost.authorization import AuthorizationError
 
 from born_portal.auth.guard import SessionAuthHandler, authenticate_failed_redirect
+from born_portal.auth.login import verified_email
 from born_portal.core import ADMIN_ROLE, ADMIN_USERS, VIEW_USERS
 
 
@@ -129,3 +130,20 @@ def test_anonymous_redirects_to_login():
     assert isinstance(result, Response)
     assert result.status == 302
     assert result.get_first_header(b"location") == b"/login"
+
+
+def test_verified_email_accepts_verified_claim():
+    assert verified_email({"email": "a@x", "email_verified": True}) == "a@x"
+
+
+def test_verified_email_rejects_unverified_claim():
+    assert verified_email({"email": "a@x", "email_verified": False}) is None
+    assert verified_email({"email": "a@x"}) is None
+
+
+def test_verified_email_rejects_non_boolean_verified_claim():
+    assert verified_email({"email": "a@x", "email_verified": "true"}) is None
+
+
+def test_verified_email_rejects_missing_email():
+    assert verified_email({"email_verified": True}) is None

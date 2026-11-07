@@ -24,6 +24,16 @@ def _split_date(date: str | None) -> tuple[str | None, str | None]:
     return date, None
 
 
+def _is_upcoming(event_date: str | None, today: str) -> bool:
+    """Whether a rendered event date is today or later.
+
+    Dates are stored as ISO strings (optionally with a time and/or a range), so
+    they compare lexicographically against the ISO reference date. Shared by the
+    upcoming list and the potential page so both hide the same events.
+    """
+    return bool(event_date) and event_date >= today
+
+
 def register_routes(app, engine):
     store = upcoming.UpcomingStore(engine)
 
@@ -32,10 +42,9 @@ def register_routes(app, engine):
     async def upcoming_list(request: Request, sort_by: str | None = None):
         all_upcoming = store.list_all()
 
-        today = datetime.now(UTC).date()
-        today_str = today.isoformat()
+        today_str = datetime.now(UTC).date().isoformat()
 
-        future_upcoming = [e for e in all_upcoming if e.date and e.date >= today_str]
+        future_upcoming = [e for e in all_upcoming if _is_upcoming(e.date, today_str)]
 
         if sort_by == "price":
             future_upcoming.sort(key=lambda e: (e.price or "", e.date or ""))
@@ -103,6 +112,7 @@ def register_routes(app, engine):
         results = await potential.all_potential(start, end, refresh=refresh)
         existing = {e.url for e in store.list_all()}
         errors = [result for result in results if result.error]
+        today = datetime.now(UTC).date().isoformat()
 
         def render_source_event(
             source_event: potential.SourceEvent, date: str | None = None
@@ -128,6 +138,7 @@ def register_routes(app, engine):
                 ),
             }
             for cluster in potential.cluster_results(results)
+            if _is_upcoming(cluster.date, today)
         ]
 
         return render(

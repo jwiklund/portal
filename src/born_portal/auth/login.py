@@ -17,6 +17,18 @@ from born_portal.core import (
 )
 
 
+def verified_email(userinfo: dict) -> str | None:
+    """Return the email only when Google reports it as verified.
+
+    Roles are granted by exact email match, so an unverified ``email`` claim
+    must never be trusted (it could be used to impersonate an admin or viewer).
+    """
+    email = userinfo.get("email")
+    if not email or userinfo.get("email_verified") is not True:
+        return None
+    return email
+
+
 def register_routes(app):
     @app.router.get("/login")
     @allow_anonymous()
@@ -83,7 +95,7 @@ def register_routes(app):
             userinfo_resp.raise_for_status()
             user = userinfo_resp.json()
 
-        email = user.get("email")
+        email = verified_email(user)
         if not email:
             return render(
                 "error.html", message="No verified email returned from Google."

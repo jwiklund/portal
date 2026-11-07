@@ -4,10 +4,9 @@ import base64
 import html
 import re
 
-import httpx2
-
 from born_portal import llm
 from born_portal.upcoming.model import UpcomingData
+from born_portal.utils.safe_http import get_public
 
 
 async def parse_instagram(html_content: str, url: str) -> UpcomingData:
@@ -76,7 +75,5 @@ def _meta(html_content: str, name: str) -> str | None:
 
 
 async def _fetch_image_base64(image_url: str) -> str:
-    async with httpx2.AsyncClient(timeout=30.0) as client:
-        response = await client.get(image_url)
-        response.raise_for_status()
-        return base64.b64encode(response.content).decode()
+    response = await get_public(image_url, timeout=30.0)
+    return base64.b64encode(response.content).decode()

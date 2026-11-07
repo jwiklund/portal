@@ -181,6 +181,12 @@
 document.addEventListener('DOMContentLoaded', () => {
   const allAudio = Array.from(document.querySelectorAll('.podcast-audio'));
 
+  document.querySelectorAll('.podcast-delete-form').forEach(form => {
+    form.addEventListener('submit', (e) => {
+      if (!confirm(`Delete ${form.dataset.name}?`)) e.preventDefault();
+    });
+  });
+
   function fmt(sec) {
     if (!isFinite(sec) || isNaN(sec)) return '0:00';
     return Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0');
@@ -293,9 +299,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </audio>
             <button type="button" class="play-btn" data-audio="audio-{{ loop.index }}" title="Play/Pause">▶</button>
             <button type="button" class="skip-btn" onclick="skipAudio('audio-{{ loop.index }}', 15)">+15s</button>
-            <form method="POST" action="/podcasts/delete" style="margin:0;display:inline">
+            <form method="POST" action="/podcasts/delete" class="podcast-delete-form" data-name="{{ p.name }}" style="margin:0;display:inline">
               <input type="hidden" name="filename" value="{{ p.name }}">
-              <button type="submit" class="delete-btn" onclick="return confirm('Delete {{ p.name }}?')">Delete</button>
+              <button type="submit" class="delete-btn">Delete</button>
             </form>
             <div class="podcast-progress" id="progress-{{ loop.index }}">
               <div class="progress-bar">

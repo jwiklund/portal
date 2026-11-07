@@ -11,10 +11,10 @@ from __future__ import annotations
 from typing import NamedTuple
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-import httpx2
 import markdownify
 
 from born_portal.core import USER_AGENT
+from born_portal.utils.safe_http import get_public
 from born_portal.utils.url_guard import validate_public_http_url
 
 GOOGLEBOT_HEADERS = {
@@ -99,12 +99,8 @@ def headers_for(hostname: str) -> dict[str, str]:
 
 
 async def fetch_html(url: str, headers: dict[str, str]) -> str:
-    async with httpx2.AsyncClient(
-        timeout=30.0, headers=headers, follow_redirects=True
-    ) as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        return response.text
+    response = await get_public(url, headers=headers)
+    return response.text
 
 
 def html_to_markdown(html: str) -> str:

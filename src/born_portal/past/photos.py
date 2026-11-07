@@ -18,10 +18,8 @@ import json
 import re
 import time
 
-import httpx2
-
 from born_portal.core import USER_AGENT
-from born_portal.utils.url_guard import validate_public_http_url
+from born_portal.utils.safe_http import get_public
 
 _ALLOWED_ALBUM_HOSTS = {"photos.app.goo.gl", "photos.google.com"}
 
@@ -190,14 +188,14 @@ async def fetch_album_page(album_uri: str) -> str:
     if cached and time.monotonic() - cached[0] < _CACHE_TTL_SECONDS:
         return cached[1]
 
-    validate_public_http_url(album_uri, allowed_hosts=_ALLOWED_ALBUM_HOSTS)
+    response = await get_public(
+        album_uri,
+        headers={"User-Agent": USER_AGENT},
+        allowed_hosts=_ALLOWED_ALBUM_HOSTS,
+    )
 
-    async with httpx2.AsyncClient(follow_redirects=True) as client:
-        resp = await client.get(album_uri, headers={"User-Agent": USER_AGENT})
-        resp.raise_for_status()
-
-    _html_cache[album_uri] = (time.monotonic(), resp.text)
-    return resp.text
+    _html_cache[album_uri] = (time.monotonic(), response.text)
+    return response.text
 
 
 async def fetch_album_photos(album_uri: str) -> list[dict]:

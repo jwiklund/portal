@@ -4,8 +4,6 @@ import json
 import logging
 
 from blacksheep import Application, Request
-from blacksheep.cookies import Cookie, CookieSameSiteMode
-from blacksheep.sessions.cookies import CookieSessionStore
 from sqlmodel import SQLModel, create_engine
 
 from born_portal import (
@@ -21,6 +19,7 @@ from born_portal import (
 )
 from born_portal.auth import configure as configure_auth
 from born_portal.core import DB_URL, ENV, SECRET_KEY
+from born_portal.sessions import SqliteSessionStore
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,13 +27,6 @@ logging.basicConfig(
 )
 
 app = Application()
-
-# Session cookies: 7-day expiry, SameSite=Lax, Secure outside development.
-# Lax is deliberate: the OAuth callback (/auth/callback) arrives via a
-# cross-site top-level navigation, so a Strict cookie would not be sent
-# there and the oauth_state check would fail. Lax still blocks all
-# cross-site POSTs, and every mutating route in this app is a POST.
-_SESSION_MAX_AGE = 7 * 24 * 3600
 
 # Google Cast SDK script, Google-hosted avatars/album photos, and inline
 # scripts/styles used across templates.
@@ -69,20 +61,23 @@ async def security_headers_middleware(request: Request, handler):
     return response
 
 
-class HardenedCookieSessionStore(CookieSessionStore):
-    def __init__(self, *args, secure: bool = False, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._secure = secure
+engine = create_engine(DB_URL)
+SQLModel.metadata.create_all(engine)
 
-    def _prepare_cookie(self, value: str) -> Cookie:
-        cookie = super()._prepare_cookie(value)
-        cookie.secure = self._secure
-        cookie.same_site = CookieSameSiteMode.LAX
-        return cookie
-
+# Session cookies: 7-day expiry, SameSite=Lax, Secure outside development.
+# Lax is deliberate: the OAuth callback (/auth/callback) arrives via a
+# cross-site top-level navigation, so a Strict cookie would not be sent
+# there and the oauth_state check would fail. Lax still blocks all
+# cross-site POSTs, and every mutating route in this app is a POST.
+#
+# The cookie only carries an opaque, signed session id; the payload (user
+# identity, OAuth state, Spotify tokens) lives server-side in the sessions
+# table, so a stolen cookie discloses no secrets.
+_SESSION_MAX_AGE = 7 * 24 * 3600
 
 app.use_sessions(
-    HardenedCookieSessionStore(
+    SqliteSessionStore(
+        engine,
         SECRET_KEY,
         session_max_age=_SESSION_MAX_AGE,
         secure=ENV != "development",
@@ -90,9 +85,6 @@ app.use_sessions(
 )
 app.middlewares.append(security_headers_middleware)
 configure_auth(app)
-
-engine = create_engine(DB_URL)
-SQLModel.metadata.create_all(engine)
 
 auth.register_routes(app)
 routes.register_routes(app)
