@@ -4,6 +4,7 @@ import json
 import logging
 
 from blacksheep import Application, Request
+from sqlalchemy import event
 from sqlmodel import SQLModel, create_engine
 
 from born_portal import (
@@ -61,8 +62,38 @@ async def security_headers_middleware(request: Request, handler):
     return response
 
 
-engine = create_engine(DB_URL)
+engine = create_engine(
+    DB_URL,
+    connect_args={
+        "timeout": 5.0,
+        "check_same_thread": False,
+    },
+)
 SQLModel.metadata.create_all(engine)
+
+
+@event.listens_for(engine, "connect")
+def configure_sqlite(dbapi_connection, connection_record):
+
+    cursor = dbapi_connection.cursor()
+
+    # Enforce foreign keys
+    cursor.execute("PRAGMA foreign_keys = ON")
+
+    # Configure durability
+    cursor.execute("PRAGMA synchronous = NORMAL")
+
+    # Configure lock timeout
+    cursor.execute("PRAGMA busy_timeout = 5000")
+
+    # Configure cache
+    cursor.execute("PRAGMA cache_size = -64000")
+
+    # Store temporary tables in memory
+    cursor.execute("PRAGMA temp_store = MEMORY")
+
+    cursor.close()
+
 
 # Session cookies: 7-day expiry, SameSite=Lax, Secure outside development.
 # Lax is deliberate: the OAuth callback (/auth/callback) arrives via a
@@ -157,6 +188,10 @@ def main(argv=None):
         help="Group similar events and show merge options",
     )
 
+    subparsers.add_parser(
+        "init-db", help="Initialize the SQLite database with WAL mode"
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "fetch":
@@ -174,6 +209,11 @@ def main(argv=None):
 
     if args.command == "potential":
         _list_potential(args.source, args.json, args.refresh, args.duplicates)
+        return
+
+    if args.command == "init-db":
+        with engine.connect() as conn:
+            conn.exec_driver_sql("PRAGMA journal_mode = WAL")
         return
 
     parser.print_help()
@@ -280,9 +320,9 @@ def _list_potential(
         if not events:
             print("  no events")
             continue
-        for event in events:
-            location = f"  {event.location}" if event.location else ""
-            print(f"  {event.date or 'TBD'}  {event.name}{location}")
+        for e in events:
+            location = f"  {e.location}" if e.location else ""
+            print(f"  {e.date or 'TBD'}  {e.name}{location}")
 
 
 if __name__ == "__main__":
