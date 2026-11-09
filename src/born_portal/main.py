@@ -10,6 +10,7 @@ from sqlmodel import SQLModel, create_engine
 from born_portal import (
     auth,
     backup,
+    errors,
     past,
     playlist,
     podcast,
@@ -118,6 +119,7 @@ app.middlewares.append(security_headers_middleware)
 configure_auth(app)
 
 auth.register_routes(app)
+errors.register_routes(app, engine)
 routes.register_routes(app)
 upcoming.register_routes(app, engine)
 past.register_routes(app, engine)

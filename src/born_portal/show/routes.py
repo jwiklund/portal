@@ -24,6 +24,7 @@ from born_portal.core import (
     form_value,
     render,
 )
+from born_portal.errors import record_error
 
 SHOWS_DIR.mkdir(exist_ok=True)
 
@@ -168,15 +169,26 @@ async def _convert(filepath: Path, output_path: Path):
         if proc.returncode != 0:
             _conversion_status[filename] = "error"
             print(f"ffmpeg error for {filename}: {stderr.decode()[:500]}")
+            await record_error(
+                None,
+                RuntimeError(f"ffmpeg failed for {filename}"),
+                context={"file": filename, "stderr": stderr.decode()[:500]},
+            )
         else:
             _conversion_status[filename] = "ready"
 
     except FileNotFoundError:
         _conversion_status[filename] = "error"
         print(f"ffmpeg/ffprobe not found while converting {filename}")
+        await record_error(
+            None,
+            RuntimeError("ffmpeg/ffprobe not found"),
+            context={"file": filename},
+        )
     except Exception as e:  # noqa: BLE001
         _conversion_status[filename] = "error"
         print(f"Conversion error for {filename}: {e}")
+        await record_error(None, e, context={"file": filename})
 
 
 def register_routes(app):

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Error {{ error.id }}{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 1.6rem; font-weight: normal; margin-bottom: 0.25rem; }
+  .back { color: #888; text-decoration: none; font-size: 0.85rem; }
+  .back:hover { color: #e8e8e8; }
+  .meta {
+    display: grid;
+    grid-template-columns: 8rem 1fr;
+    gap: 0.35rem 1rem;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+  .meta dt { color: #888; }
+  .meta dd { color: #e8e8e8; word-break: break-word; }
+  h3 { font-size: 1rem; font-weight: normal; color: #d4b483; margin: 1.5rem 0 0.5rem; }
+  pre {
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #ccc;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+{% endblock %}
+
+{% block content %}
+  <a href="/errors" class="back">← All errors</a>
+  <h2>{{ error.exception_type or "Error" }}</h2>
+
+  <dl class="meta">
+    <dt>When</dt><dd>{{ error.created_at }}</dd>
+    <dt>Route</dt><dd>{{ error.method }} {{ error.path }}</dd>
+    <dt>Query</dt><dd>{{ error.query or "—" }}</dd>
+    <dt>User</dt><dd>{{ error.user or "anonymous" }}</dd>
+    <dt>Message</dt><dd>{{ error.message or "—" }}</dd>
+    <dt>User agent</dt><dd>{{ error.user_agent or "—" }}</dd>
+    <dt>Context</dt><dd>{{ error.context or "—" }}</dd>
+  </dl>
+
+  {% if error.input %}
+    <h3>Input</h3>
+    <pre>{{ error.input }}</pre>
+  {% endif %}
+
+  {% if error.traceback %}
+    <h3>Traceback</h3>
+    <pre>{{ error.traceback }}</pre>
+  {% endif %}
+{% endblock %}

@@ -9,6 +9,7 @@ from blacksheep.server.responses import ContentDispositionType, redirect
 
 from born_portal.auth.guard import allow_anonymous, auth
 from born_portal.core import ADMIN_ROLE, form_value, render
+from born_portal.errors import record_error
 
 PODCAST_DIR = Path("podcasts")
 PODCAST_DIR.mkdir(exist_ok=True)
@@ -89,6 +90,11 @@ def register_routes(app):
             _stdout, stderr = await proc.communicate()
 
             if proc.returncode != 0:
+                await record_error(
+                    request,
+                    RuntimeError(f"yt-dlp failed for {url}"),
+                    context={"url": url, "stderr": stderr.decode()[:500]},
+                )
                 return render(
                     "podcasts.html",
                     request,
@@ -98,6 +104,11 @@ def register_routes(app):
 
             _clean_filenames()
         except FileNotFoundError:
+            await record_error(
+                request,
+                RuntimeError("yt-dlp not found"),
+                context={"url": url},
+            )
             return render(
                 "podcasts.html",
                 request,

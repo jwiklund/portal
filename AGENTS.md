@@ -26,6 +26,11 @@ src/born_portal/
     routes.py      # Shows web routes + video streaming
   podcast/         # Audio file management: yt-dlp download, delete, serve
     routes.py      # Podcast web routes + audio serving
+  errors/          # Error log: capture exceptions + request context, admin browser
+    model.py       # ErrorRecord (table: error_log)
+    store.py       # ErrorStore — SQLite persistence
+    report.py      # record_error(): capture, redact, truncate, persist
+    routes.py      # Global exception handler + /errors admin pages
   utils/
     date_range.py  # Date parsing (Swedish/English/ISO), handles ranges and timezone offsets
     fetch.py       # Safe public-page fetching (SSRF guard, tracking cleanup, headers, HTML→Markdown)
@@ -35,7 +40,7 @@ tests/             # pytest tests
 
 ### Infrastructure
 
-- **Database**: `portal.db` (SQLite, gitignored) — auto-created by the stores on first use. Its tables are `upcoming`, `past`, `past_artists`, and `artists`.
+- **Database**: `portal.db` (SQLite, gitignored) — auto-created by the stores on first use. Its tables are `upcoming`, `past`, `past_artists`, `artists`, `sessions`, and `error_log`.
 - **Directories**: `shows/` (video source files), `shows_cache/` (converted mp4 streams), `podcasts/` (downloaded audio) — all gitignored via `.gitignore`.
 - **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ADMIN_USERS`, `MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`.
 
@@ -91,6 +96,7 @@ Each module exports a `register_routes(app)` function that adds route handlers. 
 
 ```python
 auth.register_routes(app)
+errors.register_routes(app, engine)
 routes.register_routes(app)
 upcoming.register_routes(app, engine)
 past.register_routes(app, engine)
@@ -129,6 +135,25 @@ All templates use `core.render(template_name, **ctx)` which wraps Jinja2 renderi
 - `auth/guard.py` maps the session user to guardpost roles (`ADMIN` from `ADMIN_USERS`, `VIEWER` from `VIEW_USERS`); `@auth(roles=...)` enforces them
 - `AuthMiddleware` checks `request.session["user"]` against `ADMIN_USERS`/`VIEW_USERS`
 - Podcast filenames are sanitized with `_safe_filename()` regex to prevent path traversal
+
+### Error handling
+
+The preferred way to handle an unexpected exception in a request handler is to **catch it, record it, and return a user-level message on the error page**:
+
+```python
+from born_portal.errors import record_error
+
+try:
+    result = await do_work(...)
+except Exception as e:  # noqa: BLE001 - record, then show a friendly message
+    await record_error(request, e, context={"url": url})
+    return render("error.html", request, message="Something went wrong.")
+```
+
+- `record_error(request, exc, context=...)` persists the exception (type, message, full traceback) plus request context (method, path, redacted query string, redacted form/JSON body, user, user agent) into the `error_log` table. It **never raises** and never stores secrets: sensitive keys (`code`, `state`, `token`, `secret`, `password`, `cookie`, `session`, ...) and multipart file contents are masked. Input is truncated. Pass `request=None` for errors outside a request cycle (e.g. background tasks).
+- Any exception a handler does **not** catch is caught by the global handler registered in `errors/routes.py`; it logs at ERROR level and returns `error.html` with `USER_ERROR_MESSAGE`. Recording still happens, but without handler-specific context.
+- `/errors` (admin-only) lists recent errors and `/errors/{id}` shows the full traceback and input. `POST /errors/clear` empties the log.
+- Note: registering a handler for `Exception` marks exceptions as "handled" to BlackSheep, so the global handler logs them itself instead of relying on BlackSheep's default logging.
 
 ## Testing
 

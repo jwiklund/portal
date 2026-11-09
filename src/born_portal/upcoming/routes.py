@@ -6,6 +6,7 @@ from blacksheep.server.responses import redirect
 from born_portal import upcoming
 from born_portal.auth.guard import auth
 from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
+from born_portal.errors import record_error
 from born_portal.upcoming import potential
 from born_portal.upcoming.model import UpcomingData
 from born_portal.utils.date_range import upcoming_weekend
@@ -82,6 +83,7 @@ def register_routes(app, engine):
         try:
             upcoming_data = await upcoming.parse(url)
         except Exception as e:  # noqa: BLE001
+            await record_error(request, e, context={"url": url})
             return render("upcoming_import.html", request, error=str(e), url=url)
 
         # Check if the item already exists by URL

@@ -9,6 +9,7 @@ from blacksheep.server.responses import redirect
 from born_portal import past
 from born_portal.auth.guard import auth
 from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
+from born_portal.errors import record_error
 from born_portal.past.model import ArtistData, PastData
 from born_portal.utils.date_range import parse_name_with_dates
 
@@ -62,6 +63,7 @@ def register_routes(app, engine):
             page_html = await past.fetch_album_page(url)
             title = past.parse_album_title(page_html)
         except Exception as e:  # noqa: BLE001
+            await record_error(request, e, context={"url": url})
             return render("past_import.html", request, error=str(e), url=url)
 
         name, start_date, end_date = parse_name_with_dates(title or "")
@@ -107,6 +109,7 @@ def register_routes(app, engine):
         try:
             artists = await past.search_artists(query)
         except Exception as e:  # noqa: BLE001
+            await record_error(request, e, context={"query": query})
             return json_response({"error": str(e)}, status=502)
 
         return json_response({"artists": artists})
@@ -125,6 +128,9 @@ def register_routes(app, engine):
             try:
                 photos = await past.fetch_album_photos(past_data.album_uri)
             except Exception as e:  # noqa: BLE001
+                await record_error(
+                    request, e, context={"album_uri": past_data.album_uri}
+                )
                 album_error = f"Could not load album: {e}"
 
         return render(

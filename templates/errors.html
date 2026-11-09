@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Errors{% endblock %}
+
+{% block extra_styles %}
+  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    color: #888;
+    font-size: 0.85rem;
+  }
+  .toolbar button {
+    background: transparent;
+    color: #d4b483;
+    border: 1px solid #d4b483;
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .toolbar button:hover { background: #d4b483; color: #1a1a1a; }
+  .error-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .error-item {
+    display: block;
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    padding: 0.85rem 1.1rem;
+    text-decoration: none;
+    color: #e8e8e8;
+  }
+  .error-item:hover { border-color: #444; }
+  .error-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+  .error-type { font-weight: 500; }
+  .error-time { font-size: 0.8rem; color: #888; }
+  .error-route { font-size: 0.8rem; color: #aaa; }
+  .error-message {
+    font-size: 0.85rem;
+    color: #bbb;
+    margin-top: 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .empty { color: #aaa; }
+{% endblock %}
+
+{% block content %}
+  <h2>Errors</h2>
+
+  <div class="toolbar">
+    <span>{{ total }} recorded</span>
+    {% if errors %}
+      <form method="post" action="/errors/clear"
+            onsubmit="return confirm('Delete all stored errors?');">
+        <button type="submit">Clear all</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if errors %}
+    <div class="error-list">
+      {% for e in errors %}
+        <a href="/errors/{{ e.id }}" class="error-item">
+          <div class="error-head">
+            <span class="error-type">{{ e.exception_type or "Error" }}</span>
+            <span class="error-time">{{ e.created_at }}</span>
+            <span class="error-route">{{ e.method }} {{ e.path }}</span>
+          </div>
+          <div class="error-message">{{ e.message }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">No errors recorded yet.</p>
+  {% endif %}
+{% endblock %}

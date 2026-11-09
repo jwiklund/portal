@@ -17,6 +17,7 @@ from born_portal.core import (
     form_value,
     render,
 )
+from born_portal.errors import record_error
 
 _STATE_KEY = "spotify_oauth_state"
 _FLASH_KEY = "playlist_flash"
@@ -65,11 +66,13 @@ def register_routes(app):
             try:
                 lineup = await playlist.extract_from_text(text)
             except Exception as e:  # noqa: BLE001
+                await record_error(request, e, context={"source": "text"})
                 return _render_page(request, error=str(e), text=text)
         elif url.strip():
             try:
                 lineup = await playlist.extract(url)
             except Exception as e:  # noqa: BLE001
+                await record_error(request, e, context={"url": url})
                 return _render_page(request, error=str(e), url=url)
         else:
             return _render_page(request, error="Please enter a URL or paste some text")
@@ -114,6 +117,7 @@ def register_routes(app):
                     access_token, artist_names, name
                 )
             except Exception as e:  # noqa: BLE001
+                await record_error(request, e, context={"stage": "build_playlist"})
                 return _render_page(
                     request,
                     error=f"Could not create the playlist: {e}",
@@ -153,6 +157,7 @@ def register_routes(app):
         try:
             tokens = await spotify.exchange_code(code, SPOTIFY_REDIRECT_URI)
         except Exception as e:  # noqa: BLE001
+            await record_error(request, e, context={"stage": "spotify_exchange_code"})
             _pending.pop(state, None)
             _flash(request.session, error=f"Spotify login failed: {e}")
             return redirect("/playlists")
@@ -167,6 +172,9 @@ def register_routes(app):
                 )
                 _flash(request.session, created=created)
             except Exception as e:  # noqa: BLE001
+                await record_error(
+                    request, e, context={"stage": "build_playlist_pending"}
+                )
                 _flash(request.session, error=f"Could not create the playlist: {e}")
         else:
             _flash(
@@ -190,6 +198,7 @@ def register_routes(app):
         try:
             results = await playlist.search_artists(query)
         except Exception as e:  # noqa: BLE001
+            await record_error(request, e, context={"query": query})
             return json_response({"error": str(e)}, status=502)
 
         return json_response({"results": results})
