@@ -3,8 +3,46 @@
 import logging
 import re
 import sqlite3
+from datetime import date
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+_BACKUP_NAME = re.compile(r"^backup-(\d{4}-\d{2}-\d{2})\.sql$")
+_DATE_ONLY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def default_backup_name(today: date | None = None) -> str:
+    """Return the default backup filename, e.g. ``backup-2026-11-09.sql``."""
+    return f"backup-{(today or date.today()).isoformat()}.sql"
+
+
+def latest_backup(directory: str | Path = ".") -> str:
+    """Return the path of the newest ``backup-YYYY-MM-DD.sql`` in a directory."""
+    files = sorted(
+        path
+        for path in Path(directory).iterdir()
+        if path.is_file() and _BACKUP_NAME.match(path.name)
+    )
+    if not files:
+        raise FileNotFoundError(
+            f"No backup-YYYY-MM-DD.sql files found in {Path(directory).resolve()}"
+        )
+    return str(files[-1])
+
+
+def resolve_backup(value: str | None, directory: str | Path = ".") -> str:
+    """Resolve a restore argument to a backup file path.
+
+    ``None`` selects the latest dated backup, a plain date like ``2026-11-09``
+    maps to ``backup-2026-11-09.sql``, and anything else is treated as a path.
+    """
+    if value is None:
+        return latest_backup(directory)
+    if _DATE_ONLY.match(value):
+        date.fromisoformat(value)  # Reject impossible dates such as 2026-13-01.
+        return str(Path(directory) / f"backup-{value}.sql")
+    return value
 
 # Tables excluded from backups. Sessions hold short-lived data (including OAuth
 # tokens); they are neither dumped nor dropped, so a restore leaves the current

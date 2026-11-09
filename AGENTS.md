@@ -51,7 +51,7 @@ tests/             # pytest tests
 `main.py:main()` is the CLI entry point. It supports subcommands:
 - `serve` (default) — starts uvicorn on port 8080
 - `fetch <url>` — parse event URL, print JSON
-- `backup <output>` / `restore <input>` — dump/load the SQLite database
+- `backup [output]` / `restore [date]` — dump/load the SQLite database; `backup` defaults to `backup-YYYY-MM-DD.sql` and `restore` defaults to the latest one
 
 The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
 

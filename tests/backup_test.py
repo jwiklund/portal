@@ -1,8 +1,18 @@
 """Tests for SQLite backup/restore, especially the sessions exclusion."""
 
 import sqlite3
+from datetime import date
+from pathlib import Path
 
-from born_portal.backup import backup_db, restore_db
+import pytest
+
+from born_portal.backup import (
+    backup_db,
+    default_backup_name,
+    latest_backup,
+    resolve_backup,
+    restore_db,
+)
 
 
 def _seed(path, *, sessions, upcoming):
@@ -23,6 +33,44 @@ def _rows(path, table):
         return conn.execute(f"SELECT * FROM {table}").fetchall()
     finally:
         conn.close()
+
+
+def test_default_backup_name_uses_date():
+    assert default_backup_name(date(2026, 11, 9)) == "backup-2026-11-09.sql"
+
+
+def test_latest_backup_picks_newest_dated_file(tmp_path):
+    for name in ("backup-2026-11-08.sql", "backup-2026-11-09.sql", "notes.sql"):
+        (tmp_path / name).write_text("")
+
+    assert Path(latest_backup(tmp_path)).name == "backup-2026-11-09.sql"
+
+
+def test_latest_backup_without_files_raises(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        latest_backup(tmp_path)
+
+
+def test_resolve_backup_defaults_to_latest(tmp_path):
+    (tmp_path / "backup-2026-11-08.sql").write_text("")
+    (tmp_path / "backup-2026-11-09.sql").write_text("")
+
+    assert resolve_backup(None, tmp_path) == str(tmp_path / "backup-2026-11-09.sql")
+
+
+def test_resolve_backup_date_maps_to_dated_file(tmp_path):
+    assert resolve_backup("2026-11-09", tmp_path) == str(
+        tmp_path / "backup-2026-11-09.sql"
+    )
+
+
+def test_resolve_backup_accepts_explicit_path(tmp_path):
+    assert resolve_backup("custom.sql", tmp_path) == "custom.sql"
+
+
+def test_resolve_backup_rejects_invalid_date(tmp_path):
+    with pytest.raises(ValueError):
+        resolve_backup("2026-13-01", tmp_path)
 
 
 def test_backup_omits_sessions(tmp_path):

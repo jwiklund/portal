@@ -154,7 +154,10 @@ def main(argv=None):
         "backup", help="Back up the SQLite database to a .sql file"
     )
     backup_parser.add_argument(
-        "output", help="Path to the backup file (e.g. portal-backup.sql)"
+        "output",
+        nargs="?",
+        default=None,
+        help="Path to the backup file (default: backup-YYYY-MM-DD.sql)",
     )
     backup_parser.add_argument(
         "--db", default="portal.db", help="Path to the SQLite database"
@@ -164,7 +167,13 @@ def main(argv=None):
         "restore", help="Restore the SQLite database from a .sql file"
     )
     restore_parser.add_argument(
-        "input", help="Path to the backup file (e.g. portal-backup.sql)"
+        "date",
+        nargs="?",
+        default=None,
+        help=(
+            "Backup date (YYYY-MM-DD) or path to a .sql file "
+            "(default: latest backup-YYYY-MM-DD.sql)"
+        ),
     )
     restore_parser.add_argument(
         "--db", default="portal.db", help="Path to the SQLite database"
@@ -202,11 +211,15 @@ def main(argv=None):
         return
 
     if args.command == "backup":
-        backup.backup_db(args.db, args.output)
+        backup.backup_db(args.db, args.output or backup.default_backup_name())
         return
 
     if args.command == "restore":
-        backup.restore_db(args.input, args.db)
+        try:
+            source = backup.resolve_backup(args.date)
+        except (FileNotFoundError, ValueError) as e:
+            parser.error(str(e))
+        backup.restore_db(source, args.db)
         return
 
     if args.command == "potential":
