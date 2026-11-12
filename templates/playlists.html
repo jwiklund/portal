@@ -181,6 +181,12 @@
       {% if created.url %}<a href="{{ created.url }}" target="_blank" rel="noopener">Open playlist</a>{% endif %}
     </div>
   {% endif %}
+  {% if not spotify_connected %}
+    <div class="error">
+      Spotify search is off until you
+      <a href="/spotify/login?next=/playlists">connect your Spotify account</a>.
+    </div>
+  {% endif %}
 
   <h3>Artists</h3>
   <div class="editor">

@@ -61,13 +61,13 @@ class Lineup:
     artists: list[dict] = field(default_factory=list)
 
 
-async def extract(url: str) -> Lineup:
+async def extract(url: str, access_token: str | None = None) -> Lineup:
     """Fetch an event page and return its event metadata and matched artists."""
     markdown = await fetch_page_markdown(url)
-    return await extract_from_text(markdown)
+    return await extract_from_text(markdown, access_token)
 
 
-async def extract_from_text(text: str) -> Lineup:
+async def extract_from_text(text: str, access_token: str | None = None) -> Lineup:
     """Extract event name/year and artists from pasted text."""
     response = await llm.completions(
         messages=[
@@ -79,7 +79,9 @@ async def extract_from_text(text: str) -> Lineup:
 
     data = _parse_json(_response_text(response))
     event = data.get("event")
-    artists = await _resolve_artists(_clean_artist_names(data.get("artists")))
+    artists = await _resolve_artists(
+        _clean_artist_names(data.get("artists")), access_token
+    )
     return Lineup(
         name=_clean_event_name(event),
         year=_clean_year(event),
@@ -150,7 +152,7 @@ def _clean_artist_names(raw) -> list[str]:
     return names
 
 
-async def _resolve_artists(names: list[str]) -> list[dict]:
+async def _resolve_artists(names: list[str], access_token: str | None) -> list[dict]:
     resolved = []
     seen: set[str] = set()
     for name in names:
@@ -158,13 +160,15 @@ async def _resolve_artists(names: list[str]) -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
-        resolved.append(await _match_artist(name))
+        resolved.append(await _match_artist(name, access_token))
     return resolved
 
 
-async def _match_artist(name: str) -> dict:
+async def _match_artist(name: str, access_token: str | None) -> dict:
+    if not access_token:
+        return {"name": name, "spotify_uri": None, "image": None}
     try:
-        match = await spotify.lookup_artist(name)
+        match = await spotify.lookup_artist(access_token, name)
     except spotify.SpotifyError:
         match = None
     return match or {"name": name, "spotify_uri": None, "image": None}

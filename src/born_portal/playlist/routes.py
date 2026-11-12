@@ -20,6 +20,7 @@ from born_portal.core import (
 from born_portal.errors import record_error
 
 _STATE_KEY = "spotify_oauth_state"
+_NEXT_KEY = "spotify_post_login"
 _FLASH_KEY = "playlist_flash"
 
 # Pending playlist requests keyed by OAuth state. Kept server-side so long
@@ -61,16 +62,17 @@ def register_routes(app):
         form = await request.form()
         url = (form_value(form, "url") or "").strip()
         text = form_value(form, "text") or ""
+        access_token = await _optional_token(request)
 
         if text.strip():
             try:
-                lineup = await playlist.extract_from_text(text)
+                lineup = await playlist.extract_from_text(text, access_token)
             except Exception as e:  # noqa: BLE001
                 await record_error(request, e, context={"source": "text"})
                 return _render_page(request, error=str(e), text=text)
         elif url.strip():
             try:
-                lineup = await playlist.extract(url)
+                lineup = await playlist.extract(url, access_token)
             except Exception as e:  # noqa: BLE001
                 await record_error(request, e, context={"url": url})
                 return _render_page(request, error=str(e), url=url)
@@ -134,6 +136,19 @@ def register_routes(app):
         request.session[_STATE_KEY] = state
         return redirect(spotify.authorize_url(state, SPOTIFY_REDIRECT_URI))
 
+    @app.router.get("/spotify/login")
+    @auth(roles=[ADMIN_ROLE])
+    async def spotify_login(request: Request):
+        params = dict(request.query)
+        next_path = (params.get("next", ["/playlists"])[0] or "").strip()
+        if not next_path.startswith("/") or next_path.startswith("//"):
+            next_path = "/playlists"
+
+        state = secrets.token_urlsafe(16)
+        request.session[_STATE_KEY] = state
+        request.session[_NEXT_KEY] = next_path
+        return redirect(spotify.authorize_url(state, SPOTIFY_REDIRECT_URI))
+
     @app.router.get("/spotify/callback")
     @allow_anonymous()
     async def spotify_callback(request: Request):
@@ -147,12 +162,14 @@ def register_routes(app):
             if state and state == session_state:
                 _pending.pop(state, None)
                 del request.session[_STATE_KEY]
+                _clear_next(request.session)
             _flash(request.session, error=f"Spotify login was cancelled: {error}")
             return redirect("/playlists")
         if not code or not state or state != session_state:
             _flash(request.session, error="Invalid Spotify login state. Please retry.")
             return redirect("/playlists")
         del request.session[_STATE_KEY]
+        next_path = _take_next(request.session)
 
         try:
             tokens = await spotify.exchange_code(code, SPOTIFY_REDIRECT_URI)
@@ -177,6 +194,9 @@ def register_routes(app):
                 )
                 _flash(request.session, error=f"Could not create the playlist: {e}")
         else:
+            # Plain "Connect Spotify" login returns to where the user was.
+            if next_path:
+                return redirect(next_path)
             _flash(
                 request.session,
                 error=(
@@ -196,7 +216,10 @@ def register_routes(app):
             return json_response({"results": []})
 
         try:
-            results = await playlist.search_artists(query)
+            access_token = await spotify.require_user_token(request.session)
+            results = await playlist.search_artists(access_token, query)
+        except spotify.SpotifyError as e:
+            return json_response({"error": str(e)}, status=502)
         except Exception as e:  # noqa: BLE001
             await record_error(request, e, context={"query": query})
             return json_response({"error": str(e)}, status=502)
@@ -225,11 +248,32 @@ def _render_page(
         url=url,
         error=error,
         created=created,
+        spotify_connected=spotify.is_connected(request.session),
     )
 
 
 def _flash(session, *, created=None, error=None):
     session[_FLASH_KEY] = {"created": created, "error": error}
+
+
+def _take_next(session) -> str | None:
+    next_path = session.get(_NEXT_KEY)
+    if _NEXT_KEY in session:
+        del session[_NEXT_KEY]
+    return next_path
+
+
+def _clear_next(session) -> None:
+    if _NEXT_KEY in session:
+        del session[_NEXT_KEY]
+
+
+async def _optional_token(request) -> str | None:
+    """The user's Spotify token if connected, otherwise None (never raises)."""
+    try:
+        return await spotify.user_access_token(request.session)
+    except Exception:  # noqa: BLE001 - a refresh failure just means "not connected"
+        return None
 
 
 def _take_flash(session):

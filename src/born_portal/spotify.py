@@ -1,9 +1,12 @@
 """Spotify Web API helpers.
 
-Artist/track search and name lookups use the client credentials flow (no user
-login) and are shared by the festival and playlist pages. Creating a playlist
-uses the authorization code flow so the user can log in and grant the
-``playlist-modify-*`` scopes.
+Artist/track search and name lookups use the logged-in user's access token
+(the authorization code flow), shared by the festival and playlist pages.
+Creating a playlist uses the same token, so the user grants the
+``playlist-modify-*`` scopes once. Spotify's client credentials flow is no
+longer used: since the February 2026 Web API changes it is being withdrawn for
+metadata endpoints and requires a Premium app owner, and user tokens are now
+required for reliable access.
 """
 
 from __future__ import annotations
@@ -36,17 +39,14 @@ _EXPIRES_AT_KEY = "spotify_expires_at"
 # the result is accepted, so unrelated top hits are not returned as matches.
 _MATCH_THRESHOLD = 0.8
 
-_token: str | None = None
-_token_expires_at: float = 0.0
-
 
 class SpotifyError(Exception):
     pass
 
 
-async def search_artists(query: str, limit: int = 8) -> list[dict]:
+async def search_artists(access_token: str, query: str, limit: int = 8) -> list[dict]:
     """Search Spotify for artists. Returns [{name, spotify_uri, image}]."""
-    items = await _search(query, "artist", limit)
+    items = await _search(access_token, query, "artist", limit)
     return [
         {
             "name": item["name"],
@@ -57,22 +57,24 @@ async def search_artists(query: str, limit: int = 8) -> list[dict]:
     ]
 
 
-async def search_tracks(query: str, limit: int = 8) -> list[dict]:
+async def search_tracks(access_token: str, query: str, limit: int = 8) -> list[dict]:
     """Search Spotify for tracks. Returns [{name, artist, spotify_uri, image}]."""
-    items = await _search(query, "track", limit)
+    items = await _search(access_token, query, "track", limit)
     return [_track_from_item(item) for item in items]
 
 
-async def lookup_artist(name: str) -> dict | None:
+async def lookup_artist(access_token: str, name: str) -> dict | None:
     """Return a close Spotify artist match for a name, or None."""
-    artists = await search_artists(name, limit=5)
+    artists = await search_artists(access_token, name, limit=5)
     for artist in artists:
         if _is_close_name(name, artist["name"]):
             return artist
     return None
 
 
-async def top_tracks_for_artist(name: str, limit: int = 3) -> list[dict]:
+async def top_tracks_for_artist(
+    access_token: str, name: str, limit: int = 3
+) -> list[dict]:
     """Best-effort "top tracks" for an artist.
 
     The dedicated artist top-tracks endpoint was removed from the Web API in
@@ -81,12 +83,14 @@ async def top_tracks_for_artist(name: str, limit: int = 3) -> list[dict]:
     """
     query = f'artist:"{_sanitize_query(name)}"'
     search_limit = min(10, max(limit, 1) * 3)
-    tracks = await search_tracks(query, limit=search_limit)
+    tracks = await search_tracks(access_token, query, limit=search_limit)
     picked = [track for track in tracks if _artist_matches(name, track["artist"])]
 
     if not picked:
         # Field filters can be too strict; retry with a plain text query.
-        tracks = await search_tracks(_sanitize_query(name), limit=search_limit)
+        tracks = await search_tracks(
+            access_token, _sanitize_query(name), limit=search_limit
+        )
         picked = [track for track in tracks if _artist_matches(name, track["artist"])]
 
     return picked[:limit]
@@ -127,16 +131,16 @@ def _track_from_item(item: dict) -> dict:
     }
 
 
-async def _search(query: str, kind: str, limit: int) -> list[dict]:
-    token = await _get_token()
+async def _search(access_token: str, query: str, kind: str, limit: int) -> list[dict]:
     async with httpx2.AsyncClient() as client:
         resp = await client.get(
             _SEARCH_URL,
             params={"q": query, "type": kind, "limit": limit},
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {access_token}"},
         )
-        resp.raise_for_status()
-        data = resp.json()
+    if resp.status_code >= 400:
+        raise SpotifyError(_error_message(resp))
+    data = resp.json()
     return data.get(f"{kind}s", {}).get("items", [])
 
 
@@ -146,34 +150,25 @@ def _smallest_image(images: list[dict] | None) -> str | None:
     return min(images, key=lambda img: img.get("width") or 0).get("url")
 
 
-async def _get_token() -> str:
-    global _token, _token_expires_at
-    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
-        raise SpotifyError(
-            "Spotify search is not configured: set SPOTIFY_CLIENT_ID and "
-            "SPOTIFY_CLIENT_SECRET"
-        )
-    if _token and time.monotonic() < _token_expires_at - 60:
-        return _token
-
-    async with httpx2.AsyncClient() as client:
-        resp = await client.post(
-            _TOKEN_URL,
-            data={"grant_type": "client_credentials"},
-            auth=(SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET),
-        )
-        resp.raise_for_status()
-        data = resp.json()
-
-    _token = data["access_token"]
-    assert _token is not None
-    _token_expires_at = time.monotonic() + data.get("expires_in", 3600)
-    return _token
-
-
 # ---------------------------------------------------------------------------
 # User login (authorization code flow) and playlist creation
 # ---------------------------------------------------------------------------
+
+
+def is_connected(session) -> bool:
+    """True when the session holds Spotify credentials for the logged-in user."""
+    return bool(session.get(_REFRESH_TOKEN_KEY) or session.get(_ACCESS_TOKEN_KEY))
+
+
+async def require_user_token(session) -> str:
+    """Return the user's Spotify access token, or raise a helpful error."""
+    token = await user_access_token(session)
+    if not token:
+        raise SpotifyError(
+            "Spotify is not connected. Open the Playlists page and click "
+            "“Connect Spotify”, then try again."
+        )
+    return token
 
 
 def authorize_url(state: str, redirect_uri: str = SPOTIFY_REDIRECT_URI) -> str:
@@ -284,8 +279,17 @@ def _error_message(resp) -> str:
     try:
         body = resp.json()
     except Exception:  # noqa: BLE001
-        return f"Spotify request failed ({resp.status_code})"
-    message = body.get("error_description") or body.get("error")
-    if isinstance(message, dict):
-        message = message.get("message")
-    return message or f"Spotify request failed ({resp.status_code})"
+        body = None
+
+    if isinstance(body, dict):
+        message = body.get("error_description") or body.get("error")
+        if isinstance(message, dict):
+            message = message.get("message")
+        if message:
+            return str(message)
+
+    # Some rejections (e.g. the Premium-required 403) use a plain-text body.
+    text = (resp.text or "").strip()
+    if text:
+        return text[:300]
+    return f"Spotify request failed ({resp.status_code})"

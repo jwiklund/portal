@@ -2,7 +2,25 @@ from born_portal.playlist.extract import (
     _clean_artist_names,
     _clean_event_name,
     _clean_year,
+    _resolve_artists,
 )
+
+
+def test_resolve_artists_without_token_skips_spotify():
+    import asyncio
+
+    resolved = asyncio.run(_resolve_artists(["Alpha", "Beta"], None))
+    assert resolved == [
+        {"name": "Alpha", "spotify_uri": None, "image": None},
+        {"name": "Beta", "spotify_uri": None, "image": None},
+    ]
+
+
+def test_resolve_artists_dedupes_case_insensitively_without_token():
+    import asyncio
+
+    resolved = asyncio.run(_resolve_artists(["Alpha", "alpha", "Beta"], None))
+    assert [a["name"] for a in resolved] == ["Alpha", "Beta"]
 
 
 def test_placeholders_dropped_from_artists():

@@ -6,7 +6,7 @@ from blacksheep import Request
 from blacksheep.server.responses import json as json_response
 from blacksheep.server.responses import redirect
 
-from born_portal import past
+from born_portal import past, spotify
 from born_portal.auth.guard import auth
 from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
 from born_portal.errors import record_error
@@ -43,6 +43,7 @@ def register_routes(app, engine):
             request,
             past=PastData(),
             known_album_uris=known_album_uris,
+            spotify_connected=spotify.is_connected(request.session),
         )
 
     @app.router.get("/past/import")
@@ -80,6 +81,7 @@ def register_routes(app, engine):
                 album_uri=url,
             ),
             known_album_uris=known_album_uris,
+            spotify_connected=spotify.is_connected(request.session),
         )
 
     @app.router.get("/past/edit/{past_id}")
@@ -96,6 +98,7 @@ def register_routes(app, engine):
             request,
             past=past_data,
             known_album_uris=known_album_uris,
+            spotify_connected=spotify.is_connected(request.session),
         )
 
     @app.router.get("/past/api/spotify/search")
@@ -107,7 +110,10 @@ def register_routes(app, engine):
             return json_response({"artists": []})
 
         try:
-            artists = await past.search_artists(query)
+            access_token = await spotify.require_user_token(request.session)
+            artists = await past.search_artists(access_token, query)
+        except spotify.SpotifyError as e:
+            return json_response({"error": str(e)}, status=502)
         except Exception as e:  # noqa: BLE001
             await record_error(request, e, context={"query": query})
             return json_response({"error": str(e)}, status=502)

@@ -53,7 +53,7 @@ def test_tracks_per_artist_handles_empty_lineup():
 
 
 def _fake_top_tracks(mapping):
-    async def top_tracks_for_artist(name, limit):
+    async def top_tracks_for_artist(access_token, name, limit):
         return mapping.get(name, [])[:limit]
 
     return top_tracks_for_artist
@@ -140,7 +140,7 @@ def test_build_playlist_skips_tracks_without_uri(monkeypatch):
 def test_build_playlist_uses_dynamic_limit_by_default(monkeypatch):
     limits = []
 
-    async def top_tracks_for_artist(name, limit):
+    async def top_tracks_for_artist(access_token, name, limit):
         limits.append(limit)
         return []
 
@@ -157,7 +157,7 @@ def test_build_playlist_uses_dynamic_limit_by_default(monkeypatch):
 def test_build_playlist_explicit_limit_overrides_dynamic(monkeypatch):
     limits = []
 
-    async def top_tracks_for_artist(name, limit):
+    async def top_tracks_for_artist(access_token, name, limit):
         limits.append(limit)
         return []
 

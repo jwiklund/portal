@@ -95,6 +95,11 @@
 {% block content %}
   <h2>{% if past.id %}Edit{% else %}New{% endif %} Past</h2>
 
+  {% if not spotify_connected %}
+    <p class="hint">Spotify search is off until you
+      <a href="/spotify/login?next=/past">connect your Spotify account</a>.</p>
+  {% endif %}
+
   <form method="POST" action="/past/save" class="edit-form" id="past-form">
     <input type="hidden" name="past_id" value="{{ past.id or '' }}">
     <input type="hidden" name="artists_json" id="artists_json">

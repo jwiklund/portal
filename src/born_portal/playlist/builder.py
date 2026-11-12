@@ -57,7 +57,9 @@ async def build_playlist(
     uris: list[str] = []
     seen: set[str] = set()
     for artist_name in artist_names:
-        tracks = await spotify.top_tracks_for_artist(artist_name, per_artist)
+        tracks = await spotify.top_tracks_for_artist(
+            access_token, artist_name, per_artist
+        )
         for track in tracks:
             uri = track.get("spotify_uri")
             if uri and uri not in seen:
