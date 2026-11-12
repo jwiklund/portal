@@ -6,6 +6,7 @@ import time
 from blacksheep import Request, Response
 from blacksheep.cookies import CookieSameSiteMode
 from blacksheep.sessions import Session
+from itsdangerous import URLSafeTimedSerializer
 from sqlmodel import Session as DbSession
 from sqlmodel import SQLModel, create_engine, select
 
@@ -76,8 +77,31 @@ def test_tampered_cookie_is_rejected(tmp_path):
     store, _ = _make_store(tmp_path)
     cookie = _save(store, Session({"user": "me@example.com"})).cookies[_COOKIE].value
 
-    tampered = cookie[:-1] + ("a" if cookie[-1] != "a" else "b")
-    assert _load(store, tampered).to_dict() == {}
+    # Change the first payload character to every other base64url character.
+    # That position carries significant bits, so each variant must fail
+    # signature verification. (Flipping only the last character is unreliable:
+    # its low bits can be insignificant in base64, so the tampered cookie can
+    # decode to the exact same signed bytes and be accepted.)
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    for replacement in alphabet:
+        if replacement == cookie[0]:
+            continue
+        tampered = replacement + cookie[1:]
+        assert _load(store, tampered).to_dict() == {}
+
+
+def test_cookie_signed_with_other_secret_is_rejected(tmp_path):
+    store, engine = _make_store(tmp_path)
+    _save(store, Session({"user": "me@example.com"}))
+
+    # Reuse the real, stored session id but sign it with a different secret,
+    # as an attacker forging a cookie would.
+    with DbSession(engine) as db:
+        record = db.exec(select(SessionRecord)).first()
+        assert record is not None
+        forged = URLSafeTimedSerializer("different-secret").dumps(record.id)
+
+    assert _load(store, forged).to_dict() == {}
 
 
 def test_expired_record_drops_session(tmp_path):
