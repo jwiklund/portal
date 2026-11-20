@@ -8,7 +8,12 @@ from born_portal.push.keys import (
 )
 from born_portal.push.model import PushSubscription
 from born_portal.push.routes import register_routes
-from born_portal.push.sender import configure, schedule_notification, send_notification
+from born_portal.push.sender import (
+    configure,
+    schedule_notification,
+    send_notification,
+    subscriber_count,
+)
 from born_portal.push.store import PushSubscriptionStore
 
 __all__ = [
@@ -22,6 +27,7 @@ __all__ = [
     "register_routes",
     "schedule_notification",
     "send_notification",
+    "subscriber_count",
     "systemd_private_key",
     "vapid_configured",
 ]

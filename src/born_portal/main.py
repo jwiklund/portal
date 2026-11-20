@@ -261,17 +261,30 @@ def main(argv=None):
         text = sys.stdin.read() if args.text == "-" else args.text
         store = notifications.NotificationStore(engine)
         notification_id, created = store.add_if_new(args.title, text, args.date)
-        if created:
-            print(f"Added notification #{notification_id}: {args.title}")
-            # Delivery errors are recorded in the error log, which needs both
-            # stores pointed at the database.
-            errors.configure(engine)
-            push.configure(engine)
-            notification = store.get_by_id(notification_id)
-            if notification is not None:
-                asyncio.run(push.send_notification(notification))
-        else:
+        if not created:
             print(f"Notification #{notification_id} already exists: {args.title}")
+            return
+
+        print(f"Added notification #{notification_id}: {args.title}")
+
+        if not push.vapid_configured():
+            print("Push skipped: no VAPID keys configured (run `vapid-keys`).")
+            return
+
+        subscribers = push.subscriber_count()
+        if subscribers == 0:
+            print("Push skipped: no subscribers.")
+            return
+
+        # Delivery errors are recorded in the error log, which needs both
+        # stores pointed at the database.
+        errors.configure(engine)
+        push.configure(engine)
+        notification = store.get_by_id(notification_id)
+        if notification is None:
+            return
+        delivered = asyncio.run(push.send_notification(notification))
+        print(f"Pushed to {delivered} of {subscribers} subscriber(s).")
         return
 
     if args.command == "vapid-keys":

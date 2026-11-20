@@ -1,5 +1,6 @@
 import asyncio
 import json
+from pathlib import Path
 
 import pytest
 from py_vapid import Vapid
@@ -176,3 +177,82 @@ def test_delivery_passes_vapid_instance_and_records_gone(tmp_path, monkeypatch):
     assert errors[0].exception_type == "WebPushException"
     assert "push_delivery" in errors[0].context
     assert '"endpoint": "push"' in errors[0].context
+
+
+def test_subscriber_count(tmp_path):
+    engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}")
+    SQLModel.metadata.create_all(engine)
+    store = PushSubscriptionStore(engine)
+    sender.configure(engine)
+
+    assert sender.subscriber_count() == 0
+    store.save(PushSubscription(endpoint="https://push/1", p256dh="a", auth="b"))
+    assert sender.subscriber_count() == 1
+
+
+def test_send_notification_returns_delivered_count(tmp_path, monkeypatch):
+    engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}")
+    SQLModel.metadata.create_all(engine)
+    store = PushSubscriptionStore(engine)
+    store.save(PushSubscription(endpoint="https://push/1", p256dh="a", auth="b"))
+    store.save(PushSubscription(endpoint="https://push/2", p256dh="a", auth="b"))
+
+    sender.configure(engine)
+    configure_errors(engine)
+
+    public_key, private_key = keys.generate()
+    monkeypatch.setattr(keys, "VAPID_PUBLIC_KEY", public_key)
+    monkeypatch.setattr(keys, "VAPID_PRIVATE_KEY", private_key)
+    monkeypatch.setattr(sender, "webpush", lambda **kwargs: None)
+
+    delivered = asyncio.run(
+        sender.send_notification(Notification(id=1, title="T", text="B"))
+    )
+
+    assert delivered == 2
+
+
+def test_send_notification_returns_zero_when_unconfigured(tmp_path, monkeypatch):
+    engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}")
+    SQLModel.metadata.create_all(engine)
+    PushSubscriptionStore(engine).save(
+        PushSubscription(endpoint="https://push/1", p256dh="a", auth="b")
+    )
+    sender.configure(engine)
+
+    monkeypatch.setattr(keys, "VAPID_PUBLIC_KEY", "")
+    monkeypatch.setattr(keys, "VAPID_PRIVATE_KEY", "")
+    monkeypatch.setattr(keys, "VAPID_KEY_FILE", tmp_path / "missing.json")
+
+    delivered = asyncio.run(
+        sender.send_notification(Notification(id=1, title="T", text="B"))
+    )
+
+    assert delivered == 0
+
+
+def test_notifications_page_reloads_on_push():
+    from born_portal.core import jinja, render
+    from born_portal.notifications.routes import linkify
+
+    jinja.filters["linkify"] = linkify
+    body = render(
+        "notifications.html",
+        None,
+        notifications=[],
+        new_ids=set(),
+        new_count=0,
+        push_configured=False,
+        is_admin=True,
+        user=None,
+    ).content.body.decode()
+
+    # The page listens for the service worker's push message and reloads.
+    assert "portal-push" in body
+    assert "serviceWorker.addEventListener" in body
+
+
+def test_service_worker_notifies_open_clients():
+    sw = (Path(sender.__file__).parent / "sw.js").read_text()
+
+    assert 'client.postMessage({ type: "portal-push"' in sw

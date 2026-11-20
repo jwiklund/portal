@@ -11,13 +11,25 @@ self.addEventListener("push", (event) => {
     }
   }
   const title = data.title || "Portal";
+  const url = data.url || "/notifications";
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body: data.body || "",
-      icon: "/icon-180.png",
-      badge: "/icon-180.png",
-      data: { url: data.url || "/notifications" },
-    })
+    (async () => {
+      await self.registration.showNotification(title, {
+        body: data.body || "",
+        icon: "/icon-180.png",
+        badge: "/icon-180.png",
+        data: { url },
+      });
+      // Ask any open app window to refresh so the new notification shows in
+      // the list without a manual reload.
+      const clientList = await clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of clientList) {
+        client.postMessage({ type: "portal-push", url });
+      }
+    })()
   );
 });
 

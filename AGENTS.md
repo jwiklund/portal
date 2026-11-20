@@ -41,7 +41,7 @@ src/born_portal/
     keys.py        # VAPID key pair from env (or a read-only VAPID_KEY_FILE); never writes
     sender.py      # send_notification(): deliver + log failures, drop gone endpoints
     routes.py      # /sw.js service worker, /push/vapid, /push/subscribe, /push/unsubscribe
-    sw.js          # Service worker: show push notifications, handle clicks
+    sw.js          # Service worker: show push notifications, refresh open pages, handle clicks
   utils/
     date_range.py  # Date parsing (Swedish/English/ISO), handles ranges and timezone offsets
     fetch.py       # Safe public-page fetching (SSRF guard, tracking cleanup, headers, HTML→Markdown)
@@ -62,7 +62,7 @@ tests/             # pytest tests
 `main.py:main()` is the CLI entry point. It supports subcommands:
 - `serve` (default) — starts uvicorn on port 8080
 - `fetch <url>` — parse event URL, print JSON
-- `notify <title> [text] [--date YYYY-MM-DD]` — add a notification to the database directly (`-` as text reads stdin; skips duplicates by date + title; pushes to subscribers)
+- `notify <title> [text] [--date YYYY-MM-DD]` — add a notification to the database directly (`-` as text reads stdin; skips duplicates by date + title; pushes to subscribers, awaiting delivery and reporting how many were reached or why it was skipped)
 - `vapid-keys [--regenerate] [--systemd]` — print (or create) the web-push VAPID key pair for `mise.local.toml` (`--systemd` prints systemd `Environment=` lines instead, with the PEM private key on a single line)
 - `backup [output]` / `restore [date]` — dump/load the SQLite database; `backup` defaults to `backup-YYYY-MM-DD.sql` and `restore` defaults to the latest one
 

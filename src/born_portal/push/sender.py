@@ -44,6 +44,11 @@ def configure(engine) -> None:
     _store = PushSubscriptionStore(engine)
 
 
+def subscriber_count() -> int:
+    """How many push subscriptions are stored (0 when not configured)."""
+    return _store.count() if _store is not None else 0
+
+
 def _subject() -> str:
     """The VAPID "sub" claim: a contact URI for the push service."""
     if VAPID_SUBJECT:
@@ -85,29 +90,31 @@ def _deliver(subscription: PushSubscription, payload: str, vapid: Vapid) -> None
     )
 
 
-async def send_notification(notification) -> None:
+async def send_notification(notification) -> int:
     """Push ``notification`` to every stored subscription.
 
-    Never raises: failures are recorded in the error log, and subscriptions the
-    push service rejects as gone are deleted.
+    Returns the number of subscriptions the push service accepted. Never
+    raises: failures are recorded in the error log, and subscriptions the push
+    service rejects as gone are deleted.
     """
     if _store is None:
-        return
+        return 0
 
     subscriptions = _store.all()
     if not subscriptions:
-        return
+        return 0
 
     try:
         vapid = load_vapid_instance()
     except VapidNotConfigured:
         # Push is disabled until VAPID keys are configured; not an error.
-        return
+        return 0
     except Exception as e:  # noqa: BLE001
         await record_error(None, e, context={"stage": "push_vapid"})
-        return
+        return 0
 
     payload = _payload(notification)
+    delivered = 0
 
     for subscription in subscriptions:
         context = {
@@ -117,12 +124,15 @@ async def send_notification(notification) -> None:
         }
         try:
             await asyncio.to_thread(_deliver, subscription, payload, vapid)
+            delivered += 1
         except WebPushException as e:
             await record_error(None, e, context={**context, "status": e.status_code})
             if e.status_code in _GONE_STATUS:
                 _store.delete_by_endpoint(subscription.endpoint)
         except Exception as e:  # noqa: BLE001
             await record_error(None, e, context=context)
+
+    return delivered
 
 
 def schedule_notification(notification) -> None:

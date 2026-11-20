@@ -116,6 +116,26 @@
 {% block extra_scripts %}
   <script>
     (function () {
+      // Refresh the list when a push arrives, so a new notification shows
+      // without a manual reload. A hidden tab defers the reload until it is
+      // visible again, so the page is not reloaded under the user.
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          if (!event.data || event.data.type !== "portal-push") return;
+          if (document.visibilityState === "visible") {
+            window.location.reload();
+            return;
+          }
+          const onVisible = () => {
+            if (document.visibilityState === "visible") {
+              document.removeEventListener("visibilitychange", onVisible);
+              window.location.reload();
+            }
+          };
+          document.addEventListener("visibilitychange", onVisible);
+        });
+      }
+
       const toggle = document.getElementById("push-toggle");
       const hint = document.getElementById("push-hint");
       if (!toggle) return;
