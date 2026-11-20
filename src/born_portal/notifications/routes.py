@@ -9,6 +9,7 @@ from blacksheep import Request
 from blacksheep.server.responses import json as json_response
 from blacksheep.server.responses import redirect
 
+from born_portal import push
 from born_portal.auth.guard import auth
 from born_portal.core import ADMIN_ROLE, form_value, jinja, render
 from born_portal.errors import record_error
@@ -57,6 +58,13 @@ def _serialize(notification: Notification) -> dict:
     }
 
 
+def _push(notification: Notification | None) -> None:
+    """Queue best-effort web-push delivery; it runs in the background so the
+    request is not blocked by slow push-service calls."""
+    if notification is not None:
+        push.schedule_notification(notification)
+
+
 def register_routes(app, engine):
     store = NotificationStore(engine)
     jinja.filters["linkify"] = linkify
@@ -81,6 +89,7 @@ def register_routes(app, engine):
             notifications=notifications,
             new_ids=new_ids,
             new_count=len(new_ids),
+            push_configured=push.vapid_configured(),
         )
 
     @app.router.get("/notifications/new")
@@ -97,7 +106,9 @@ def register_routes(app, engine):
         date = (form_value(form, "date") or "").strip() or None
 
         if title:
-            store.add_if_new(title, text, date)
+            notification_id, created = store.add_if_new(title, text, date)
+            if created:
+                _push(store.get_by_id(notification_id))
 
         return redirect("/notifications")
 
@@ -156,6 +167,8 @@ def register_routes(app, engine):
             return json_response({"error": "Could not store notification"}, status=500)
 
         assert notification is not None
+        if created:
+            _push(notification)
         return json_response(
             {"created": created, "notification": _serialize(notification)},
             status=201 if created else 200,

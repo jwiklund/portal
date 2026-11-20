@@ -55,6 +55,14 @@ SHOWS_DIR = Path(os.environ.get("SHOWS_DIR", "shows"))
 SHOWS_CACHE_DIR = Path(os.environ.get("SHOWS_CACHE_DIR", "shows_cache"))
 SECRET_KEY = os.environ["SECRET_KEY"]
 
+# Web Push (PWA notifications). Optional: read from VAPID_PUBLIC_KEY /
+# VAPID_PRIVATE_KEY, or from a read-only VAPID_KEY_FILE; when neither is set,
+# push is disabled and nothing is written (see born_portal.push.keys).
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "")
+VAPID_KEY_FILE = Path(os.environ.get("VAPID_KEY_FILE", "vapid_keys.json"))
+
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"

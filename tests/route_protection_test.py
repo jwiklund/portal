@@ -28,6 +28,7 @@ _PUBLIC_HANDLERS = {
     "manifest",
     "icon_svg",
     "icon_180",
+    "service_worker",
 }
 
 

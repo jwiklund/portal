@@ -2,6 +2,7 @@
 mise.local.toml
 __pycache__
 portal.db*
+vapid_keys.json
 podcasts
 shows_cache
 crush.json

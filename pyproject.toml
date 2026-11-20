@@ -12,6 +12,7 @@ dependencies = [
     "jinja2",
     "markdownify",
     "openai",
+    "pywebpush>=2.5.0",
     "sqlmodel>=0.0.42",
     "uvicorn[standard]",
 ]

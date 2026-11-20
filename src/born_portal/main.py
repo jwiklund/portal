@@ -16,6 +16,7 @@ from born_portal import (
     past,
     playlist,
     podcast,
+    push,
     pwa,
     routes,
     show,
@@ -122,6 +123,7 @@ configure_auth(app)
 
 auth.register_routes(app)
 errors.register_routes(app, engine)
+push.register_routes(app, engine)
 notifications.register_routes(app, engine)
 routes.register_routes(app)
 upcoming.register_routes(app, engine)
@@ -198,6 +200,15 @@ def main(argv=None):
         help="Notification date (YYYY-MM-DD); defaults to now",
     )
 
+    vapid_parser = subparsers.add_parser(
+        "vapid-keys", help="Print (or create) the web-push VAPID key pair"
+    )
+    vapid_parser.add_argument(
+        "--regenerate",
+        action="store_true",
+        help="Create a fresh key pair instead of loading the cached one",
+    )
+
     potential_parser = subparsers.add_parser(
         "potential", help="List events from the supported event sources"
     )
@@ -247,8 +258,27 @@ def main(argv=None):
         notification_id, created = store.add_if_new(args.title, text, args.date)
         if created:
             print(f"Added notification #{notification_id}: {args.title}")
+            # Delivery errors are recorded in the error log, which needs both
+            # stores pointed at the database.
+            errors.configure(engine)
+            push.configure(engine)
+            notification = store.get_by_id(notification_id)
+            if notification is not None:
+                asyncio.run(push.send_notification(notification))
         else:
             print(f"Notification #{notification_id} already exists: {args.title}")
+        return
+
+    if args.command == "vapid-keys":
+        if args.regenerate or not push.vapid_configured():
+            public_key, private_key = push.generate()
+        else:
+            public_key, private_key = push.load_vapid()
+        print("# Add these to mise.local.toml ([env]) to enable push notifications.")
+        print(f'VAPID_PUBLIC_KEY="{public_key}"')
+        print('VAPID_PRIVATE_KEY="""')
+        print(private_key.strip())
+        print('"""')
         return
 
     if args.command == "potential":

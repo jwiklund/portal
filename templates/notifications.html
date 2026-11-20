@@ -10,15 +10,19 @@
     margin-bottom: 1.25rem;
   }
   .page-head h2 { font-size: 2rem; font-weight: normal; }
-  .page-head a {
+  .page-head a, .page-head button {
     background: #d4b483;
     color: #1a1a1a;
     padding: 0.45rem 0.95rem;
+    border: none;
     border-radius: 6px;
     text-decoration: none;
+    font-family: inherit;
     font-size: 0.85rem;
+    cursor: pointer;
   }
-  .page-head a:hover { opacity: 0.9; }
+  .page-head a:hover, .page-head button:hover { opacity: 0.9; }
+  .page-head button:disabled { opacity: 0.5; cursor: default; }
   .count { color: #888; font-size: 0.85rem; margin-bottom: 1rem; }
   .note-list { display: flex; flex-direction: column; gap: 0.75rem; }
   .note {
@@ -66,7 +70,11 @@
   <div class="page-head">
     <h2>Notifications</h2>
     <a href="/notifications/new">+ New Notification</a>
+    {% if push_configured %}
+      <button id="push-toggle" type="button" hidden></button>
+    {% endif %}
   </div>
+  <p id="push-hint" class="count" hidden></p>
 
   {% if new_count %}
     <p class="count">{{ new_count }} new</p>
@@ -103,4 +111,113 @@
   {% else %}
     <p class="empty">No notifications yet.</p>
   {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    (function () {
+      const toggle = document.getElementById("push-toggle");
+      const hint = document.getElementById("push-hint");
+      if (!toggle) return;
+
+      const isIOS =
+        /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const standalone =
+        window.navigator.standalone === true ||
+        window.matchMedia("(display-mode: standalone)").matches;
+      const supported =
+        "serviceWorker" in navigator &&
+        "PushManager" in window &&
+        "Notification" in window;
+
+      // iOS exposes the Push APIs in a regular Safari tab, but web push only
+      // works for the installed (Home Screen) PWA. Check this before the
+      // capability check so iOS users are steered to install instead of being
+      // shown a button whose subscribe() would just fail.
+      if (isIOS && !standalone) {
+        if (hint) {
+          hint.textContent =
+            "To get notifications on iOS, add Portal to your Home Screen and open it from there.";
+          hint.hidden = false;
+        }
+        return;
+      }
+
+      if (!supported) return;
+
+      toggle.hidden = false;
+
+      function urlBase64ToUint8Array(base64String) {
+        const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding)
+          .replace(/-/g, "+")
+          .replace(/_/g, "/");
+        const raw = atob(base64);
+        return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+      }
+
+      async function currentSubscription() {
+        const reg = await navigator.serviceWorker.getRegistration();
+        return reg ? reg.pushManager.getSubscription() : null;
+      }
+
+      async function render() {
+        const sub = await currentSubscription();
+        toggle.textContent = sub ? "Disable notifications" : "Enable notifications";
+        toggle.dataset.on = sub ? "1" : "";
+      }
+
+      async function subscribe() {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          throw new Error("Notification permission was not granted");
+        }
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
+        const res = await fetch("/push/vapid");
+        const { publicKey } = await res.json();
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+        await fetch("/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sub),
+        });
+      }
+
+      async function unsubscribe() {
+        const sub = await currentSubscription();
+        if (!sub) return;
+        const endpoint = sub.endpoint;
+        await sub.unsubscribe();
+        await fetch("/push/unsubscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint }),
+        });
+      }
+
+      toggle.addEventListener("click", async () => {
+        toggle.disabled = true;
+        try {
+          if (toggle.dataset.on) await unsubscribe();
+          else await subscribe();
+          if (hint) hint.hidden = true;
+          await render();
+        } catch (e) {
+          if (hint) {
+            hint.textContent = "Could not update notifications: " + e.message;
+            hint.hidden = false;
+          }
+        } finally {
+          toggle.disabled = false;
+        }
+      });
+
+      render();
+    })();
+  </script>
 {% endblock %}

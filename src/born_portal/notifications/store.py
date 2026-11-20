@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import Engine, func
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from born_portal.notifications.model import Notification, now_iso
 
@@ -109,7 +109,7 @@ class NotificationStore:
             return 0
         with Session(self._engine) as session:
             rows = session.exec(
-                select(Notification).where(Notification.id.in_(ids))
+                select(Notification).where(col(Notification.id).in_(ids))
             ).all()
             changed = 0
             for row in rows:

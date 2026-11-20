@@ -11,6 +11,16 @@ ADMIN_USERS=""
 VIEW_USERS=""
 SPOTIFY_CLIENT_ID=""
 SPOTIFY_CLIENT_SECRET=""
+# Web Push (PWA notifications). Required for push; without them the feature is
+# disabled (no keys are generated automatically). Create a pair with:
+#   uv run python -m born_portal.main vapid-keys
+VAPID_PUBLIC_KEY=""
+VAPID_PRIVATE_KEY=""
+# Optional: a contact URI for push services; defaults to the first admin email.
+VAPID_SUBJECT=""
+# Optional: read the key pair from this JSON file instead of the vars above
+# (read-only; never written to). Ignored when both vars above are set.
+# VAPID_KEY_FILE="vapid_keys.json"
 MODEL=""
 API_KEY=""
 API_URL="https://openrouter.ai/api/v1"

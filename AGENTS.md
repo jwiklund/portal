@@ -35,6 +35,13 @@ src/born_portal/
     model.py       # Notification (table: notifications)
     store.py       # NotificationStore — SQLite persistence (dedupe by date+title)
     routes.py      # /notifications pages + JSON API; viewing the list marks shown items read
+  push/            # Web Push (PWA notifications): subscriptions + delivery
+    model.py       # PushSubscription (table: push_subscriptions)
+    store.py       # PushSubscriptionStore — SQLite persistence (upsert by endpoint)
+    keys.py        # VAPID key pair from env (or a read-only VAPID_KEY_FILE); never writes
+    sender.py      # send_notification(): deliver + log failures, drop gone endpoints
+    routes.py      # /sw.js service worker, /push/vapid, /push/subscribe, /push/unsubscribe
+    sw.js          # Service worker: show push notifications, handle clicks
   utils/
     date_range.py  # Date parsing (Swedish/English/ISO), handles ranges and timezone offsets
     fetch.py       # Safe public-page fetching (SSRF guard, tracking cleanup, headers, HTML→Markdown)
@@ -44,9 +51,9 @@ tests/             # pytest tests
 
 ### Infrastructure
 
-- **Database**: `portal.db` (SQLite, gitignored) — auto-created by the stores on first use. Its tables are `upcoming`, `past`, `past_artists`, `artists`, `sessions`, `error_log`, and `notifications`.
+- **Database**: `portal.db` (SQLite, gitignored) — auto-created by the stores on first use. Its tables are `upcoming`, `past`, `past_artists`, `artists`, `sessions`, `error_log`, `notifications`, and `push_subscriptions`.
 - **Directories**: `shows/` (video source files), `shows_cache/` (converted mp4 streams), `podcasts/` (downloaded audio) — all gitignored via `.gitignore`.
-- **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ADMIN_USERS`, `MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`.
+- **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ADMIN_USERS`, `MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `VAPID_KEY_FILE`.
 
 ## Architecture
 
@@ -55,7 +62,8 @@ tests/             # pytest tests
 `main.py:main()` is the CLI entry point. It supports subcommands:
 - `serve` (default) — starts uvicorn on port 8080
 - `fetch <url>` — parse event URL, print JSON
-- `notify <title> [text] [--date YYYY-MM-DD]` — add a notification to the database directly (`-` as text reads stdin; skips duplicates by date + title)
+- `notify <title> [text] [--date YYYY-MM-DD]` — add a notification to the database directly (`-` as text reads stdin; skips duplicates by date + title; pushes to subscribers)
+- `vapid-keys [--regenerate]` — print (or create) the web-push VAPID key pair for `mise.local.toml`
 - `backup [output]` / `restore [date]` — dump/load the SQLite database; `backup` defaults to `backup-YYYY-MM-DD.sql` and `restore` defaults to the latest one
 
 The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
@@ -67,7 +75,7 @@ The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
 3. **AuthorizationMiddleware** (from `app.use_authorization`) — enforces `@auth` decorators; anonymous → `UnauthorizedError` → redirect to `/login`
 4. **AuthMiddleware** — outer session gate (redirects to `/login` if not authenticated, lets admins through everywhere, viewers to `/view` pages only)
 
-Public paths: `/login`, `/auth/google`, `/auth/callback`, `/spotify/callback`, `/podcasts/audio/`, `/shows/video/`, plus `/manifest.json`, `/icon.svg`, `/icon-180.png` (PWA assets).
+Public paths: `/login`, `/auth/google`, `/auth/callback`, `/spotify/callback`, `/podcasts/audio/`, `/shows/video/`, plus `/manifest.json`, `/icon.svg`, `/icon-180.png`, `/sw.js` (PWA assets).
 
 ### Authorization via `@auth`
 
@@ -103,6 +111,7 @@ Each module exports a `register_routes(app)` function that adds route handlers. 
 auth.register_routes(app)
 errors.register_routes(app, engine)
 notifications.register_routes(app, engine)
+push.register_routes(app, engine)
 routes.register_routes(app)
 upcoming.register_routes(app, engine)
 past.register_routes(app, engine)
