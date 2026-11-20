@@ -1,10 +1,11 @@
 [shell_alias]
 run = "uv run uvicorn born_portal.main:app --reload --port 8080 --log-level debug"
-fetch = "uv run python -m born_portal.main fetch"
-potential = "uv run python -m born_portal.main potential"
-potential-duplicates = "uv run python -m born_portal.main potential --duplicates"
-backup = "uv run python -m born_portal.main backup"
-restore = "uv run python -m born_portal.main restore"
+fetch = "mise run portal fetch"
+potential = "mise run portal potential"
+potential-duplicates = "mise run portal --duplicates"
+notify = "mise run portal notify"
+backup = "mise run portal backup"
+restore = "mise run portal restore"
 check = "uv run pytest"
 format = "mise run format"
 pyright = "uv run pyright"
@@ -12,3 +13,6 @@ sync = "uv sync"
 
 [tasks.format]
 run = "black src && ruff check --fix src"
+
+[tasks.portal]
+run = "uv run python -m born_portal.main"
