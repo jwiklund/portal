@@ -92,3 +92,21 @@ def load_vapid_instance() -> Vapid:
     if "-----BEGIN" in private_key:
         return Vapid.from_pem(private_key.encode("ascii"))
     return Vapid.from_string(private_key)
+
+
+def systemd_private_key(private_key: str) -> str:
+    """Format a PEM private key as a single-line ``Environment=`` value.
+
+    systemd parses C-style escapes in ``Environment=`` values (``\\n`` becomes a
+    newline) and expands ``%`` as a specifier, so newlines are escaped and
+    literal percents are doubled. The result contains no spaces or double
+    quotes, so it is safe to paste as
+    ``Environment="VAPID_PRIVATE_KEY=..."``.
+    """
+    return (
+        private_key.strip()
+        .replace("%", "%%")
+        .replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace('"', '\\"')
+    )

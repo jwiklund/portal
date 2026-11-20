@@ -97,6 +97,24 @@ def test_load_vapid_instance_parses_pem(monkeypatch):
     assert keys._public_key_b64(instance) == public_key
 
 
+def test_systemd_private_key_escapes_newlines():
+    _, private_key = keys.generate()
+    assert "\n" in private_key
+
+    escaped = keys.systemd_private_key(private_key)
+
+    assert "\n" not in escaped
+    assert "\\n" in escaped
+    # systemd turns the \n escapes back into newlines; a PEM has no %/\/" so
+    # the only transformation is the newline escaping.
+    assert escaped.replace("\\n", "\n") == private_key.strip()
+
+
+def test_systemd_private_key_doubles_percent():
+    # % is a systemd specifier, so a literal one must be doubled.
+    assert keys.systemd_private_key("a%b") == "a%%b"
+
+
 def test_schedule_notification_runs_in_background(monkeypatch):
     delivered = []
 

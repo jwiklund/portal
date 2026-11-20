@@ -63,7 +63,7 @@ tests/             # pytest tests
 - `serve` (default) — starts uvicorn on port 8080
 - `fetch <url>` — parse event URL, print JSON
 - `notify <title> [text] [--date YYYY-MM-DD]` — add a notification to the database directly (`-` as text reads stdin; skips duplicates by date + title; pushes to subscribers)
-- `vapid-keys [--regenerate]` — print (or create) the web-push VAPID key pair for `mise.local.toml`
+- `vapid-keys [--regenerate] [--systemd]` — print (or create) the web-push VAPID key pair for `mise.local.toml` (`--systemd` prints systemd `Environment=` lines instead, with the PEM private key on a single line)
 - `backup [output]` / `restore [date]` — dump/load the SQLite database; `backup` defaults to `backup-YYYY-MM-DD.sql` and `restore` defaults to the latest one
 
 The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.

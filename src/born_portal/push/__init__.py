@@ -3,6 +3,7 @@ from born_portal.push.keys import (
     generate,
     load_vapid,
     load_vapid_instance,
+    systemd_private_key,
     vapid_configured,
 )
 from born_portal.push.model import PushSubscription
@@ -21,5 +22,6 @@ __all__ = [
     "register_routes",
     "schedule_notification",
     "send_notification",
+    "systemd_private_key",
     "vapid_configured",
 ]

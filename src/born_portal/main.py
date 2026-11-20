@@ -208,6 +208,11 @@ def main(argv=None):
         action="store_true",
         help="Create a fresh key pair instead of loading the cached one",
     )
+    vapid_parser.add_argument(
+        "--systemd",
+        action="store_true",
+        help="Print systemd Environment= lines (private key on a single line)",
+    )
 
     potential_parser = subparsers.add_parser(
         "potential", help="List events from the supported event sources"
@@ -274,6 +279,12 @@ def main(argv=None):
             public_key, private_key = push.generate()
         else:
             public_key, private_key = push.load_vapid()
+        if args.systemd:
+            print("# Add these under [Service] in a systemd unit (single-line values).")
+            print(f'Environment="VAPID_PUBLIC_KEY={public_key}"')
+            escaped = push.systemd_private_key(private_key)
+            print(f'Environment="VAPID_PRIVATE_KEY={escaped}"')
+            return
         print("# Add these to mise.local.toml ([env]) to enable push notifications.")
         print(f'VAPID_PUBLIC_KEY="{public_key}"')
         print('VAPID_PRIVATE_KEY="""')
