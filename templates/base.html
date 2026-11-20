@@ -98,6 +98,7 @@
       {% if is_admin %}
         <a href="/podcasts" class="{{ 'active' if current_path.startswith('/podcasts') else '' }}">Podcasts</a>
         <a href="/shows" class="{{ 'active' if current_path.startswith('/shows') else '' }}">Shows</a>
+        <a href="/notifications" class="{{ 'active' if current_path.startswith('/notifications') else '' }}">Notifications</a>
         <a href="/errors" class="{{ 'active' if current_path.startswith('/errors') else '' }}">Errors</a>
       {% endif %}
       {% if user and user.picture %}

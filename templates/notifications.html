@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+
+{% block extra_styles %}
+  .page-head {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+  .page-head h2 { font-size: 2rem; font-weight: normal; }
+  .page-head a {
+    background: #d4b483;
+    color: #1a1a1a;
+    padding: 0.45rem 0.95rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+  .page-head a:hover { opacity: 0.9; }
+  .count { color: #888; font-size: 0.85rem; margin-bottom: 1rem; }
+  .note-list { display: flex; flex-direction: column; gap: 0.75rem; }
+  .note {
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+  }
+  .note.unread { border-color: #d4b483; }
+  .note-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+  .note-title { font-weight: 500; font-size: 1.05rem; }
+  .note-date { font-size: 0.8rem; color: #888; }
+  .badge {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+  }
+  .badge.new { background: #d4b483; color: #1a1a1a; }
+  .note-text {
+    font-size: 0.9rem;
+    color: #ccc;
+    margin-top: 0.5rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .note-text a { color: #d4b483; }
+  .note-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+  .note-actions button {
+    background: transparent;
+    color: #d4b483;
+    border: 1px solid #d4b483;
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .note-actions button:hover { background: #d4b483; color: #1a1a1a; }
+  .empty { color: #aaa; }
+{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <h2>Notifications</h2>
+    <a href="/notifications/new">+ New Notification</a>
+  </div>
+
+  {% if new_count %}
+    <p class="count">{{ new_count }} new</p>
+  {% endif %}
+
+  {% if notifications %}
+    <div class="note-list">
+      {% for n in notifications %}
+        {% set is_new = n.id in new_ids %}
+        <div class="note {{ 'unread' if is_new else 'read' }}">
+          <div class="note-head">
+            <span class="note-title">{{ n.title }}</span>
+            <span class="note-date">{{ n.created_at }}</span>
+            {% if is_new %}<span class="badge new">New</span>{% endif %}
+          </div>
+          {% if n.text %}
+            <div class="note-text">{{ n.text | linkify | safe }}</div>
+          {% endif %}
+          <div class="note-actions">
+            <form method="post" action="/notifications/read">
+              <input type="hidden" name="id" value="{{ n.id }}" />
+              <input type="hidden" name="read" value="{{ '0' if n.read else '1' }}" />
+              <button type="submit">{{ "Mark unread" if n.read else "Mark read" }}</button>
+            </form>
+            <form method="post" action="/notifications/delete"
+                  onsubmit="return confirm('Delete this notification?');">
+              <input type="hidden" name="id" value="{{ n.id }}" />
+              <button type="submit">Delete</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">No notifications yet.</p>
+  {% endif %}
+{% endblock %}

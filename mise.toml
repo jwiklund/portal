@@ -6,6 +6,9 @@ potential-duplicates = "uv run python -m born_portal.main potential --duplicates
 backup = "uv run python -m born_portal.main backup"
 restore = "uv run python -m born_portal.main restore"
 check = "uv run pytest"
+format = "mise run format"
 pyright = "uv run pyright"
 sync = "uv sync"
-format = "black src; ruff check --fix src"
+
+[tasks.format]
+run = "black src && ruff check --fix src"

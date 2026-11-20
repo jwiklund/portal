@@ -3,7 +3,7 @@
 import logging
 import re
 import sqlite3
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,8 @@ _DATE_ONLY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 def default_backup_name(today: date | None = None) -> str:
     """Return the default backup filename, e.g. ``backup-2026-11-09.sql``."""
-    return f"backup-{(today or date.today()).isoformat()}.sql"
+    current = today or datetime.now(UTC).astimezone().date()
+    return f"backup-{current.isoformat()}.sql"
 
 
 def latest_backup(directory: str | Path = ".") -> str:
@@ -43,6 +44,7 @@ def resolve_backup(value: str | None, directory: str | Path = ".") -> str:
         date.fromisoformat(value)  # Reject impossible dates such as 2026-13-01.
         return str(Path(directory) / f"backup-{value}.sql")
     return value
+
 
 # Tables excluded from backups. Sessions hold short-lived data (including OAuth
 # tokens); they are neither dumped nor dropped, so a restore leaves the current

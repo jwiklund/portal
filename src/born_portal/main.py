@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 import logging
+import sys
 
 from blacksheep import Application, Request
 from sqlalchemy import event
@@ -11,6 +12,7 @@ from born_portal import (
     auth,
     backup,
     errors,
+    notifications,
     past,
     playlist,
     podcast,
@@ -120,6 +122,7 @@ configure_auth(app)
 
 auth.register_routes(app)
 errors.register_routes(app, engine)
+notifications.register_routes(app, engine)
 routes.register_routes(app)
 upcoming.register_routes(app, engine)
 past.register_routes(app, engine)
@@ -179,6 +182,22 @@ def main(argv=None):
         "--db", default="portal.db", help="Path to the SQLite database"
     )
 
+    notify_parser = subparsers.add_parser(
+        "notify", help="Add a notification to the SQLite database"
+    )
+    notify_parser.add_argument("title", help="Notification title")
+    notify_parser.add_argument(
+        "text",
+        nargs="?",
+        default="",
+        help="Notification body text (use '-' to read from stdin)",
+    )
+    notify_parser.add_argument(
+        "--date",
+        default=None,
+        help="Notification date (YYYY-MM-DD); defaults to now",
+    )
+
     potential_parser = subparsers.add_parser(
         "potential", help="List events from the supported event sources"
     )
@@ -220,6 +239,16 @@ def main(argv=None):
         except (FileNotFoundError, ValueError) as e:
             parser.error(str(e))
         backup.restore_db(source, args.db)
+        return
+
+    if args.command == "notify":
+        text = sys.stdin.read() if args.text == "-" else args.text
+        store = notifications.NotificationStore(engine)
+        notification_id, created = store.add_if_new(args.title, text, args.date)
+        if created:
+            print(f"Added notification #{notification_id}: {args.title}")
+        else:
+            print(f"Notification #{notification_id} already exists: {args.title}")
         return
 
     if args.command == "potential":

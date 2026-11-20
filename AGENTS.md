@@ -31,6 +31,10 @@ src/born_portal/
     store.py       # ErrorStore — SQLite persistence
     report.py      # record_error(): capture, redact, truncate, persist
     routes.py      # Global exception handler + /errors admin pages
+  notifications/   # Admin notifications: list/read/delete page + add API
+    model.py       # Notification (table: notifications)
+    store.py       # NotificationStore — SQLite persistence (dedupe by date+title)
+    routes.py      # /notifications pages + JSON API; viewing the list marks shown items read
   utils/
     date_range.py  # Date parsing (Swedish/English/ISO), handles ranges and timezone offsets
     fetch.py       # Safe public-page fetching (SSRF guard, tracking cleanup, headers, HTML→Markdown)
@@ -40,7 +44,7 @@ tests/             # pytest tests
 
 ### Infrastructure
 
-- **Database**: `portal.db` (SQLite, gitignored) — auto-created by the stores on first use. Its tables are `upcoming`, `past`, `past_artists`, `artists`, `sessions`, and `error_log`.
+- **Database**: `portal.db` (SQLite, gitignored) — auto-created by the stores on first use. Its tables are `upcoming`, `past`, `past_artists`, `artists`, `sessions`, `error_log`, and `notifications`.
 - **Directories**: `shows/` (video source files), `shows_cache/` (converted mp4 streams), `podcasts/` (downloaded audio) — all gitignored via `.gitignore`.
 - **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ADMIN_USERS`, `MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`.
 
@@ -51,6 +55,7 @@ tests/             # pytest tests
 `main.py:main()` is the CLI entry point. It supports subcommands:
 - `serve` (default) — starts uvicorn on port 8080
 - `fetch <url>` — parse event URL, print JSON
+- `notify <title> [text] [--date YYYY-MM-DD]` — add a notification to the database directly (`-` as text reads stdin; skips duplicates by date + title)
 - `backup [output]` / `restore [date]` — dump/load the SQLite database; `backup` defaults to `backup-YYYY-MM-DD.sql` and `restore` defaults to the latest one
 
 The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
@@ -97,6 +102,7 @@ Each module exports a `register_routes(app)` function that adds route handlers. 
 ```python
 auth.register_routes(app)
 errors.register_routes(app, engine)
+notifications.register_routes(app, engine)
 routes.register_routes(app)
 upcoming.register_routes(app, engine)
 past.register_routes(app, engine)
@@ -165,6 +171,6 @@ uv run python -m pytest tests/
 
 ## Editing notes
 
-- **Formatting**: Black for code layout, ruff's import sort (`ruff check --select I --fix`) for imports (run via `mise format`).
+- **Formatting**: run `mise format` (Black for code layout, then `ruff check --fix` for imports and other fixes).
 - **No Makefile, no CI config** — this is a personal project.
 - **`mise`** is the tool manager (like `direnv` + `asdf`). It sets env vars from `mise.local.toml` and provides shell aliases.
