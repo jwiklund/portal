@@ -3,7 +3,7 @@
 
 {% block extra_styles %}
   .weekend { color: var(--text-muted); margin-bottom: 1.5rem; }
-  .actions { margin-bottom: 1.5rem; }
+  .page-head .weekend { margin-bottom: 0; }
   .sources {
     margin: 0.5rem 0 1.5rem;
     font-size: 0.85rem;
@@ -42,7 +42,7 @@
   .event-price { color: var(--accent); }
   .source-tag {
     display: inline-block;
-    background: #2a2a2a;
+    background: var(--surface-4);
     color: var(--accent);
     border-radius: 4px;
     padding: 0.05rem 0.4rem;
@@ -55,7 +55,7 @@
     white-space: nowrap;
   }
   .merge-options { margin-top: 0.4rem; font-size: 0.85rem; }
-  .merge-options summary { cursor: pointer; color: #999; }
+  .merge-options summary { cursor: pointer; color: var(--text-link); }
   .merge-options summary:hover { color: var(--accent); }
   .merge-list { margin-top: 0.4rem; display: flex; flex-direction: column; gap: 0.35rem; }
   .merge-item {
@@ -63,20 +63,20 @@
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
-    background: #202020;
+    background: var(--surface-3);
     border-radius: 5px;
     padding: 0.35rem 0.5rem;
   }
   .merge-item a { color: var(--text); text-decoration: none; }
   .merge-item a:hover { color: var(--accent); text-decoration: underline; }
-  .merge-meta { color: #777; font-size: 0.8rem; }
+  .merge-meta { color: var(--text-faint); font-size: 0.8rem; }
   .merge-item .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
 {% endblock %}
 
 {% block content %}
   <div class="page-head">
     <h2>Potential Events</h2>
-    <span class="weekend" style="margin-bottom:0;">{{ weekend_start }} – {{ weekend_end }}</span>
+    <span class="weekend">{{ weekend_start }} – {{ weekend_end }}</span>
   </div>
 
   <div class="actions">

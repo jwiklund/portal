@@ -12,6 +12,7 @@
     flex-direction: column;
     gap: 0.6rem;
   }
+  .show-row form { margin: 0; }
   .show-row {
     display: flex;
     align-items: center;
@@ -20,7 +21,7 @@
   }
   .show-name {
     font-size: 0.9rem;
-    color: #ccc;
+    color: var(--text-soft);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -33,20 +34,6 @@
     white-space: nowrap;
     flex-shrink: 0;
   }
-  .convert-btn {
-    background: #2a4a5c;
-    color: var(--text);
-    border: 1px solid #3a6a7c;
-    border-radius: var(--radius-sm);
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .convert-btn:hover { background: #3a6a7c; }
-  .convert-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
   @media (max-width: 640px) {
     .show-row { align-items: flex-start; }
     .show-name {
@@ -55,7 +42,8 @@
       overflow: visible;
       text-overflow: unset;
     }
-    .convert-btn { flex: 1; }
+    .show-row form { flex: 1; }
+    .show-row form .btn { width: 100%; justify-content: center; }
   }
 {% endblock %}
 
@@ -85,9 +73,9 @@
             {% if s.stream_id %}
               <a href="/shows/{{ s.stream_id }}" class="btn btn-sm">▶ Stream</a>
             {% endif %}
-            <form method="POST" action="/shows/convert" style="margin:0;display:inline">
+            <form method="POST" action="/shows/convert">
               <input type="hidden" name="filename" value="{{ s.filename }}">
-              <button type="submit" class="convert-btn"
+              <button type="submit" class="btn btn-info btn-sm"
                 {% if s.status == "converting" %}disabled{% endif %}>
                 Convert
               </button>

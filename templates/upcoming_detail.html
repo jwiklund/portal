@@ -22,9 +22,11 @@
   }
   .event-meta-grid { display: flex; gap: 2rem; margin: 1.5rem 0; flex-wrap: wrap; }
   .meta-item { display: flex; flex-direction: column; }
-  .meta-label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+  .meta-label { font-size: 0.75rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
   .meta-value { font-size: 1rem; color: var(--text); }
-  .event-description { line-height: 1.7; color: #ccc; margin-top: 2rem; white-space: pre-wrap; }
+  .event-description { line-height: 1.7; color: var(--text-soft); margin-top: 2rem; white-space: pre-wrap; }
+  .meta-value a { color: var(--accent); }
+  .meta-value .date-line { margin-left: 1rem; }
 {% endblock %}
 
 {% block content %}
@@ -33,7 +35,7 @@
 
   <article>
     {% if is_admin %}
-      <div class="actions" style="margin-bottom: 1.5rem;">
+      <div class="actions">
         <a href="/upcoming/edit/{{ upcoming.id }}" class="btn btn-muted">Edit</a>
         <button onclick="confirmDelete({{ upcoming.id }})" class="btn btn-danger">Delete</button>
       </div>
@@ -42,7 +44,7 @@
     <header class="event-header">
       <h1 class="event-title">
         {{ upcoming.name }}
-        {% if upcoming.ticket %}<span class="event-ticket"></span>{% endif %}
+        {% if upcoming.ticket %}<span class="event-ticket" role="img" aria-label="Tickets available"></span>{% endif %}
       </h1>
       <div class="event-subtitle">
         {% if upcoming.date %}<span>{{ upcoming.date }}</span>{% endif %}
@@ -58,10 +60,10 @@
           <dd class="meta-value">
             {% if upcoming._date_parts and upcoming._date_parts.start_date %}
               <div>{{ upcoming._date_parts.start_date }}</div>
-              <div style="margin-left: 1rem;">{{ upcoming._date_parts.start_time }}</div>
+              <div class="date-line">{{ upcoming._date_parts.start_time }}</div>
               {% if upcoming._date_parts.end_time %}
-                <div style="margin-left: 1rem;">to</div>
-                <div style="margin-left: 1rem;">{{ upcoming._date_parts.end_time }}</div>
+                <div class="date-line">to</div>
+                <div class="date-line">{{ upcoming._date_parts.end_time }}</div>
               {% endif %}
             {% else %}
               {{ upcoming.date or "TBD" }}
@@ -83,7 +85,7 @@
       {% endif %}
       <div class="meta-item">
         <dt class="meta-label">Source</dt>
-        <dd class="meta-value"><a href="{{ upcoming.url }}" style="color:var(--accent)">{{ upcoming.url }}</a></dd>
+        <dd class="meta-value"><a href="{{ upcoming.url }}">{{ upcoming.url }}</a></dd>
       </div>
     </dl>
 

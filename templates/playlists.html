@@ -5,33 +5,10 @@
   h2 { margin-bottom: 1rem; }
   h3 { margin: 2rem 0 0.75rem; }
   .import-form { display: flex; gap: 0.75rem; max-width: 700px; margin-bottom: 0.75rem; }
-  .import-form input[type="url"] {
-    flex: 1;
-    padding: 0.75rem;
-    background: var(--surface);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-size: 1rem;
-    font-family: inherit;
-  }
-  .import-form input[type="url"]:focus { outline: none; border-color: #555; }
+  .import-form input[type="url"] { flex: 1; }
   .text-form { max-width: 700px; margin-bottom: 0.75rem; }
-  .text-form textarea {
-    width: 100%;
-    min-height: 110px;
-    resize: vertical;
-    padding: 0.75rem;
-    background: var(--surface);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-size: 0.95rem;
-    font-family: inherit;
-    margin-bottom: 0.5rem;
-  }
-  .text-form textarea:focus { outline: none; border-color: #555; }
-  .or { color: #777; font-size: 0.8rem; margin: 0.5rem 0; }
+  .text-form textarea { min-height: 110px; margin-bottom: 0.5rem; }
+  .or { color: var(--text-faint); font-size: 0.8rem; margin: 0.5rem 0; }
   .hint { margin-bottom: 1.5rem; }
 
   .editor { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 1rem; background: var(--surface-2); }
@@ -40,7 +17,7 @@
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    background: #1f1f1f;
+    background: var(--surface-3);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 0.4rem 0.6rem;
@@ -56,8 +33,8 @@
     font-size: 1rem;
     padding: 0 0.25rem;
   }
-  .row .remove-btn:hover { color: #e07b7b; }
-  .empty { color: #777; font-size: 0.85rem; margin-bottom: 0.75rem; }
+  .row .remove-btn:hover { color: var(--red-bright); }
+  .rows-empty { color: var(--text-faint); font-size: 0.85rem; margin-bottom: 0.75rem; }
   .search-wrap { position: relative; }
   .search-results {
     position: absolute;
@@ -65,7 +42,7 @@
     left: 0;
     right: 0;
     z-index: 10;
-    background: #1f1f1f;
+    background: var(--surface-3);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     max-height: 260px;
@@ -80,23 +57,12 @@
     cursor: pointer;
     font-size: 0.95rem;
   }
-  .search-result:hover { background: #2a2a2a; }
+  .search-result:hover { background: var(--surface-4); }
   .search-result img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
   .search-status { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.35rem; min-height: 1em; }
-  .search-wrap input {
-    width: 100%;
-    padding: 0.6rem 0.75rem;
-    background: var(--surface);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-size: 0.95rem;
-    font-family: inherit;
-  }
-  .search-wrap input:focus { outline: none; border-color: #555; }
+  .search-wrap input { padding: 0.6rem 0.75rem; font-size: 0.95rem; }
 
   .create-form { max-width: 700px; }
-  .create-form input[type="text"]:focus { outline: none; border-color: #555; }
   .create-form .create-hint { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.75rem; }
   .create-form .btn-create {
     background: #1db954;
@@ -116,7 +82,7 @@
   <h2>Playlists</h2>
 
   <form method="POST" action="/playlists" class="import-form">
-    <label for="url" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Event link</label>
+    <label for="url" class="sr-only">Event link</label>
     <input type="url" id="url" name="url" placeholder="Paste a link to an event…"
            {% if url %}value="{{ url }}"{% endif %}>
     <button type="submit" class="btn">Fetch &amp; Match</button>
@@ -125,7 +91,7 @@
   <p class="or">— or —</p>
 
   <form method="POST" action="/playlists" class="text-form">
-    <label for="text" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Lineup or setlist</label>
+    <label for="text" class="sr-only">Lineup or setlist</label>
     <textarea id="text" name="text"
               placeholder="Paste a lineup or setlist here…">{% if text %}{{ text }}{% endif %}</textarea>
     <button type="submit" class="btn">Extract from Text</button>
@@ -158,7 +124,7 @@
     <div class="editor">
       <ul class="rows" id="artist-rows"></ul>
       <div class="search-wrap">
-        <label for="artist-search" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Search artist on Spotify</label>
+        <label for="artist-search" class="sr-only">Search artist on Spotify</label>
         <input type="text" id="artist-search" placeholder="Search artist on Spotify…"
                autocomplete="off">
         <div class="search-results" id="artist-results"></div>
@@ -241,10 +207,10 @@
         artistRows.appendChild(row);
       });
 
-      const empty = artistRows.parentElement.querySelector(".empty");
+      const empty = artistRows.parentElement.querySelector(".rows-empty");
       if (artists.length === 0 && !empty) {
         const p = document.createElement("p");
-        p.className = "empty";
+        p.className = "rows-empty";
         p.textContent = "Nothing yet — paste an event link or search on Spotify.";
         artistRows.after(p);
       } else if (artists.length > 0 && empty) {

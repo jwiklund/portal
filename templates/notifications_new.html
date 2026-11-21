@@ -2,7 +2,7 @@
 {% block title %}New Notification{% endblock %}
 
 {% block extra_styles %}
-  .note-form input[type="date"] { width: auto; color-scheme: dark; }
+  input[type="date"] { width: auto; color-scheme: dark; }
 {% endblock %}
 
 {% block content %}
@@ -22,7 +22,7 @@
 
     <div class="form-group">
       <label for="date">Date</label>
-      <input type="date" id="date" name="date" class="note-form" />
+      <input type="date" id="date" name="date" />
       <p class="hint">
         Optional. Used for ordering and to skip duplicates with the same title.
       </p>

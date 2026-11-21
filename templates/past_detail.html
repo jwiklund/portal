@@ -5,7 +5,7 @@
   .past-header { margin-bottom: 1.5rem; }
   .past-title { font-size: 2rem; font-weight: normal; }
   .past-meta { color: var(--text-dim); font-size: 0.9rem; margin-top: 0.25rem; }
-  .past-description { color: #ccc; margin-top: 0.75rem; line-height: 1.5; white-space: pre-line; }
+  .past-description { color: var(--text-soft); margin-top: 0.75rem; line-height: 1.5; white-space: pre-line; }
   .album-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -40,13 +40,15 @@
     object-fit: contain;
     cursor: zoom-in;
   }
-  .lightbox-caption { color: #999; font-size: 0.8rem; margin-top: 0.5rem; }
+  .lightbox-caption { color: var(--text-link); font-size: 0.8rem; margin-top: 0.5rem; }
+  .actions .back-link { margin-bottom: 0; }
+  .back-link.accent { color: var(--accent); }
   .lb-nav {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
     background: rgba(255, 255, 255, 0.08);
-    color: #eee;
+    color: var(--text);
     border: none;
     font-size: 2rem;
     line-height: 1;
@@ -88,9 +90,9 @@
     </header>
 
     <div class="actions">
-      <a href="{{ "/past" if is_admin else "/past/view" }}" class="back-link" style="margin-bottom:0;">← All past</a>
+      <a href="{{ "/past" if is_admin else "/past/view" }}" class="back-link">← All past</a>
       {% if past.album_uri %}
-        <a href="{{ past.album_uri }}" target="_blank" rel="noopener" class="back-link" style="color:var(--accent);margin-bottom:0;">Gallery ↗</a>
+        <a href="{{ past.album_uri }}" target="_blank" rel="noopener" class="back-link accent">Gallery ↗</a>
       {% endif %}
       {% if is_admin %}
         <a href="/past/edit/{{ past.id }}" class="btn">Edit</a>

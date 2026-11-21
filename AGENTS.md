@@ -129,15 +129,15 @@ All templates use `core.render(template_name, **ctx)` which wraps Jinja2 renderi
 
 Styling is centralized. `base.html` contains the whole shared design system in its `<style>` block; page templates extend it and should only add page-specific rules in `{% block extra_styles %}`, and JS in `{% block extra_scripts %}`.
 
-- **Design tokens**: colors, radii, etc. are CSS custom properties in `:root` (`--bg`, `--surface`, `--surface-2`, `--border`, `--border-strong`, `--text`, `--text-dim`, `--text-muted`, `--accent`, `--accent-hover`, `--green`, `--green-bright`, `--red`, `--red-bright`, `--radius`, `--radius-sm`). Use these instead of hard-coded hex values. (A few third-party-ish accents such as Spotify green and the podcast blue remain literal.)
+- **Design tokens**: colors, radii, etc. are CSS custom properties in `:root` (`--bg`, `--surface`, `--surface-2`, `--surface-3`, `--surface-4`, `--border`, `--border-strong`, `--border-hover`, `--focus`, `--text`, `--text-soft`, `--text-dim`, `--text-link`, `--text-muted`, `--text-faint`, `--accent`, `--accent-hover`, `--accent-contrast`, `--green`, `--green-bright`, `--red`, `--red-hover`, `--red-bright`, `--info`, `--info-strong`, `--radius`, `--radius-sm`). Use these instead of hard-coded hex values. (A few third-party-ish accents such as Spotify green remain literal.)
 - **Component classes** (reuse these before inventing new ones):
-  - Layout: `.page-head` (title + inline actions), `.toolbar`, `.actions`, `.back-link`
+  - Layout: `.page-head` (title + inline actions), `.toolbar`, `.actions`, `.back-link`, `.sr-only`
   - Lists/cards: `.list` (`<ul>`) → `<li>` → `.card` with `.card-head` / `.card-title` / `.card-date` / `.card-meta` / `.card-price` / `.card-body` / `.card-actions`
   - Chips: `.chips` (`<ul>`) → `<li class="chip">`
-  - Buttons: `.btn` plus `.btn-secondary`, `.btn-muted`, `.btn-danger`, `.btn-sm`
+  - Buttons: `.btn` plus `.btn-secondary`, `.btn-muted`, `.btn-info`, `.btn-danger`, `.btn-sm`
   - Badges: `.badge` plus `.badge-ready` / `.badge-warn` / `.badge-error` / `.badge-muted` / `.badge-new`
   - Forms: `.form`, `.form-group`, `.form-actions`, `.hint`, `.empty`; inputs/textareas styled globally
-  - Messages: `.msg` plus `.msg-error` / `.msg-success` / `.msg-info`
+  - Messages: `.msg` plus `.msg-error` / `.msg-warn` / `.msg-success` / `.msg-info`
   - Metadata: `dl.meta` (grid of `dt`/`dd`), `pre`
 - **Semantic markup**: use `<article>` + `<header>` for detail views and list items, `<time>` for dates, `<ul>`/`<li>` for lists (not `<div>` stacks), `<dl>` for label/value metadata, `<figure>`/`<figcaption>` for images and video, and `<nav>` only for actual navigation. `<main id="main">` wraps page content; the site bar is `<header><nav>`.
 - **Gotcha — scope nav styles**: the site header nav is styled with `header nav { … }` (not bare `nav { … }`). A page-level `<nav>` (e.g. sort filters) must not inherit the header bar's flex/padding/background; keep new nav rules scoped or class-based.

@@ -4,6 +4,7 @@
 {% block extra_styles %}
   .date-row { display: flex; gap: 1rem; }
   .date-row .form-group { flex: 1; }
+  .form textarea { min-height: 100px; }
 
   .artist-editor { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 1rem; background: var(--surface-2); }
   .artist-rows { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; list-style: none; }
@@ -11,7 +12,7 @@
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    background: #1f1f1f;
+    background: var(--surface-3);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 0.4rem 0.6rem;
@@ -27,7 +28,7 @@
     font-size: 1rem;
     padding: 0 0.25rem;
   }
-  .artist-row .remove-btn:hover { color: #e07b7b; }
+  .artist-row .remove-btn:hover { color: var(--red-bright); }
   .search-wrap { position: relative; }
   .search-results {
     position: absolute;
@@ -35,7 +36,7 @@
     left: 0;
     right: 0;
     z-index: 10;
-    background: #1f1f1f;
+    background: var(--surface-3);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     max-height: 260px;
@@ -50,9 +51,10 @@
     cursor: pointer;
     font-size: 0.95rem;
   }
-  .search-result:hover { background: #2a2a2a; }
+  .search-result:hover { background: var(--surface-4); }
   .search-result img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
   .search-status { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.35rem; min-height: 1em; }
+  .artist-editor .btn { margin-top: 0.5rem; }
 {% endblock %}
 
 {% block content %}
@@ -117,8 +119,7 @@
           <div class="search-results" id="search-results"></div>
         </div>
         <p class="search-status" id="search-status"></p>
-        <button type="button" class="btn btn-secondary btn-sm" id="add-manual-btn"
-                style="margin-top:0.5rem;">Add manually</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="add-manual-btn">Add manually</button>
       </div>
     </div>
 

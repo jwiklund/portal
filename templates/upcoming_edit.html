@@ -20,7 +20,8 @@
   }
   .checkbox-group input[type="checkbox"]:not(:checked) { accent-color: var(--red-bright); }
   .checkbox-group label { margin: 0; font-size: 1rem; cursor: pointer; }
-  .checkbox-group p { margin: 0.25rem 0 0 1.25rem; color: var(--text-muted); font-size: 0.85rem; }
+  .ticket-hint { margin-left: 1.25rem; }
+  .form textarea { min-height: 150px; }
 {% endblock %}
 
 {% block content %}
@@ -57,7 +58,7 @@
         <input type="checkbox" id="ticket" name="ticket" {% if upcoming.ticket %}checked{% endif %}>
         <label for="ticket">Ticket available</label>
       </div>
-      <p class="hint" style="margin-left:1.25rem;">Mark this event as having tickets available</p>
+      <p class="hint ticket-hint">Mark this event as having tickets available</p>
     </div>
 
     <div class="form-group">
@@ -75,11 +76,11 @@
 
   {% if from_import %}
     {% if is_update %}
-      <div class="msg msg-error" style="margin-top:1.5rem;">
+      <div class="msg msg-warn">
         <p><strong>Note:</strong> This event already exists in the database. You are updating the existing record. The URL cannot be changed for existing events.</p>
       </div>
     {% else %}
-      <div class="msg msg-success" style="margin-top:1.5rem;">
+      <div class="msg msg-success">
         <p><strong>Note:</strong> This is a new event. The data was automatically parsed - please review and edit as needed before saving.</p>
       </div>
     {% endif %}

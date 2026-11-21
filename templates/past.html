@@ -3,18 +3,12 @@
 
 {% block extra_styles %}
   .search-box {
-    width: 100%;
     max-width: 400px;
     padding: 0.5rem 0.75rem;
     margin-bottom: 1.5rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    font-family: inherit;
     font-size: 0.95rem;
   }
-  .search-box:focus { outline: none; border-color: var(--accent); }
+  .search-box:focus { border-color: var(--accent); }
   .no-results { color: var(--text-dim); display: none; }
 {% endblock %}
 
@@ -29,7 +23,7 @@
     {% endif %}
   </div>
 
-  <label for="artist-search" class="hint" style="display:block;margin-bottom:0.4rem;">Search by artist</label>
+  <label for="artist-search" class="hint">Search by artist</label>
   <input type="search" id="artist-search" class="search-box"
          placeholder="Search by artist…" autocomplete="off" />
 

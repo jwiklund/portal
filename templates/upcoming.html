@@ -3,7 +3,7 @@
 
 {% block extra_styles %}
   .filters { margin-bottom: 1.5rem; }
-  .filters a { margin-right: 1rem; color: #999; text-decoration: none; }
+  .filters a { margin-right: 1rem; color: var(--text-link); text-decoration: none; }
   .filters a:hover, .filters a.active { color: var(--text); }
   .event-list {
     display: grid;
@@ -27,6 +27,7 @@
     margin-right: 1rem;
     line-height: 1.5;
   }
+  .event-date-line { display: block; }
   .event-info { flex: 1; }
   .event-name { display: block; font-size: 1.1rem; font-weight: 500; margin-bottom: 0.25rem; }
   .event-meta { display: block; font-size: 0.85rem; color: var(--text-muted); }
@@ -71,9 +72,9 @@
           <a href="/upcoming/{{ e.id }}{{ upcoming_suffix }}" class="event-row">
             <span class="event-date">
               {% if e.date %}
-                <div>{{ e.date }}</div>
+                <span class="event-date-line">{{ e.date }}</span>
                 {% if e.date_end %}
-                  <div>{{ e.date_end }}</div>
+                  <span class="event-date-line">{{ e.date_end }}</span>
                 {% endif %}
               {% else %}
                 {{ "TBD" }}
@@ -82,7 +83,7 @@
             <span class="event-info">
               <span class="event-name">
                 {{ e.name }}
-                {% if e.ticket %}<span class="event-ticket"></span>{% endif %}
+                {% if e.ticket %}<span class="event-ticket" role="img" aria-label="Tickets available"></span>{% endif %}
               </span>
               <span class="event-meta">
                 {% if e.price %}<span class="event-price">{{ e.price }}</span>{% endif %}

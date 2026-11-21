@@ -15,23 +15,10 @@
   .download-form input[type="text"] {
     flex: 1;
     background: var(--bg);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
     padding: 0.6rem 1rem;
-    color: var(--text);
     font-size: 0.95rem;
   }
-  .download-form button {
-    background: var(--accent);
-    color: #1a1a1a;
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .download-form button:hover { background: var(--accent-hover); }
+  .download-form .btn { white-space: nowrap; }
   .podcast-list { display: flex; flex-direction: column; gap: 0.5rem; list-style: none; }
   .podcast-item {
     background: var(--surface);
@@ -63,26 +50,14 @@
     padding: 0; line-height: 1; transition: background 0.15s;
   }
   .play-btn:hover { background: rgba(212, 180, 131, 0.15); }
-  .play-btn.playing { background: var(--accent); color: #1a1a1a; }
+  .play-btn.playing { background: var(--accent); color: var(--accent-contrast); }
   .time-readout {
     font-size: 0.75rem; color: var(--text-muted); font-variant-numeric: tabular-nums;
     white-space: nowrap; flex-shrink: 0; min-width: 40px; text-align: right;
   }
-  .skip-btn {
-    background: #2a4a5c;
-    color: var(--text);
-    border: 1px solid #3a6a7c;
-    border-radius: var(--radius-sm);
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .skip-btn:hover { background: #3a6a7c; }
   .podcast-name {
     font-size: 0.9rem;
-    color: #ccc;
+    color: var(--text-soft);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -98,7 +73,7 @@
 
   @media (max-width: 640px) {
     .download-form { flex-direction: column; }
-    .download-form button { width: 100%; }
+    .download-form .btn { width: 100%; justify-content: center; }
     .podcast-row { align-items: flex-start; }
     .podcast-name {
       width: 100%;
@@ -107,20 +82,8 @@
       text-overflow: unset;
     }
     .play-btn,
-    .skip-btn,
-    .delete-btn { flex: 1; }
+    .podcast-row .btn { flex: 1; }
   }
-  .delete-btn {
-    background: #5c1a1a;
-    color: var(--text);
-    border: 1px solid #7a2a2a;
-    border-radius: var(--radius-sm);
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .delete-btn:hover { background: #7a2a2a; }
   .podcast-item form { margin: 0; }
 .podcast-progress {
   display: flex;
@@ -266,9 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
   {% endif %}
 
   <form class="download-form" method="POST" action="/podcasts/download">
-    <label for="podcast-url" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Audio URL</label>
+    <label for="podcast-url" class="sr-only">Audio URL</label>
     <input type="text" id="podcast-url" name="url" placeholder="Paste a YouTube/audio URL..." required />
-    <button type="submit">Download</button>
+    <button type="submit" class="btn">Download</button>
   </form>
 
   {% if podcasts %}
@@ -282,10 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <source src="{{ p.path }}" type="{{ p.mime_type }}">
             </audio>
             <button type="button" class="play-btn" data-audio="audio-{{ loop.index }}" title="Play/Pause" aria-label="Play/pause">▶</button>
-            <button type="button" class="skip-btn" onclick="skipAudio('audio-{{ loop.index }}', 15)">+15s</button>
-            <form method="POST" action="/podcasts/delete" class="podcast-delete-form" data-name="{{ p.name }}" style="margin:0;display:inline">
+            <button type="button" class="btn btn-info btn-sm" onclick="skipAudio('audio-{{ loop.index }}', 15)">+15s</button>
+            <form method="POST" action="/podcasts/delete" class="podcast-delete-form" data-name="{{ p.name }}">
               <input type="hidden" name="filename" value="{{ p.name }}">
-              <button type="submit" class="delete-btn">Delete</button>
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
             <div class="podcast-progress" id="progress-{{ loop.index }}">
               <div class="progress-bar">

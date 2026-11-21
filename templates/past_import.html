@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Import Past{% endblock %}
 
+{% block extra_styles %}
+  .form { max-width: 500px; }
+  .hint { margin-top: 2rem; }
+{% endblock %}
+
 {% block content %}
   <h2>Import Past from Photos</h2>
 
@@ -8,7 +13,7 @@
     <div class="msg msg-error">{{ error }}</div>
   {% endif %}
 
-  <form method="POST" action="/past/import" class="form" style="max-width:500px;">
+  <form method="POST" action="/past/import" class="form">
     <div class="form-group">
       <label for="url">Google Photos album URL</label>
       <input type="url" id="url" name="url" placeholder="https://photos.google.com/share/..." required {% if url %}value="{{ url }}"{% endif %}>
@@ -16,7 +21,7 @@
     <button type="submit" class="btn">Parse &amp; Edit</button>
   </form>
 
-  <p class="hint" style="margin-top: 2rem;">
+  <p class="hint">
     Paste a shared album link to pre-fill the name and dates from the album
     title (e.g. “Way Out West 2026-08-06 - 2026-08-08”). You can review and
     edit everything before saving.
