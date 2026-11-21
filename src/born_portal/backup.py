@@ -46,14 +46,23 @@ def resolve_backup(value: str | None, directory: str | Path = ".") -> str:
     return value
 
 
-# Tables excluded from backups. Sessions hold short-lived data (including OAuth
-# tokens); they are neither dumped nor dropped, so a restore leaves the current
-# logins untouched and no tokens end up in a backup file.
-_EXCLUDED_TABLES = ("sessions",)
+# Tables excluded from backups. These hold machine-local, ephemeral data:
+# sessions (short-lived OAuth tokens), push subscriptions (per-browser
+# endpoints and keys) and the error log (transient diagnostics). They are
+# neither dumped nor dropped, so a restore leaves the current state untouched
+# and no secrets or stale endpoints end up in a backup file.
+_EXCLUDED_TABLES = ("sessions", "push_subscriptions", "error_log")
 
 _TABLE_STATEMENT = re.compile(
-    r"^(?:CREATE\s+TABLE|CREATE\s+(?:UNIQUE\s+)?INDEX|INSERT\s+INTO)"
+    r"^(?:CREATE\s+TABLE|INSERT\s+INTO)"
     r"\s+(?:IF\s+NOT\s+EXISTS\s+)?"
+    r'(?:"(?P<quoted>[^"]+)"|(?P<plain>[^\s(]+))',
+    re.IGNORECASE,
+)
+
+_INDEX_STATEMENT = re.compile(
+    r"^CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?"
+    r'(?:"[^"]+"|[^\s(]+)\s+ON\s+'
     r'(?:"(?P<quoted>[^"]+)"|(?P<plain>[^\s(]+))',
     re.IGNORECASE,
 )
@@ -61,10 +70,11 @@ _TABLE_STATEMENT = re.compile(
 
 def _statement_table(statement: str) -> str | None:
     """Return the table a dump statement targets, if it is one we track."""
-    match = _TABLE_STATEMENT.match(statement)
-    if match is None:
-        return None
-    return match.group("quoted") or match.group("plain")
+    for pattern in (_INDEX_STATEMENT, _TABLE_STATEMENT):
+        match = pattern.match(statement)
+        if match is not None:
+            return match.group("quoted") or match.group("plain")
+    return None
 
 
 def _is_excluded(statement: str) -> bool:
@@ -74,8 +84,9 @@ def _is_excluded(statement: str) -> bool:
 def backup_db(db_path: str, output: str) -> None:
     """Dump the SQLite database to a .sql file.
 
-    Session data is omitted, so login state and OAuth tokens never end up in a
-    backup file.
+    Session, push subscription and error log data is omitted, so login state,
+    OAuth tokens, browser push endpoints and stale diagnostics never end up in
+    a backup file.
     """
     conn = sqlite3.connect(db_path)
     try:
@@ -92,21 +103,45 @@ def backup_db(db_path: str, output: str) -> None:
 def restore_db(input: str, db_path: str) -> None:
     """Restore the SQLite database from a .sql file.
 
-    The restore is destructive for everything except sessions: existing tables
-    and views are dropped before the dump is applied, but the ``sessions``
-    table is left in place so active logins survive a restore. Dropping the
-    other tables also makes restoring over a populated database (or re-running
-    a restore) succeed instead of failing with ``table ... already exists``.
+    The restore is destructive for everything except the excluded tables
+    (sessions, push subscriptions and the error log): existing tables and views
+    are dropped before the dump is applied, but those tables are left in place
+    so active logins, push subscriptions and the current error log survive a
+    restore. Dropping the other tables also makes restoring over a populated
+    database (or re-running a restore) succeed instead of failing with
+    ``table ... already exists``.
+
+    Statements for the excluded tables are skipped as well, so older backups
+    that still contain them cannot overwrite the live data.
     """
     with open(input) as f:
         script = f.read()
+    statements = [
+        statement
+        for statement in _split_statements(script)
+        if not _is_excluded(statement)
+    ]
     conn = sqlite3.connect(db_path)
     try:
         _drop_all(conn)
-        conn.executescript(script)
+        conn.executescript("\n".join(statements))
     finally:
         conn.close()
     logger.info("Restored %s from %s", db_path, input)
+
+
+def _split_statements(script: str) -> list[str]:
+    """Split a dump script into complete SQL statements."""
+    statements: list[str] = []
+    buffer = ""
+    for line in script.splitlines(keepends=True):
+        buffer += line
+        if sqlite3.complete_statement(buffer):
+            statements.append(buffer.strip())
+            buffer = ""
+    if buffer.strip():
+        statements.append(buffer.strip())
+    return statements
 
 
 def _drop_all(conn: sqlite3.Connection) -> None:

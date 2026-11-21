@@ -1,4 +1,4 @@
-"""Tests for SQLite backup/restore, especially the sessions exclusion."""
+"""Tests for SQLite backup/restore, especially the excluded tables."""
 
 import sqlite3
 from datetime import date
@@ -14,15 +14,26 @@ from born_portal.backup import (
     restore_db,
 )
 
+_EPHEMERAL_TABLES = ("sessions", "push_subscriptions", "error_log")
 
-def _seed(path, *, sessions, upcoming):
+
+def _seed(path, *, sessions, upcoming, push=(), errors=()):
     conn = sqlite3.connect(path)
     conn.executescript(
         "CREATE TABLE sessions (id TEXT PRIMARY KEY, data TEXT, expires_at FLOAT);"
         "CREATE TABLE upcoming (id INTEGER PRIMARY KEY, url TEXT, name TEXT);"
+        "CREATE TABLE push_subscriptions ("
+        " id INTEGER PRIMARY KEY, endpoint TEXT UNIQUE, auth TEXT);"
+        'CREATE INDEX "ix_push_subscriptions_endpoint"'
+        ' ON "push_subscriptions" ("endpoint");'
+        "CREATE TABLE error_log ("
+        " id INTEGER PRIMARY KEY, created_at TEXT, message TEXT);"
+        'CREATE INDEX "ix_error_log_created_at" ON "error_log" ("created_at");'
     )
     conn.executemany("INSERT INTO sessions VALUES (?, ?, 0.0)", sessions)
     conn.executemany("INSERT INTO upcoming VALUES (?, ?, ?)", upcoming)
+    conn.executemany("INSERT INTO push_subscriptions VALUES (?, ?, ?)", push)
+    conn.executemany("INSERT INTO error_log VALUES (?, ?, ?)", errors)
     conn.commit()
     conn.close()
 
@@ -73,26 +84,32 @@ def test_resolve_backup_rejects_invalid_date(tmp_path):
         resolve_backup("2026-13-01", tmp_path)
 
 
-def test_backup_omits_sessions(tmp_path):
+def test_backup_omits_ephemeral_tables(tmp_path):
     db = tmp_path / "portal.db"
     out = tmp_path / "backup.sql"
     _seed(
         db,
         sessions=[("sid1", '{"user": "a@b", "spotify_refresh_token": "SECRET"}')],
         upcoming=[(1, "http://x", "Party")],
+        push=[(1, "https://push.example/abc", "PUSHKEY")],
+        errors=[(1, "2026-11-09", "BOOM")],
     )
 
     backup_db(str(db), str(out))
 
     dump = out.read_text()
-    assert "sessions" not in dump
     assert "Party" in dump
-    # No session payload (identity or token) leaks into the dump.
+    for table in _EPHEMERAL_TABLES:
+        assert f'CREATE TABLE "{table}"' not in dump
+        assert f"CREATE TABLE {table}" not in dump
+    # No session payload, push endpoint or error record leaks into the dump.
     assert "a@b" not in dump
     assert "SECRET" not in dump
+    assert "push.example" not in dump
+    assert "BOOM" not in dump
 
 
-def test_restore_preserves_sessions_and_replaces_data(tmp_path):
+def test_restore_preserves_ephemeral_tables_and_replaces_data(tmp_path):
     db = tmp_path / "portal.db"
     out = tmp_path / "backup.sql"
     _seed(
@@ -102,19 +119,45 @@ def test_restore_preserves_sessions_and_replaces_data(tmp_path):
     )
     backup_db(str(db), str(out))
 
-    # Mutate the live database after the backup: a newer session and changed data.
+    # Mutate the live database after the backup: newer sessions, a new push
+    # subscription, a new error and changed data.
     conn = sqlite3.connect(db)
     conn.execute("INSERT INTO sessions VALUES ('sid2', '{}', 0.0)")
+    conn.execute("INSERT INTO push_subscriptions VALUES (1, 'https://p/1', 'KEY')")
+    conn.execute("INSERT INTO error_log VALUES (1, '2026-11-09', 'BOOM')")
     conn.execute("UPDATE upcoming SET name = 'New' WHERE id = 1")
     conn.commit()
     conn.close()
 
     restore_db(str(out), str(db))
 
-    # Sessions are preserved; everything else is restored from the dump.
+    # Ephemeral tables are preserved; everything else is restored from the dump.
     session_ids = {row[0] for row in _rows(db, "sessions")}
     assert session_ids == {"sid1", "sid2"}
+    assert _rows(db, "push_subscriptions") == [(1, "https://p/1", "KEY")]
+    assert _rows(db, "error_log") == [(1, "2026-11-09", "BOOM")]
     assert _rows(db, "upcoming") == [(1, "http://x", "Old")]
+
+
+def test_restore_ignores_ephemeral_tables_in_old_backup(tmp_path):
+    db = tmp_path / "portal.db"
+    out = tmp_path / "old-backup.sql"
+    _seed(db, sessions=[], upcoming=[])
+    out.write_text(
+        'CREATE TABLE "upcoming" (id INTEGER PRIMARY KEY, url TEXT, name TEXT);\n'
+        "INSERT INTO \"upcoming\" VALUES(1,'http://x','Party');\n"
+        'CREATE TABLE "push_subscriptions" (id INTEGER PRIMARY KEY, endpoint TEXT);\n'
+        "INSERT INTO \"push_subscriptions\" VALUES(1,'https://old/push');\n"
+        'CREATE TABLE "error_log" (id INTEGER PRIMARY KEY, message TEXT);\n'
+        "INSERT INTO \"error_log\" VALUES(1,'OLD BOOM');\n"
+    )
+
+    restore_db(str(out), str(db))
+
+    assert _rows(db, "upcoming") == [(1, "http://x", "Party")]
+    # The old dump must not overwrite or fail on the live ephemeral tables.
+    assert _rows(db, "push_subscriptions") == []
+    assert _rows(db, "error_log") == []
 
 
 def test_restore_into_empty_database_succeeds(tmp_path):
