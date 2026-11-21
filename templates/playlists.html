@@ -2,16 +2,16 @@
 {% block title %}Playlists{% endblock %}
 
 {% block extra_styles %}
-  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
-  h3 { font-size: 1.15rem; font-weight: normal; margin: 2rem 0 0.75rem; color: #ccc; }
+  h2 { margin-bottom: 1rem; }
+  h3 { margin: 2rem 0 0.75rem; }
   .import-form { display: flex; gap: 0.75rem; max-width: 700px; margin-bottom: 0.75rem; }
   .import-form input[type="url"] {
     flex: 1;
     padding: 0.75rem;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
-    color: #e8e8e8;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--text);
     font-size: 1rem;
     font-family: inherit;
   }
@@ -22,41 +22,27 @@
     min-height: 110px;
     resize: vertical;
     padding: 0.75rem;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
-    color: #e8e8e8;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--text);
     font-size: 0.95rem;
     font-family: inherit;
     margin-bottom: 0.5rem;
   }
   .text-form textarea:focus { outline: none; border-color: #555; }
   .or { color: #777; font-size: 0.8rem; margin: 0.5rem 0; }
-  .import-form button, .text-form button {
-    background: #d4b483;
-    color: #1a1a1a;
-    border: none;
-    padding: 0.75rem 1.25rem;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .import-form button:hover, .text-form button:hover { opacity: 0.9; }
-  .error { color: #e76f51; background: #2a1a1a; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; }
-  .success { color: #a7d7a7; background: #16261a; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; }
-  .success a { color: #1db954; }
-  .hint { color: #888; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .hint { margin-bottom: 1.5rem; }
 
-  .editor { border: 1px solid #3a3a3a; border-radius: 6px; padding: 1rem; background: #161616; }
-  .rows { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+  .editor { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 1rem; background: var(--surface-2); }
+  .rows { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; list-style: none; }
   .row {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     background: #1f1f1f;
-    border: 1px solid #2e2e2e;
-    border-radius: 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     padding: 0.4rem 0.6rem;
   }
   .row img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
@@ -65,7 +51,7 @@
   .row .remove-btn {
     background: none;
     border: none;
-    color: #888;
+    color: var(--text-muted);
     cursor: pointer;
     font-size: 1rem;
     padding: 0 0.25rem;
@@ -80,8 +66,8 @@
     right: 0;
     z-index: 10;
     background: #1f1f1f;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
     max-height: 260px;
     overflow-y: auto;
     display: none;
@@ -96,74 +82,53 @@
   }
   .search-result:hover { background: #2a2a2a; }
   .search-result img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
-  .search-status { color: #888; font-size: 0.8rem; margin-top: 0.35rem; min-height: 1em; }
+  .search-status { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.35rem; min-height: 1em; }
   .search-wrap input {
     width: 100%;
     padding: 0.6rem 0.75rem;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
-    color: #e8e8e8;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--text);
     font-size: 0.95rem;
     font-family: inherit;
   }
   .search-wrap input:focus { outline: none; border-color: #555; }
-  .add-manual-btn {
-    margin-top: 0.5rem;
-    background: #d4b483;
-    color: #1a1a1a;
-    border: none;
-    padding: 0.4rem 0.9rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    cursor: pointer;
-  }
-  .add-manual-btn:hover { opacity: 0.9; }
 
   .create-form { max-width: 700px; }
-  .create-form label { display: block; color: #ccc; font-size: 0.85rem; margin-bottom: 0.4rem; }
-  .create-form input[type="text"] {
-    width: 100%;
-    padding: 0.75rem;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
-    color: #e8e8e8;
-    font-size: 1rem;
-    font-family: inherit;
-    margin-bottom: 0.5rem;
-  }
   .create-form input[type="text"]:focus { outline: none; border-color: #555; }
-  .create-form .create-hint { color: #888; font-size: 0.8rem; margin-bottom: 0.75rem; }
-  .create-form button {
+  .create-form .create-hint { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.75rem; }
+  .create-form .btn-create {
     background: #1db954;
     color: #0b1a10;
     border: none;
     padding: 0.75rem 1.25rem;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 1rem;
     font-weight: bold;
     cursor: pointer;
   }
-  .create-form button:hover { opacity: 0.9; }
-  .create-form button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .create-form .btn-create:hover { opacity: 0.9; }
+  .create-form .btn-create:disabled { opacity: 0.4; cursor: not-allowed; }
 {% endblock %}
 
 {% block content %}
   <h2>Playlists</h2>
 
   <form method="POST" action="/playlists" class="import-form">
+    <label for="url" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Event link</label>
     <input type="url" id="url" name="url" placeholder="Paste a link to an event…"
            {% if url %}value="{{ url }}"{% endif %}>
-    <button type="submit">Fetch &amp; Match</button>
+    <button type="submit" class="btn">Fetch &amp; Match</button>
   </form>
 
   <p class="or">— or —</p>
 
   <form method="POST" action="/playlists" class="text-form">
+    <label for="text" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Lineup or setlist</label>
     <textarea id="text" name="text"
               placeholder="Paste a lineup or setlist here…">{% if text %}{{ text }}{% endif %}</textarea>
-    <button type="submit">Extract from Text</button>
+    <button type="submit" class="btn">Extract from Text</button>
   </form>
 
   <p class="hint">Fetch an event page or paste text. The model extracts the event
@@ -172,44 +137,49 @@
     tracks.</p>
 
   {% if error %}
-    <div class="error">{{ error }}</div>
+    <div class="msg msg-error">{{ error }}</div>
   {% endif %}
   {% if created %}
-    <div class="success">
+    <div class="msg msg-success">
       Created “{{ created.name }}” with {{ created.track_count }}
       track{{ '' if created.track_count == 1 else 's' }} on Spotify.
       {% if created.url %}<a href="{{ created.url }}" target="_blank" rel="noopener">Open playlist</a>{% endif %}
     </div>
   {% endif %}
   {% if not spotify_connected %}
-    <div class="error">
+    <div class="msg msg-error">
       Spotify search is off until you
       <a href="/spotify/login?next=/playlists">connect your Spotify account</a>.
     </div>
   {% endif %}
 
-  <h3>Artists</h3>
-  <div class="editor">
-    <div class="rows" id="artist-rows"></div>
-    <div class="search-wrap">
-      <input type="text" id="artist-search" placeholder="Search artist on Spotify…"
-             autocomplete="off">
-      <div class="search-results" id="artist-results"></div>
+  <section>
+    <h3>Artists</h3>
+    <div class="editor">
+      <ul class="rows" id="artist-rows"></ul>
+      <div class="search-wrap">
+        <label for="artist-search" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Search artist on Spotify</label>
+        <input type="text" id="artist-search" placeholder="Search artist on Spotify…"
+               autocomplete="off">
+        <div class="search-results" id="artist-results"></div>
+      </div>
+      <p class="search-status" id="artist-status"></p>
+      <button type="button" class="btn btn-secondary btn-sm" id="artist-add-manual">Add manually</button>
     </div>
-    <p class="search-status" id="artist-status"></p>
-    <button type="button" class="add-manual-btn" id="artist-add-manual">Add manually</button>
-  </div>
+  </section>
 
-  <h3>Create playlist</h3>
-  <form method="POST" action="/playlists/create" class="create-form" id="create-form">
-    <label for="event-name">Event name</label>
-    <input type="text" id="event-name" name="event_name" placeholder="Event name…"
-           value="{{ event_name }}" autocomplete="off">
-    <input type="hidden" name="year" value="{{ year }}">
-    <input type="hidden" name="artists" id="create-artists">
-    <p class="create-hint" id="create-hint"></p>
-    <button type="submit" id="create-btn">Create playlist on Spotify</button>
-  </form>
+  <section>
+    <h3>Create playlist</h3>
+    <form method="POST" action="/playlists/create" class="create-form" id="create-form">
+      <label for="event-name">Event name</label>
+      <input type="text" id="event-name" name="event_name" placeholder="Event name…"
+             value="{{ event_name }}" autocomplete="off">
+      <input type="hidden" name="year" value="{{ year }}">
+      <input type="hidden" name="artists" id="create-artists">
+      <p class="create-hint" id="create-hint"></p>
+      <button type="submit" class="btn-create" id="create-btn">Create playlist on Spotify</button>
+    </form>
+  </section>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -235,7 +205,7 @@
     function renderRows() {
       artistRows.innerHTML = "";
       artists.forEach((item, i) => {
-        const row = document.createElement("div");
+        const row = document.createElement("li");
         row.className = "row artist";
 
         if (item.image) {

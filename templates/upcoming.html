@@ -2,47 +2,42 @@
 {% block title %}Upcoming{% endblock %}
 
 {% block extra_styles %}
-  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
   .filters { margin-bottom: 1.5rem; }
   .filters a { margin-right: 1rem; color: #999; text-decoration: none; }
-  .filters a:hover, .filters a.active { color: #e8e8e8; }
+  .filters a:hover, .filters a.active { color: var(--text); }
   .event-list {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 0.5rem 1.5rem;
+    list-style: none;
   }
   .event-item {
     display: contents;
-    background: #1a1a1a;
-    border: 1px solid #2e2e2e;
-    border-radius: 8px;
-    text-decoration: none;
-    color: #e8e8e8;
-
   }
-  .event-item:hover {
-    border-color: #444;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  .event-row {
+    display: contents;
+    color: var(--text);
+    text-decoration: none;
   }
   .event-date {
     font-size: 0.85rem;
-    color: #aaa;
+    color: var(--text-dim);
     padding-right: 1rem;
-    border-right: 1px solid #2e2e2e;
+    border-right: 1px solid var(--border);
     margin-right: 1rem;
     line-height: 1.5;
   }
   .event-info { flex: 1; }
-  .event-name { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.25rem; }
-  .event-meta { font-size: 0.85rem; color: #888; }
-  .event-price { color: #d4b483; }
+  .event-name { display: block; font-size: 1.1rem; font-weight: 500; margin-bottom: 0.25rem; }
+  .event-meta { display: block; font-size: 0.85rem; color: var(--text-muted); }
+  .event-price { color: var(--accent); }
   .event-ticket {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 1.1rem;
     height: 1.1rem;
-    background: #2e7d32;
+    background: var(--green);
     border-radius: 4px;
     margin-left: 0.5rem;
   }
@@ -56,48 +51,49 @@
 {% block content %}
   {% set upcoming_base = "/upcoming" if is_admin else "/upcoming/view" %}
   {% set upcoming_suffix = "" if is_admin else "/view" %}
-  <h2>Upcoming</h2>
-
-  {% if is_admin %}
-    <div style="margin-bottom: 1.5rem;">
-      <a href="/upcoming/import" style="background: #d4b483; color: #1a1a1a; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">+ Import Event</a>
-      <a href="/upcoming/potential" style="background: transparent; color: #d4b483; border: 1px solid #d4b483; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">Potential</a>
-    </div>
-  {% endif %}
-
-  <div class="filters">
-    <a href="{{ upcoming_base }}" class="{% if not sort_by or sort_by == 'date' %}active{% endif %}">Date</a>
-    <a href="{{ upcoming_base }}?sort_by=price" class="{% if sort_by == 'price' %}active{% endif %}">Cost</a>
+  <div class="page-head">
+    <h2>Upcoming</h2>
+    {% if is_admin %}
+      <a href="/upcoming/import" class="btn">+ Import Event</a>
+      <a href="/upcoming/potential" class="btn btn-secondary">Potential</a>
+    {% endif %}
   </div>
 
+  <nav class="filters" aria-label="Sort events">
+    <a href="{{ upcoming_base }}" class="{% if not sort_by or sort_by == 'date' %}active{% endif %}">Date</a>
+    <a href="{{ upcoming_base }}?sort_by=price" class="{% if sort_by == 'price' %}active{% endif %}">Cost</a>
+  </nav>
+
   {% if upcoming %}
-    <div class="event-list">
+    <ul class="event-list">
       {% for e in upcoming %}
-        <a href="/upcoming/{{ e.id }}{{ upcoming_suffix }}" class="event-item">
-          <div class="event-date">
-            {% if e.date %}
-              <div>{{ e.date }}</div>
-              {% if e.date_end %}
-                <div>{{ e.date_end }}</div>
+        <li class="event-item">
+          <a href="/upcoming/{{ e.id }}{{ upcoming_suffix }}" class="event-row">
+            <span class="event-date">
+              {% if e.date %}
+                <div>{{ e.date }}</div>
+                {% if e.date_end %}
+                  <div>{{ e.date_end }}</div>
+                {% endif %}
+              {% else %}
+                {{ "TBD" }}
               {% endif %}
-            {% else %}
-              {{ "TBD" }}
-            {% endif %}
-          </div>
-          <div class="event-info">
-            <div class="event-name">
-              {{ e.name }}
-              {% if e.ticket %}<span class="event-ticket"></span>{% endif %}
-            </div>
-            <div class="event-meta">
-              {% if e.price %}<span class="event-price">{{ e.price }}</span>{% endif %}
-              {% if e.location %} • {{ e.location }}{% endif %}
-            </div>
-          </div>
-        </a>
+            </span>
+            <span class="event-info">
+              <span class="event-name">
+                {{ e.name }}
+                {% if e.ticket %}<span class="event-ticket"></span>{% endif %}
+              </span>
+              <span class="event-meta">
+                {% if e.price %}<span class="event-price">{{ e.price }}</span>{% endif %}
+                {% if e.location %} • {{ e.location }}{% endif %}
+              </span>
+            </span>
+          </a>
+        </li>
       {% endfor %}
-    </div>
+    </ul>
   {% else %}
-    <p style="color: #aaa;">No upcoming events found.</p>
+    <p class="empty">No upcoming events found.</p>
   {% endif %}
 {% endblock %}

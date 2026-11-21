@@ -2,76 +2,18 @@
 {% block title %}Notifications{% endblock %}
 
 {% block extra_styles %}
-  .page-head {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.25rem;
-  }
-  .page-head h2 { font-size: 2rem; font-weight: normal; }
-  .page-head a, .page-head button {
-    background: #d4b483;
-    color: #1a1a1a;
-    padding: 0.45rem 0.95rem;
-    border: none;
-    border-radius: 6px;
-    text-decoration: none;
-    font-family: inherit;
-    font-size: 0.85rem;
-    cursor: pointer;
-  }
-  .page-head a:hover, .page-head button:hover { opacity: 0.9; }
-  .page-head button:disabled { opacity: 0.5; cursor: default; }
-  .count { color: #888; font-size: 0.85rem; margin-bottom: 1rem; }
-  .note-list { display: flex; flex-direction: column; gap: 0.75rem; }
-  .note {
-    background: #1a1a1a;
-    border: 1px solid #2e2e2e;
-    border-radius: 8px;
-    padding: 0.9rem 1.1rem;
-  }
-  .note.unread { border-color: #d4b483; }
-  .note-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
-  .note-title { font-weight: 500; font-size: 1.05rem; }
-  .note-date { font-size: 0.8rem; color: #888; }
-  .badge {
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-radius: 999px;
-    padding: 0.1rem 0.55rem;
-  }
-  .badge.new { background: #d4b483; color: #1a1a1a; }
-  .note-text {
-    font-size: 0.9rem;
-    color: #ccc;
-    margin-top: 0.5rem;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-  .note-text a { color: #d4b483; }
-  .note-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
-  .note-actions button {
-    background: transparent;
-    color: #d4b483;
-    border: 1px solid #d4b483;
-    padding: 0.4rem 0.9rem;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 0.85rem;
-    cursor: pointer;
-  }
-  .note-actions button:hover { background: #d4b483; color: #1a1a1a; }
-  .empty { color: #aaa; }
+  .note-list { list-style: none; }
+  .note.unread { border-color: var(--accent); }
+  .note-text a { color: var(--accent); }
+  .count { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem; }
 {% endblock %}
 
 {% block content %}
   <div class="page-head">
     <h2>Notifications</h2>
-    <a href="/notifications/new">+ New Notification</a>
+    <a href="/notifications/new" class="btn">+ New Notification</a>
     {% if push_configured %}
-      <button id="push-toggle" type="button" hidden></button>
+      <button id="push-toggle" type="button" class="btn btn-secondary" hidden></button>
     {% endif %}
   </div>
   <p id="push-hint" class="count" hidden></p>
@@ -81,33 +23,35 @@
   {% endif %}
 
   {% if notifications %}
-    <div class="note-list">
+    <ul class="list note-list">
       {% for n in notifications %}
         {% set is_new = n.id in new_ids %}
-        <div class="note {{ 'unread' if is_new else 'read' }}">
-          <div class="note-head">
-            <span class="note-title">{{ n.title }}</span>
-            <span class="note-date">{{ n.created_at }}</span>
-            {% if is_new %}<span class="badge new">New</span>{% endif %}
-          </div>
-          {% if n.text %}
-            <div class="note-text">{{ n.text | linkify | safe }}</div>
-          {% endif %}
-          <div class="note-actions">
-            <form method="post" action="/notifications/read">
-              <input type="hidden" name="id" value="{{ n.id }}" />
-              <input type="hidden" name="read" value="{{ '0' if n.read else '1' }}" />
-              <button type="submit">{{ "Mark unread" if n.read else "Mark read" }}</button>
-            </form>
-            <form method="post" action="/notifications/delete"
-                  onsubmit="return confirm('Delete this notification?');">
-              <input type="hidden" name="id" value="{{ n.id }}" />
-              <button type="submit">Delete</button>
-            </form>
-          </div>
-        </div>
+        <li>
+          <article class="card note {{ 'unread' if is_new else 'read' }}">
+            <header class="card-head">
+              <span class="card-title">{{ n.title }}</span>
+              <time class="card-date">{{ n.created_at }}</time>
+              {% if is_new %}<span class="badge badge-new">New</span>{% endif %}
+            </header>
+            {% if n.text %}
+              <div class="card-body">{{ n.text | linkify | safe }}</div>
+            {% endif %}
+            <div class="card-actions">
+              <form method="post" action="/notifications/read">
+                <input type="hidden" name="id" value="{{ n.id }}" />
+                <input type="hidden" name="read" value="{{ '0' if n.read else '1' }}" />
+                <button type="submit" class="btn btn-secondary btn-sm">{{ "Mark unread" if n.read else "Mark read" }}</button>
+              </form>
+              <form method="post" action="/notifications/delete"
+                    onsubmit="return confirm('Delete this notification?');">
+                <input type="hidden" name="id" value="{{ n.id }}" />
+                <button type="submit" class="btn btn-sm">Delete</button>
+              </form>
+            </div>
+          </article>
+        </li>
       {% endfor %}
-    </div>
+    </ul>
   {% else %}
     <p class="empty">No notifications yet.</p>
   {% endif %}

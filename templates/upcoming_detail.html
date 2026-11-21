@@ -2,17 +2,16 @@
 {% block title %}{{ upcoming.name }}{% endblock %}
 
 {% block extra_styles %}
-  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
   .event-header { margin-bottom: 2rem; }
   .event-title { font-size: 2rem; margin-bottom: 0.5rem; line-height: 1.2; }
-  .event-subtitle { color: #aaa; font-size: 0.9rem; }
+  .event-subtitle { color: var(--text-dim); font-size: 0.9rem; }
   .event-ticket {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 1.25rem;
     height: 1.25rem;
-    background: #2e7d32;
+    background: var(--green);
     border-radius: 4px;
     margin-left: 0.5rem;
   }
@@ -21,77 +20,77 @@
     color: white;
     font-size: 0.85rem;
   }
-  .event-meta { display: flex; gap: 2rem; margin: 1.5rem 0; flex-wrap: wrap; }
+  .event-meta-grid { display: flex; gap: 2rem; margin: 1.5rem 0; flex-wrap: wrap; }
   .meta-item { display: flex; flex-direction: column; }
   .meta-label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
-  .meta-value { font-size: 1rem; color: #e8e8e8; }
+  .meta-value { font-size: 1rem; color: var(--text); }
   .event-description { line-height: 1.7; color: #ccc; margin-top: 2rem; white-space: pre-wrap; }
-  .back-link { display: inline-block; margin-bottom: 1.5rem; color: #999; text-decoration: none; }
-  .back-link:hover { color: #e8e8e8; }
 {% endblock %}
 
 {% block content %}
   {% set upcoming_base = "/upcoming" if is_admin else "/upcoming/view" %}
   <a href="{{ upcoming_base }}" class="back-link">← Back to upcoming</a>
 
-  {% if is_admin %}
-    <div style="margin-bottom: 1.5rem;">
-      <a href="/upcoming/edit/{{ upcoming.id }}" style="background: #2a2a2a; color: #e8e8e8; padding: 0.5rem 1rem; border: 1px solid #3a3a3a; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">Edit</a>
-      <button onclick="confirmDelete({{ upcoming.id }})" style="background: #e76f51; color: #1a1a1a; border: none; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem; cursor: pointer; margin-left: 0.5rem;">Delete</button>
-    </div>
-  {% endif %}
+  <article>
+    {% if is_admin %}
+      <div class="actions" style="margin-bottom: 1.5rem;">
+        <a href="/upcoming/edit/{{ upcoming.id }}" class="btn btn-muted">Edit</a>
+        <button onclick="confirmDelete({{ upcoming.id }})" class="btn btn-danger">Delete</button>
+      </div>
+    {% endif %}
 
-  <div class="event-header">
-    <h1 class="event-title">
-      {{ upcoming.name }}
-      {% if upcoming.ticket %}<span class="event-ticket"></span>{% endif %}
-    </h1>
-    <div class="event-subtitle">
-      {% if upcoming.date %}<span>{{ upcoming.date }}</span>{% endif %}
-      {% if upcoming.location %} • <span>{{ upcoming.location }}</span>{% endif %}
-      {% if upcoming.price %} • <span>{{ upcoming.price }}</span>{% endif %}
-    </div>
-  </div>
+    <header class="event-header">
+      <h1 class="event-title">
+        {{ upcoming.name }}
+        {% if upcoming.ticket %}<span class="event-ticket"></span>{% endif %}
+      </h1>
+      <div class="event-subtitle">
+        {% if upcoming.date %}<span>{{ upcoming.date }}</span>{% endif %}
+        {% if upcoming.location %} • <span>{{ upcoming.location }}</span>{% endif %}
+        {% if upcoming.price %} • <span>{{ upcoming.price }}</span>{% endif %}
+      </div>
+    </header>
 
-  <div class="event-meta">
-    {% if upcoming.date %}
-      <div class="meta-item">
-        <span class="meta-label">Date</span>
-        <span class="meta-value">
-          {% if upcoming._date_parts and upcoming._date_parts.start_date %}
-            <div>{{ upcoming._date_parts.start_date }}</div>
-            <div style="margin-left: 1rem;">{{ upcoming._date_parts.start_time }}</div>
-            {% if upcoming._date_parts.end_time %}
-              <div style="margin-left: 1rem;">to</div>
-              <div style="margin-left: 1rem;">{{ upcoming._date_parts.end_time }}</div>
+    <dl class="event-meta-grid">
+      {% if upcoming.date %}
+        <div class="meta-item">
+          <dt class="meta-label">Date</dt>
+          <dd class="meta-value">
+            {% if upcoming._date_parts and upcoming._date_parts.start_date %}
+              <div>{{ upcoming._date_parts.start_date }}</div>
+              <div style="margin-left: 1rem;">{{ upcoming._date_parts.start_time }}</div>
+              {% if upcoming._date_parts.end_time %}
+                <div style="margin-left: 1rem;">to</div>
+                <div style="margin-left: 1rem;">{{ upcoming._date_parts.end_time }}</div>
+              {% endif %}
+            {% else %}
+              {{ upcoming.date or "TBD" }}
             {% endif %}
-          {% else %}
-            {{ upcoming.date or "TBD" }}
-          {% endif %}
-        </span>
-      </div>
-    {% endif %}
-    {% if upcoming.location %}
+          </dd>
+        </div>
+      {% endif %}
+      {% if upcoming.location %}
+        <div class="meta-item">
+          <dt class="meta-label">Location</dt>
+          <dd class="meta-value">{{ upcoming.location }}</dd>
+        </div>
+      {% endif %}
+      {% if upcoming.price %}
+        <div class="meta-item">
+          <dt class="meta-label">Cost</dt>
+          <dd class="meta-value">{{ upcoming.price }}</dd>
+        </div>
+      {% endif %}
       <div class="meta-item">
-        <span class="meta-label">Location</span>
-        <span class="meta-value">{{ upcoming.location }}</span>
+        <dt class="meta-label">Source</dt>
+        <dd class="meta-value"><a href="{{ upcoming.url }}" style="color:var(--accent)">{{ upcoming.url }}</a></dd>
       </div>
-    {% endif %}
-    {% if upcoming.price %}
-      <div class="meta-item">
-        <span class="meta-label">Cost</span>
-        <span class="meta-value">{{ upcoming.price }}</span>
-      </div>
-    {% endif %}
-    <div class="meta-item">
-      <span class="meta-label">Source</span>
-      <span class="meta-value"><a href="{{ upcoming.url }}" style="color:#d4b483">{{ upcoming.url }}</a></span>
-    </div>
-  </div>
+    </dl>
 
-  {% if upcoming.description %}
-    <div class="event-description">{{ upcoming.description }}</div>
-  {% endif %}
+    {% if upcoming.description %}
+      <div class="event-description">{{ upcoming.description }}</div>
+    {% endif %}
+  </article>
 
   {% if is_admin %}
     <script>

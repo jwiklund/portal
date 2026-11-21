@@ -2,55 +2,18 @@
 {% block title %}{% if past.id %}Edit{% else %}New{% endif %} Past{% endblock %}
 
 {% block extra_styles %}
-  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
-  .edit-form { max-width: 600px; }
-  .form-group { margin-bottom: 1.25rem; }
-  label { display: block; margin-bottom: 0.5rem; color: #ccc; font-size: 0.9rem; }
-  input, textarea {
-    width: 100%;
-    padding: 0.75rem;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
-    color: #e8e8e8;
-    font-size: 1rem;
-    font-family: inherit;
-  }
-  textarea { min-height: 100px; resize: vertical; }
-  input:focus, textarea:focus { outline: none; border-color: #555; }
   .date-row { display: flex; gap: 1rem; }
   .date-row .form-group { flex: 1; }
-  .form-actions { display: flex; gap: 1rem; margin-top: 2rem; align-items: center; }
-  .save-btn {
-    background: #d4b483;
-    color: #1a1a1a;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-  .cancel-btn {
-    background: transparent;
-    color: #999;
-    border: 1px solid #3a3a3a;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    cursor: pointer;
-    text-decoration: none;
-    font-size: 1rem;
-  }
-  .hint { color: #888; font-size: 0.85rem; margin-top: 0.4rem; }
 
-  .artist-editor { border: 1px solid #3a3a3a; border-radius: 6px; padding: 1rem; background: #161616; }
-  .artist-rows { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+  .artist-editor { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 1rem; background: var(--surface-2); }
+  .artist-rows { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; list-style: none; }
   .artist-row {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     background: #1f1f1f;
-    border: 1px solid #2e2e2e;
-    border-radius: 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     padding: 0.4rem 0.6rem;
   }
   .artist-row img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
@@ -59,7 +22,7 @@
   .artist-row .remove-btn {
     background: none;
     border: none;
-    color: #888;
+    color: var(--text-muted);
     cursor: pointer;
     font-size: 1rem;
     padding: 0 0.25rem;
@@ -73,8 +36,8 @@
     right: 0;
     z-index: 10;
     background: #1f1f1f;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
     max-height: 260px;
     overflow-y: auto;
     display: none;
@@ -89,7 +52,7 @@
   }
   .search-result:hover { background: #2a2a2a; }
   .search-result img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
-  .search-status { color: #888; font-size: 0.8rem; margin-top: 0.35rem; min-height: 1em; }
+  .search-status { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.35rem; min-height: 1em; }
 {% endblock %}
 
 {% block content %}
@@ -100,7 +63,7 @@
       <a href="/spotify/login?next=/past">connect your Spotify account</a>.</p>
   {% endif %}
 
-  <form method="POST" action="/past/save" class="edit-form" id="past-form">
+  <form method="POST" action="/past/save" class="form" id="past-form">
     <input type="hidden" name="past_id" value="{{ past.id or '' }}">
     <input type="hidden" name="artists_json" id="artists_json">
 
@@ -147,21 +110,21 @@
     <div class="form-group">
       <label>Artists</label>
       <div class="artist-editor">
-        <div class="artist-rows" id="artist-rows"></div>
+        <ul class="artist-rows" id="artist-rows"></ul>
         <div class="search-wrap">
           <input type="text" id="artist-search" placeholder="Search artist on Spotify…"
                  autocomplete="off">
           <div class="search-results" id="search-results"></div>
         </div>
         <p class="search-status" id="search-status"></p>
-        <button type="button" class="save-btn" id="add-manual-btn"
-                style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">Add manually</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="add-manual-btn"
+                style="margin-top:0.5rem;">Add manually</button>
       </div>
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="save-btn">Save Past</button>
-      <a href="/past" class="cancel-btn">Cancel</a>
+      <button type="submit" class="btn">Save Past</button>
+      <a href="/past" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 {% endblock %}
@@ -183,7 +146,7 @@
     function renderArtists() {
       rowsEl.innerHTML = "";
       artists.forEach((artist, i) => {
-        const row = document.createElement("div");
+        const row = document.createElement("li");
         row.className = "artist-row";
 
         if (artist.image) {

@@ -4,46 +4,23 @@
 {% block extra_styles %}
   .past-header { margin-bottom: 1.5rem; }
   .past-title { font-size: 2rem; font-weight: normal; }
-  .past-meta { color: #aaa; font-size: 0.9rem; margin-top: 0.25rem; }
+  .past-meta { color: var(--text-dim); font-size: 0.9rem; margin-top: 0.25rem; }
   .past-description { color: #ccc; margin-top: 0.75rem; line-height: 1.5; white-space: pre-line; }
-  .artist-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
-  .chip {
-    font-size: 0.78rem;
-    color: #bbb;
-    background: #242424;
-    border: 1px solid #333;
-    border-radius: 999px;
-    padding: 0.15rem 0.6rem;
-    text-decoration: none;
-  }
-  a.chip:hover { border-color: #d4b483; color: #e8e8e8; }
-  .actions { margin: 1rem 0 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
-  .btn {
-    background: #d4b483;
-    color: #1a1a1a;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .btn-danger { background: #b45d5d; }
   .album-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 0.5rem;
   }
+  .album-grid figure { margin: 0; }
   .album-grid img {
     width: 100%;
     height: auto;
     aspect-ratio: 1;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     display: block;
-    background: #1a1a1a;
+    background: var(--surface);
   }
   .album-grid img:hover { opacity: 0.85; }
   .lightbox {
@@ -74,84 +51,82 @@
     font-size: 2rem;
     line-height: 1;
     padding: 0.5rem 0.9rem;
-    border-radius: 8px;
+    border-radius: var(--radius);
     cursor: pointer;
   }
   .lb-nav:hover { background: rgba(255, 255, 255, 0.18); }
   .lb-prev { left: 1rem; }
   .lb-next { right: 1rem; }
-  .error-box {
-    background: #2a1d1d;
-    border: 1px solid #b45d5d;
-    border-radius: 8px;
-    padding: 1rem;
-    color: #e0b0b0;
-    margin-bottom: 1.5rem;
-  }
 {% endblock %}
 
 {% block content %}
-  <div class="past-header">
-    <h2 class="past-title">{{ past.name }}</h2>
-    <div class="past-meta">
-      {{ past.start_date or "TBD" }}{% if past.end_date and past.end_date != past.start_date %} – {{ past.end_date }}{% endif %}
-      {% if past.location %} • {{ past.location }}{% endif %}
+  <article>
+    <header class="past-header">
+      <h2 class="past-title">{{ past.name }}</h2>
+      <div class="past-meta">
+        {{ past.start_date or "TBD" }}{% if past.end_date and past.end_date != past.start_date %} – {{ past.end_date }}{% endif %}
+        {% if past.location %} • {{ past.location }}{% endif %}
+      </div>
+      {% if past.description %}
+        <div class="past-description">{{ past.description }}</div>
+      {% endif %}
+      {% if past.artists %}
+        <ul class="chips">
+          {% for a in past.artists %}
+            <li>
+              {% if a.spotify_uri and a.spotify_uri.startswith("spotify:") %}
+                <a class="chip" href="https://open.spotify.com/artist/{{ a.spotify_uri.split(':')[2] }}" target="_blank" rel="noopener">{{ a.name }}</a>
+              {% elif a.spotify_uri %}
+                <a class="chip" href="{{ a.spotify_uri }}" target="_blank" rel="noopener">{{ a.name }}</a>
+              {% else %}
+                <span class="chip">{{ a.name }}</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </header>
+
+    <div class="actions">
+      <a href="{{ "/past" if is_admin else "/past/view" }}" class="back-link" style="margin-bottom:0;">← All past</a>
+      {% if past.album_uri %}
+        <a href="{{ past.album_uri }}" target="_blank" rel="noopener" class="back-link" style="color:var(--accent);margin-bottom:0;">Gallery ↗</a>
+      {% endif %}
+      {% if is_admin %}
+        <a href="/past/edit/{{ past.id }}" class="btn">Edit</a>
+        <form method="post" action="/past/delete" class="delete-form"
+              data-name="{{ past.name }}">
+          <input type="hidden" name="past_id" value="{{ past.id }}" />
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+      {% endif %}
     </div>
-    {% if past.description %}
-      <div class="past-description">{{ past.description }}</div>
-    {% endif %}
-    {% if past.artists %}
-      <div class="artist-chips">
-        {% for a in past.artists %}
-          {% if a.spotify_uri and a.spotify_uri.startswith("spotify:") %}
-            <a class="chip" href="https://open.spotify.com/artist/{{ a.spotify_uri.split(':')[2] }}" target="_blank" rel="noopener">{{ a.name }}</a>
-          {% elif a.spotify_uri %}
-            <a class="chip" href="{{ a.spotify_uri }}" target="_blank" rel="noopener">{{ a.name }}</a>
-          {% else %}
-            <span class="chip">{{ a.name }}</span>
-          {% endif %}
+
+    {% if album_error %}
+      <div class="msg msg-error">{{ album_error }}</div>
+    {% elif not past.album_uri %}
+      <p class="empty">No photo album linked to this event.</p>
+    {% elif photos %}
+      <div class="album-grid" id="album-grid">
+        {% for p in photos %}
+          <figure>
+            <img src="{{ p.thumb }}" loading="lazy" alt=""
+                 data-view="{{ p.view }}" data-full="{{ p.full }}"
+                 width="{{ p.width }}" height="{{ p.height }}" />
+          </figure>
         {% endfor %}
       </div>
+    {% else %}
+      <p class="empty">Album is empty or could not be read.</p>
     {% endif %}
-  </div>
 
-  <div class="actions">
-    <a href="{{ "/past" if is_admin else "/past/view" }}" style="color: #999; text-decoration: none; font-size: 0.9rem;">← All past</a>
-    {% if past.album_uri %}
-      <a href="{{ past.album_uri }}" target="_blank" rel="noopener" style="color: #d4b483; text-decoration: none; font-size: 0.9rem;">Gallery ↗</a>
-    {% endif %}
-    {% if is_admin %}
-      <a href="/past/edit/{{ past.id }}" class="btn">Edit</a>
-      <form method="post" action="/past/delete" class="delete-form"
-            data-name="{{ past.name }}">
-        <input type="hidden" name="past_id" value="{{ past.id }}" />
-        <button type="submit" class="btn btn-danger">Delete</button>
-      </form>
-    {% endif %}
-  </div>
-
-  {% if album_error %}
-    <div class="error-box">{{ album_error }}</div>
-  {% elif not past.album_uri %}
-    <p style="color: #aaa;">No photo album linked to this event.</p>
-  {% elif photos %}
-    <div class="album-grid" id="album-grid">
-      {% for p in photos %}
-        <img src="{{ p.thumb }}" loading="lazy" alt=""
-             data-view="{{ p.view }}" data-full="{{ p.full }}"
-             width="{{ p.width }}" height="{{ p.height }}" />
-      {% endfor %}
+    <div class="lightbox" id="lightbox">
+      <button class="lb-nav lb-prev" id="lb-prev">&lt;</button>
+      <img id="lightbox-img" src="" alt="" />
+      <button class="lb-nav lb-next" id="lb-next">&gt;</button>
+      <div class="lightbox-caption">Click image to open full size</div>
     </div>
-  {% else %}
-    <p style="color: #aaa;">Album is empty or could not be read.</p>
-  {% endif %}
-
-  <div class="lightbox" id="lightbox">
-    <button class="lb-nav lb-prev" id="lb-prev">&lt;</button>
-    <img id="lightbox-img" src="" alt="" />
-    <button class="lb-nav lb-next" id="lb-next">&gt;</button>
-    <div class="lightbox-caption">Click image to open full size</div>
-  </div>
+  </article>
 {% endblock %}
 
 {% block extra_scripts %}

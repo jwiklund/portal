@@ -2,88 +2,61 @@
 {% block title %}Potential Events{% endblock %}
 
 {% block extra_styles %}
-  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 0.5rem; }
-  .weekend { color: #888; margin-bottom: 1.5rem; }
+  .weekend { color: var(--text-muted); margin-bottom: 1.5rem; }
   .actions { margin-bottom: 1.5rem; }
-  .actions a {
-    background: transparent;
-    color: #d4b483;
-    border: 1px solid #d4b483;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 0.9rem;
-  }
   .sources {
     margin: 0.5rem 0 1.5rem;
     font-size: 0.85rem;
-    color: #888;
+    color: var(--text-muted);
   }
   .sources a {
-    color: #d4b483;
+    color: var(--accent);
     text-decoration: none;
     margin-right: 0.75rem;
   }
   .sources a:hover { text-decoration: underline; }
-  .source-error {
-    color: #e76f51;
-    background: #2a1a1a;
-    padding: 0.75rem 1rem;
-    border-radius: 6px;
-    margin-bottom: 1.5rem;
-  }
-  .event-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .event-list { display: flex; flex-direction: column; gap: 0.5rem; list-style: none; }
   .event-item {
     display: flex;
     align-items: flex-start;
     gap: 1.25rem;
-    background: #1a1a1a;
-    border: 1px solid #2e2e2e;
-    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 0.75rem 1rem;
-    color: #e8e8e8;
+    color: var(--text);
   }
   .event-date {
     font-size: 0.85rem;
-    color: #aaa;
+    color: var(--text-dim);
     min-width: 8rem;
     padding-right: 1rem;
-    border-right: 1px solid #2e2e2e;
+    border-right: 1px solid var(--border);
     line-height: 1.5;
   }
   .event-info { flex: 1; min-width: 0; }
   .event-name { font-size: 1.05rem; font-weight: 500; margin-bottom: 0.25rem; }
-  .event-name a { color: #e8e8e8; text-decoration: none; }
-  .event-name a:hover { color: #d4b483; text-decoration: underline; }
-  .event-meta { font-size: 0.85rem; color: #888; }
-  .event-price { color: #d4b483; }
+  .event-name a { color: var(--text); text-decoration: none; }
+  .event-name a:hover { color: var(--accent); text-decoration: underline; }
+  .event-meta { font-size: 0.85rem; color: var(--text-muted); }
+  .event-price { color: var(--accent); }
   .source-tag {
     display: inline-block;
     background: #2a2a2a;
-    color: #d4b483;
+    color: var(--accent);
     border-radius: 4px;
     padding: 0.05rem 0.4rem;
     font-size: 0.75rem;
     margin-right: 0.4rem;
   }
-  .import-btn {
-    background: #d4b483;
-    color: #1a1a1a;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-  }
-  .import-btn:hover { opacity: 0.9; }
   .imported {
-    color: #51e78f;
+    color: var(--green-bright);
     font-size: 0.85rem;
     white-space: nowrap;
   }
   .merge-options { margin-top: 0.4rem; font-size: 0.85rem; }
   .merge-options summary { cursor: pointer; color: #999; }
-  .merge-options summary:hover { color: #d4b483; }
+  .merge-options summary:hover { color: var(--accent); }
   .merge-list { margin-top: 0.4rem; display: flex; flex-direction: column; gap: 0.35rem; }
   .merge-item {
     display: flex;
@@ -94,30 +67,32 @@
     border-radius: 5px;
     padding: 0.35rem 0.5rem;
   }
-  .merge-item a { color: #e8e8e8; text-decoration: none; }
-  .merge-item a:hover { color: #d4b483; text-decoration: underline; }
+  .merge-item a { color: var(--text); text-decoration: none; }
+  .merge-item a:hover { color: var(--accent); text-decoration: underline; }
   .merge-meta { color: #777; font-size: 0.8rem; }
-  .merge-item .import-btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+  .merge-item .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
 {% endblock %}
 
 {% block content %}
-  <h2>Potential Events</h2>
-  <p class="weekend">{{ weekend_start }} – {{ weekend_end }}</p>
-
-  <div class="actions">
-    <a href="/upcoming/potential?refresh=1">Refresh sources</a>
-    <a href="/upcoming">Back to upcoming</a>
+  <div class="page-head">
+    <h2>Potential Events</h2>
+    <span class="weekend" style="margin-bottom:0;">{{ weekend_start }} – {{ weekend_end }}</span>
   </div>
 
-  <div class="sources">
+  <div class="actions">
+    <a href="/upcoming/potential?refresh=1" class="btn btn-secondary">Refresh sources</a>
+    <a href="/upcoming" class="btn btn-secondary">Back to upcoming</a>
+  </div>
+
+  <nav class="sources" aria-label="Sources">
     Sources:
     {% for source in sources %}
       <a href="{{ source.url }}" target="_blank" rel="noopener">{{ source.name }}</a>
     {% endfor %}
-  </div>
+  </nav>
 
   {% if errors %}
-    <div class="source-error">
+    <div class="msg msg-error">
       {% for result in errors %}
         <div><strong>{{ result.source.name }}</strong>: {{ result.error }}</div>
       {% endfor %}
@@ -125,11 +100,11 @@
   {% endif %}
 
   {% if not clusters %}
-    <p style="color: #777;">No events this weekend.</p>
+    <p class="empty">No events this weekend.</p>
   {% else %}
-    <div class="event-list">
+    <ul class="event-list">
       {% for cluster in clusters %}
-        <div class="event-item">
+        <li class="event-item">
           <div class="event-date">
             {% if cluster.primary.date %}
               <div>{{ cluster.primary.date }}</div>
@@ -164,7 +139,7 @@
                         <form method="POST" action="/upcoming/potential/import">
                           <input type="hidden" name="source" value="{{ alternative.source.key }}">
                           <input type="hidden" name="url" value="{{ alternative.event.url }}">
-                          <button type="submit" class="import-btn">Import</button>
+                          <button type="submit" class="btn btn-sm">Import</button>
                         </form>
                       {% endif %}
                     </div>
@@ -181,12 +156,12 @@
               <form method="POST" action="/upcoming/potential/import">
                 <input type="hidden" name="source" value="{{ cluster.primary.source.key }}">
                 <input type="hidden" name="url" value="{{ cluster.primary.event.url }}">
-                <button type="submit" class="import-btn">Import</button>
+                <button type="submit" class="btn btn-sm">Import</button>
               </form>
             {% endif %}
           </div>
-        </div>
+        </li>
       {% endfor %}
-    </div>
+    </ul>
   {% endif %}
 {% endblock %}

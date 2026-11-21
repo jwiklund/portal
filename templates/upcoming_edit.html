@@ -2,82 +2,31 @@
 {% block title %}Edit Upcoming{% endblock %}
 
 {% block extra_styles %}
-  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1rem; }
-  .edit-form { max-width: 600px; }
-  .form-group { margin-bottom: 1.25rem; }
-  label { display: block; margin-bottom: 0.5rem; color: #ccc; font-size: 0.9rem; }
-  input, textarea {
-    width: 100%;
-    padding: 0.75rem;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
-    color: #e8e8e8;
-    font-size: 1rem;
-    font-family: inherit;
-  }
-  textarea { min-height: 150px; resize: vertical; }
-  input:focus, textarea:focus { outline: none; border-color: #555; }
   .checkbox-group {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: #1a1a1a;
+    background: var(--surface);
     padding: 0.75rem;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
   }
   .checkbox-group input[type="checkbox"] {
     width: 1.25rem;
     height: 1.25rem;
     margin: 0;
     cursor: pointer;
+    accent-color: var(--green);
   }
-  .checkbox-group label {
-    margin: 0;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-  .checkbox-group p { margin: 0.25rem 0 0 1.25rem; color: #888; font-size: 0.85rem; }
-  .checkbox-group input[type="checkbox"] {
-    accent-color: #2e7d32;
-  }
-  .checkbox-group input[type="checkbox"]:not(:checked) {
-    accent-color: #e76f51;
-  }
-  .form-actions { display: flex; gap: 1rem; margin-top: 2rem; align-items: center; }
-  .save-btn {
-    background: #d4b483;
-    color: #1a1a1a;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-  .cancel-btn {
-    background: transparent;
-    color: #999;
-    border: 1px solid #3a3a3a;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  .cancel-btn:hover { color: #e8e8e8; border-color: #555; }
-  .info-box {
-    background: #1a1a1a;
-    border: 1px solid #2e2e2e;
-    border-radius: 6px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-  }
-  .info-box p { margin: 0; color: #888; font-size: 0.9rem; }
+  .checkbox-group input[type="checkbox"]:not(:checked) { accent-color: var(--red-bright); }
+  .checkbox-group label { margin: 0; font-size: 1rem; cursor: pointer; }
+  .checkbox-group p { margin: 0.25rem 0 0 1.25rem; color: var(--text-muted); font-size: 0.85rem; }
 {% endblock %}
 
 {% block content %}
   <h2>Edit Upcoming</h2>
 
-  <form method="POST" action="/upcoming/save" class="edit-form">
+  <form method="POST" action="/upcoming/save" class="form">
     <div class="form-group">
       <label for="url">URL</label>
       <input type="text" id="url" name="url" value="{{ upcoming.url }}" required>
@@ -108,7 +57,7 @@
         <input type="checkbox" id="ticket" name="ticket" {% if upcoming.ticket %}checked{% endif %}>
         <label for="ticket">Ticket available</label>
       </div>
-      <p>Mark this event as having tickets available</p>
+      <p class="hint" style="margin-left:1.25rem;">Mark this event as having tickets available</p>
     </div>
 
     <div class="form-group">
@@ -117,8 +66,8 @@
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="save-btn">Save Event</button>
-      <a href="/upcoming" class="cancel-btn">Cancel</a>
+      <button type="submit" class="btn">Save Event</button>
+      <a href="/upcoming" class="btn btn-secondary">Cancel</a>
       <input type="hidden" name="upcoming_id" value="{{ upcoming.id }}">
       {% if is_update %}<input type="hidden" name="is_update" value="1">{% endif %}
     </div>
@@ -126,14 +75,13 @@
 
   {% if from_import %}
     {% if is_update %}
-      <div class="info-box" style="background: #2a1a1a; border: 1px solid #e76f51;">
+      <div class="msg msg-error" style="margin-top:1.5rem;">
         <p><strong>Note:</strong> This event already exists in the database. You are updating the existing record. The URL cannot be changed for existing events.</p>
       </div>
     {% else %}
-      <div class="info-box" style="background: #1a2a1a; border: 1px solid #51e78f;">
+      <div class="msg msg-success" style="margin-top:1.5rem;">
         <p><strong>Note:</strong> This is a new event. The data was automatically parsed - please review and edit as needed before saving.</p>
       </div>
     {% endif %}
   {% endif %}
-
 {% endblock %}

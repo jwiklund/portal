@@ -2,43 +2,13 @@
 {% block title %}New Notification{% endblock %}
 
 {% block extra_styles %}
-  h2 { font-size: 2rem; font-weight: normal; margin-bottom: 1.5rem; }
-  .note-form { max-width: 560px; display: flex; flex-direction: column; gap: 1.1rem; }
-  label { display: block; margin-bottom: 0.4rem; color: #ccc; font-size: 0.9rem; }
-  .note-form input, .note-form textarea {
-    width: 100%;
-    padding: 0.6rem 0.75rem;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
-    color: #e8e8e8;
-    font-family: inherit;
-    font-size: 0.95rem;
-    resize: vertical;
-  }
-  .note-form input:focus, .note-form textarea:focus { outline: none; border-color: #d4b483; }
   .note-form input[type="date"] { width: auto; color-scheme: dark; }
-  .hint { color: #888; font-size: 0.85rem; margin-top: 0.4rem; }
-  .actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
-  button {
-    background: #d4b483;
-    color: #1a1a1a;
-    border: none;
-    padding: 0.6rem 1.4rem;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    cursor: pointer;
-  }
-  button:hover { opacity: 0.9; }
-  .cancel { color: #999; text-decoration: none; font-size: 0.9rem; }
-  .cancel:hover { color: #e8e8e8; }
 {% endblock %}
 
 {% block content %}
   <h2>New Notification</h2>
 
-  <form class="note-form" method="post" action="/notifications/add">
+  <form class="form" method="post" action="/notifications/add">
     <div class="form-group">
       <label for="title">Title</label>
       <input type="text" id="title" name="title" required autofocus />
@@ -52,15 +22,15 @@
 
     <div class="form-group">
       <label for="date">Date</label>
-      <input type="date" id="date" name="date" />
+      <input type="date" id="date" name="date" class="note-form" />
       <p class="hint">
         Optional. Used for ordering and to skip duplicates with the same title.
       </p>
     </div>
 
-    <div class="actions">
-      <button type="submit">Add</button>
-      <a class="cancel" href="/notifications">Cancel</a>
+    <div class="form-actions">
+      <button type="submit" class="btn">Add</button>
+      <a class="btn btn-secondary" href="/notifications">Cancel</a>
     </div>
   </form>
 {% endblock %}

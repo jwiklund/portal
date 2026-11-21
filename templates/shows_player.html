@@ -77,19 +77,22 @@
   </style>
 </head>
 <body>
-  <h2>{{ title }}</h2>
+  <main>
+    <h2>{{ title }}</h2>
 
-  <div class="controls">
-    <button id="castBtn" class="cast-btn" title="Cast">▷</button>
-    <span id="castStatus" class="cast-status">Chromecast not connected</span>
-  </div>
+    <div class="controls">
+      <button id="castBtn" class="cast-btn" title="Cast">▷</button>
+      <span id="castStatus" class="cast-status">Chromecast not connected</span>
+    </div>
 
-  <video id="videoPlayer" controls>
-    <source src="{{ video_url }}" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-
-  <p class="fallback-label">Open this page on a device with Chromecast support to cast.</p>
+    <figure>
+      <video id="videoPlayer" controls>
+        <source src="{{ video_url }}" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption class="fallback-label">Open this page on a device with Chromecast support to cast.</figcaption>
+    </figure>
+  </main>
 
   <script>
 window['__onGCastApiAvailable'] = function(isAvailable, reason) {
