@@ -220,7 +220,7 @@ def parse_iso_date(text: str) -> str | None:
     Relative labels such as ``Yesterday`` return ``None`` (they stay in the
     snippet).
     """
-    parsed = parse_dates.single(text)
+    parsed = parse_dates.single_date(text)
     return f"{parsed}T00:00:00Z" if parsed else None
 
 

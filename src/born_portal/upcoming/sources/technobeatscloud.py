@@ -82,8 +82,8 @@ def _event_date(row: dict) -> str | None:
         return None
     start_time = row.get("start_time")
     if start_time:
-        return parse_dates.range(f"{start_date} {start_time}")
-    return parse_dates.range(start_date)
+        return parse_dates.date_range(f"{start_date} {start_time}")
+    return parse_dates.date_range(start_date)
 
 
 def parse_events(payload: dict, start: str, end: str) -> list[UpcomingData]:

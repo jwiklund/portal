@@ -1,7 +1,7 @@
 """Date parsing for Swedish, English and ISO date strings.
 
-``parse_dates.single`` parses one date and ``parse_dates.range`` handles a
-single date or a date/time range. Names and titles can be split with
+``parse_dates.single_date`` parses one date and ``parse_dates.date_range``
+handles a single date or a date/time range. Names and titles can be split with
 ``parse_name_with_dates``, and ``upcoming_weekend`` supplies the next
 Friday-Sunday window.
 """
@@ -131,7 +131,7 @@ def _parse_date(date_str: str) -> str | None:
     return None
 
 
-def single(text: str | None) -> str | None:
+def single_date(text: str | None) -> str | None:
     """Parse one date expression to an ISO date (``YYYY-MM-DD``).
 
     Accepts the Swedish and English forms handled by :func:`_parse_date`
@@ -166,8 +166,7 @@ def _format_date_range(
     return f"{start_date} {start_time} - {end_date} {end_time}"
 
 
-# Note: this shadows the builtin ``range`` for the rest of this module.
-def range(date_str: str | None) -> str | None:
+def date_range(date_str: str | None) -> str | None:
     """Parse a date string that may contain time ranges or full date ranges.
 
     Supports formats:
@@ -244,9 +243,9 @@ def _parse_name_candidate(text: str) -> tuple[str, str | None] | None:
                 return None
             return start.isoformat(), end.isoformat()
 
-    single = _parse_date(normalized)
-    if single:
-        return single.split(" ")[0], None
+    parsed = _parse_date(normalized)
+    if parsed:
+        return parsed.split(" ")[0], None
 
     return None
 
@@ -264,7 +263,7 @@ def parse_name_with_dates(name: str) -> tuple[str, str | None, str | None]:
         return "", None, None
 
     tokens = title.split()
-    for i, _token in enumerate(tokens):
+    for i, _ in enumerate(tokens):
         parsed = _parse_name_candidate(" ".join(tokens[i:]))
         if parsed:
             start, end = parsed

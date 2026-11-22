@@ -71,9 +71,9 @@ class _Parser(HTMLParser):
             + ld["location"]["address"]["addressRegion"]
         )
         if "endDate" in ld:
-            self._date = parse_dates.range(ld["startDate"] + " - " + ld["endDate"])
+            self._date = parse_dates.date_range(ld["startDate"] + " - " + ld["endDate"])
         else:
-            self._date = parse_dates.range(ld["startDate"])
+            self._date = parse_dates.date_range(ld["startDate"])
         offers = [
             offer
             for offer in ld["offers"]

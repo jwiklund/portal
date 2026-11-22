@@ -182,7 +182,7 @@ def parse_events(rows: list[dict], start: str, end: str) -> list[UpcomingData]:
                 description=(row.get("description") or "").strip(),
                 location=_location(venues),
                 price=_price(tickets),
-                date=parse_dates.range(start_label) or start_label,
+                date=parse_dates.date_range(start_label) or start_label,
                 ticket=bool(tickets),
             )
         )

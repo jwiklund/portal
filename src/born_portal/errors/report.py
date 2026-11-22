@@ -5,7 +5,7 @@ The preferred way to handle an unexpected exception in a request handler is:
 1. catch it,
 2. call ``await record_error(request, exc, context=...)``,
 3. return a user-level message on the error page
-   (``render("error.html", request, message=...)``).
+   (``await render("error.html", request, message=...)``).
 
 Unhandled exceptions are captured globally as well (see ``errors.routes``), so a
 handler that forgets to catch still gets recorded -- it just cannot attach its

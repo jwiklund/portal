@@ -75,7 +75,7 @@ def _parse_json_output(raw: str) -> dict[str, str | None]:
     date = None
     for key, value in data.items():
         if key.startswith("date"):
-            date = parse_dates.range(value)
+            date = parse_dates.date_range(value)
     return {
         "name": data.get("name"),
         "description": data.get("description"),

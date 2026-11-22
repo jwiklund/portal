@@ -77,12 +77,14 @@ The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.
 
 ### Middleware chain (order matters)
 
-1. **SessionMiddleware** — cookie-based sessions (signed with SECRET_KEY)
-2. **AuthenticationMiddleware** (from `auth/guard.py` `use_authentication`) — builds a guardpost `Identity` from the session via `SessionAuthHandler`
-3. **AuthorizationMiddleware** (from `app.use_authorization`) — enforces `@auth` decorators; anonymous → `UnauthorizedError` → redirect to `/login`
-4. **AuthMiddleware** — outer session gate (redirects to `/login` if not authenticated, lets admins through everywhere, viewers to `/view` pages only)
+BlackSheep sorts middlewares by category, so categories decide the nesting; within a category the order added is kept (first added is outermost).
 
-Public paths: `/login`, `/auth/google`, `/auth/callback`, `/spotify/callback`, `/podcasts/audio/`, `/shows/video/`, plus `/manifest.json`, `/icon.svg`, `/icon-180.png`, `/sw.js` (PWA assets).
+1. **SessionMiddleware** (`app.use_sessions`) — cookie-based sessions (signed with SECRET_KEY)
+2. **AuthenticationMiddleware** (from `auth/guard.py` `use_authentication`, category AUTH) — builds a guardpost `Identity` from the session via `SessionAuthHandler`
+3. **AuthorizationMiddleware** (from `app.use_authorization`, category AUTHZ) — enforces `@auth` decorators; anonymous → `UnauthorizedError` → redirect to `/login`
+4. **`security_headers_middleware`**, then **`header_provider_middleware`** (appended in `main.py`, category BUSINESS) — set the CSP and other security headers, and attach the shared `HeaderProvider` to `request.header_provider` so `core.render()` can resolve the nav links and attention badges
+
+Handlers marked `@allow_anonymous()` are public: `/login`, `/auth/google`, `/auth/callback`, `/spotify/callback`, podcast audio and show video streaming, plus `/manifest.json`, `/icon.svg`, `/icon-180.png`, `/sw.js` (PWA assets).
 
 ### Authorization via `@auth`
 
@@ -144,7 +146,7 @@ header.register("/notifications", "Notifications", section="menu",
                 admin_only=True, order=60, attention=unread)
 ```
 
-`section` is `main` or `menu`; `viewer_path` swaps the path for non-admins; `order` controls display order. `attention` is an optional async callable returning an `Attention` (or `None` for no badge). It carries the marker style (`kind`) and accessible text (`label`); the header only shows `!`. The callables for all visible links are awaited concurrently, only for admins who can see the link. A failing callable is logged, reported through the provider's `report_error` callback (wired to `record_error` in `main`), and treated as no badge. Because of this, `core.render()` is async and must be awaited.
+`section` is `main` or `menu`; `viewer_path` swaps the path for non-admins; `order` controls display order. `attention` is an optional async callable returning an `Attention` (or `None` for no badge). It carries the marker style (`kind`) and accessible text (`label`); the header only shows `!`. The callables for every visible link are awaited concurrently (each `attention` link today is `admin_only`, so in practice only for admins). A failing callable is logged, reported through the provider's `report_error` callback (wired to `record_error` in `main`), and treated as no badge. Because of this, `core.render()` is async and must be awaited.
 
 ### Rendering
 

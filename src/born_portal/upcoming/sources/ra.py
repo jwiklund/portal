@@ -78,8 +78,8 @@ def _event_date(start_time: str | None, end_time: str | None) -> str | None:
         return None
     start = start_time[:19]
     if not end_time:
-        return parse_dates.range(start)
-    return parse_dates.range(f"{start} - {end_time[:19]}")
+        return parse_dates.date_range(start)
+    return parse_dates.date_range(f"{start} - {end_time[:19]}")
 
 
 def parse_events(payload: dict) -> list[UpcomingData]:
