@@ -6,11 +6,12 @@ from blacksheep import Request
 from blacksheep.server.responses import json as json_response
 from blacksheep.server.responses import redirect
 
-from born_portal import past, spotify
+from born_portal import past
 from born_portal.auth.guard import auth
 from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
 from born_portal.errors import record_error
 from born_portal.past.model import ArtistData, PastData
+from born_portal.utils import spotify
 from born_portal.utils.date_range import parse_name_with_dates
 
 

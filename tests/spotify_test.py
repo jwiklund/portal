@@ -3,8 +3,8 @@ import time
 
 import pytest
 
-from born_portal import spotify
-from born_portal.spotify import SpotifyError, _error_message, _is_close_name
+from born_portal.utils import spotify
+from born_portal.utils.spotify import SpotifyError, _error_message, _is_close_name
 
 
 def test_identical_names_match_regardless_of_case():

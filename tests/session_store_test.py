@@ -10,7 +10,7 @@ from itsdangerous import URLSafeTimedSerializer
 from sqlmodel import Session as DbSession
 from sqlmodel import SQLModel, create_engine, select
 
-from born_portal.sessions import SessionRecord, SqliteSessionStore
+from born_portal.utils.sessions import SessionRecord, SqliteSessionStore
 
 _SECRET = "test-secret"
 _COOKIE = "session"

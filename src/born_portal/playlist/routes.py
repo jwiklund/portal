@@ -8,7 +8,7 @@ from blacksheep import Request
 from blacksheep.server.responses import json as json_response
 from blacksheep.server.responses import redirect
 
-from born_portal import playlist, spotify
+from born_portal import playlist
 from born_portal.auth.guard import allow_anonymous, auth
 from born_portal.core import (
     ADMIN_ROLE,
@@ -18,6 +18,7 @@ from born_portal.core import (
     render,
 )
 from born_portal.errors import record_error
+from born_portal.utils import spotify
 
 _STATE_KEY = "spotify_oauth_state"
 _NEXT_KEY = "spotify_post_login"

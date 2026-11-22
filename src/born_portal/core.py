@@ -45,6 +45,9 @@ USER_AGENT = os.environ.get(
 MODEL = os.environ.get("MODEL")
 API_KEY = os.environ.get("API_KEY")
 API_URL = os.environ.get("API_URL", "https://openrouter.ai/api/v1")
+# Kagi subscriber search (see born_portal.utils.search). Optional: a session
+# link (https://kagi.com/search?token=...) or the raw session token.
+KAGI_SESSION_TOKEN = os.environ.get("KAGI_SESSION_TOKEN", "")
 
 # Role names used by the @auth authorization policies.
 ADMIN_ROLE = "admin"

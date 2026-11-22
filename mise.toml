@@ -1,5 +1,6 @@
 [shell_alias]
 run = "uv run uvicorn born_portal.main:app --reload --port 8080 --log-level debug"
+portal = "mise run portal"
 fetch = "mise run portal fetch"
 potential = "mise run portal potential"
 potential-duplicates = "mise run portal --duplicates"

@@ -1,4 +1,3 @@
-from born_portal import spotify
 from born_portal.core import current_year
 from born_portal.playlist.builder import (
     MAX_TRACKS_PER_ARTIST,
@@ -7,6 +6,7 @@ from born_portal.playlist.builder import (
     playlist_name,
     tracks_per_artist,
 )
+from born_portal.utils import spotify
 
 
 def test_playlist_name_uses_event_and_year():

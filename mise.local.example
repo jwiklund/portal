@@ -24,4 +24,6 @@ VAPID_SUBJECT=""
 MODEL=""
 API_KEY=""
 API_URL="https://openrouter.ai/api/v1"
+# search token (Account/Session Link)
+KAGI_SESSION_TOKEN=""
 BASE_URL="http://127.0.0.1:8080"

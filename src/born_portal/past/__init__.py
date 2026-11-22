@@ -6,7 +6,7 @@ from born_portal.past.photos import (
 )
 from born_portal.past.routes import register_routes
 from born_portal.past.store import PastStore
-from born_portal.spotify import SpotifyError, search_artists
+from born_portal.utils.spotify import SpotifyError, search_artists
 
 __all__ = [
     "ArtistData",

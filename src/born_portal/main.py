@@ -10,7 +10,6 @@ from sqlmodel import SQLModel, create_engine
 
 from born_portal import (
     auth,
-    backup,
     errors,
     notifications,
     past,
@@ -24,7 +23,8 @@ from born_portal import (
 )
 from born_portal.auth import configure as configure_auth
 from born_portal.core import DB_URL, ENV, SECRET_KEY
-from born_portal.sessions import SqliteSessionStore
+from born_portal.utils import backup, search
+from born_portal.utils.sessions import SqliteSessionStore
 
 logging.basicConfig(
     level=logging.INFO,
@@ -234,6 +234,38 @@ def main(argv=None):
         help="Group similar events and show merge options",
     )
 
+    search_parser = subparsers.add_parser("search", help="Search the web with Kagi")
+    search_parser.add_argument("query", help="Search query")
+    search_parser.add_argument(
+        "--token",
+        help="Session-link URL or raw token (default: KAGI_SESSION_TOKEN)",
+    )
+    search_parser.add_argument("--limit", type=int, help="Maximum number of results")
+    search_parser.add_argument("--lens", help="Numeric lens index (e.g. 2)")
+    search_parser.add_argument("--region", help="Region code (e.g. us, gb)")
+    search_parser.add_argument("--time", help="Relative time window (e.g. day, week)")
+    search_parser.add_argument("--from-date", help="Start date (YYYY-MM-DD)")
+    search_parser.add_argument("--to-date", help="End date (YYYY-MM-DD)")
+    search_parser.add_argument("--order", help="Sort order value")
+    search_parser.add_argument(
+        "--verbatim", action="store_true", help="Enable verbatim mode"
+    )
+    search_parser.add_argument(
+        "--personalized",
+        action="store_true",
+        default=None,
+        help="Force personalized search",
+    )
+    search_parser.add_argument(
+        "--no-personalized",
+        dest="personalized",
+        action="store_false",
+        help="Disable personalized search",
+    )
+    search_parser.add_argument(
+        "--json", action="store_true", help="Output JSON instead of text"
+    )
+
     subparsers.add_parser(
         "init-db", help="Initialize the SQLite database with WAL mode"
     )
@@ -305,6 +337,32 @@ def main(argv=None):
         print('"""')
         return
 
+    if args.command == "search":
+        try:
+            results = asyncio.run(
+                search.search(
+                    args.query,
+                    token=args.token,
+                    lens=args.lens,
+                    region=args.region,
+                    time=args.time,
+                    from_date=args.from_date,
+                    to_date=args.to_date,
+                    order=args.order,
+                    verbatim=args.verbatim,
+                    personalized=args.personalized,
+                    limit=args.limit,
+                )
+            )
+        except search.KagiError as e:
+            parser.error(str(e))
+
+        if args.json:
+            print(json.dumps(results, indent=2, ensure_ascii=False))
+        else:
+            _print_search_results(results)
+        return
+
     if args.command == "potential":
         _list_potential(args.source, args.json, args.refresh, args.duplicates)
         return
@@ -315,6 +373,20 @@ def main(argv=None):
         return
 
     parser.print_help()
+
+
+def _print_search_results(results: list[search.SearchResult]) -> None:
+    if not results:
+        print("No results")
+        return
+    for rank, result in enumerate(results, start=1):
+        print(f"{rank}. {result['title']}")
+        print(f"   {result['url']}")
+        if result["published"]:
+            print(f"   {result['published']}")
+        if result["snippet"]:
+            print(f"   {result['snippet']}")
+        print()
 
 
 def _list_potential(

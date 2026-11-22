@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from born_portal.backup import (
+from born_portal.utils.backup import (
     backup_db,
     default_backup_name,
     latest_backup,

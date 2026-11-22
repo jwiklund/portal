@@ -43,8 +43,13 @@ src/born_portal/
     routes.py      # /sw.js service worker, /push/vapid, /push/subscribe, /push/unsubscribe
     sw.js          # Service worker: show push notifications, refresh open pages, handle clicks
   utils/
+    backup.py      # SQLite backup/restore helpers (used by the backup/restore CLI)
     date_range.py  # Date parsing (Swedish/English/ISO), handles ranges and timezone offsets
     fetch.py       # Safe public-page fetching (SSRF guard, tracking cleanup, headers, HTML→Markdown)
+    llm.py         # OpenRouter/OpenAI client wrapper for event and playlist extraction
+    search.py      # Kagi subscriber search (session cookie, HTML result parsing)
+    sessions.py    # SqliteSessionStore — server-side sessions backing the cookie session id
+    spotify.py     # Spotify Web API helpers (artist/track search, playlist creation)
 templates/         # Jinja2 templates (extends base.html)
 tests/             # pytest tests
 ```
@@ -53,7 +58,7 @@ tests/             # pytest tests
 
 - **Database**: `portal.db` (SQLite, gitignored) — auto-created by the stores on first use. Its tables are `upcoming`, `past`, `past_artists`, `artists`, `sessions`, `error_log`, `notifications`, and `push_subscriptions`.
 - **Directories**: `shows/` (video source files), `shows_cache/` (converted mp4 streams), `podcasts/` (downloaded audio) — all gitignored via `.gitignore`.
-- **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ADMIN_USERS`, `MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `VAPID_KEY_FILE`.
+- **Config**: Env vars in `mise.local.toml` (copy from `mise.local.example`). Required: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECRET_KEY`. Optional: `ADMIN_USERS`, `MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_API_BASE`, `BASE_URL`, `SHOWS_DIR`, `SHOWS_CACHE_DIR`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `VAPID_KEY_FILE`, `KAGI_SESSION_TOKEN`.
 
 ## Architecture
 
@@ -64,6 +69,7 @@ tests/             # pytest tests
 - `fetch <url>` — parse event URL, print JSON
 - `notify <title> [text] [--date YYYY-MM-DD]` — add a notification to the database directly (`-` as text reads stdin; skips duplicates by date + title; pushes to subscribers, awaiting delivery and reporting how many were reached or why it was skipped)
 - `vapid-keys [--regenerate] [--systemd]` — print (or create) the web-push VAPID key pair for `mise.local.toml` (`--systemd` prints systemd `Environment=` lines instead, with the PEM private key on a single line)
+- `search <query>` — search Kagi and print the results (`--json` for raw output); uses `KAGI_SESSION_TOKEN` or `--token`
 - `backup [output]` / `restore [date]` — dump/load the SQLite database; `backup` defaults to `backup-YYYY-MM-DD.sql` and `restore` defaults to the latest one. The machine-local `sessions`, `push_subscriptions` and `error_log` tables are excluded from both directions, so logins, push endpoints and the error log survive a restore
 
 The `app` object (BlackSheep `Application`) is the ASGI app that uvicorn serves.

@@ -3,11 +3,10 @@ from __future__ import annotations
 import json
 import re
 
-from born_portal import llm
 from born_portal.upcoming.biletto import parse_biletto
 from born_portal.upcoming.instagram import parse_instagram
 from born_portal.upcoming.model import UpcomingData
-from born_portal.utils import date_range
+from born_portal.utils import date_range, llm
 from born_portal.utils.fetch import fetch_public_html, html_to_markdown
 
 

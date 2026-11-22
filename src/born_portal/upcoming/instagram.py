@@ -4,8 +4,8 @@ import base64
 import html
 import re
 
-from born_portal import llm
 from born_portal.upcoming.model import UpcomingData
+from born_portal.utils import llm
 from born_portal.utils.safe_http import get_public
 
 

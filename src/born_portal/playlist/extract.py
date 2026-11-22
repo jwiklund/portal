@@ -12,7 +12,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
-from born_portal import llm, spotify
+from born_portal.utils import llm, spotify
 from born_portal.utils.fetch import fetch_page_markdown
 
 _SYSTEM_PROMPT = (

@@ -6,8 +6,8 @@ added to a new playlist named after the event and year.
 
 from __future__ import annotations
 
-from born_portal import spotify
 from born_portal.core import current_year
+from born_portal.utils import spotify
 
 # Aim for roughly this many tracks in the finished playlist. The per-artist
 # count is derived from the lineup size so short lineups get more tracks and
