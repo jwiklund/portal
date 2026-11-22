@@ -28,7 +28,7 @@ import httpx2
 from born_portal.core import USER_AGENT
 from born_portal.upcoming.model import UpcomingData
 from born_portal.upcoming.sources.base import Source
-from born_portal.utils.date_range import parse_date_range
+from born_portal.utils import parse_dates
 
 _API_URL = "https://technobeatscloud.com/api/agenda/map-events"
 _BASE_URL = "https://technobeatscloud.com/en/events/event"
@@ -82,8 +82,8 @@ def _event_date(row: dict) -> str | None:
         return None
     start_time = row.get("start_time")
     if start_time:
-        return parse_date_range(f"{start_date} {start_time}")
-    return parse_date_range(start_date)
+        return parse_dates.range(f"{start_date} {start_time}")
+    return parse_dates.range(start_date)
 
 
 def parse_events(payload: dict, start: str, end: str) -> list[UpcomingData]:

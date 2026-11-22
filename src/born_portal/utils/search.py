@@ -11,7 +11,6 @@ can be passed explicitly to :func:`search`.
 
 from __future__ import annotations
 
-import re
 from typing import TypedDict
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -19,6 +18,7 @@ import httpx2
 from bs4 import BeautifulSoup
 
 from born_portal.core import KAGI_SESSION_TOKEN
+from born_portal.utils import parse_dates
 from born_portal.utils.fetch import FIREFOX_HEADERS
 from born_portal.utils.safe_http import get_public
 
@@ -214,44 +214,14 @@ def extract_result(element, title_selector: str) -> SearchResult | None:
     }
 
 
-_RESULT_DATE = re.compile(r"([A-Za-z]{3})[A-Za-z]* (\d{1,2}), (\d{4})")
-_MONTHS = {
-    name: number
-    for number, name in enumerate(
-        (
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-        ),
-        start=1,
-    )
-}
-
-
 def parse_iso_date(text: str) -> str | None:
     """Convert a result date like ``Oct 4, 2026`` to ``2026-10-04T00:00:00Z``.
 
-    Month names are matched explicitly so the result does not depend on the
-    process locale (Kagi always emits English). Relative labels such as
-    ``Yesterday`` return ``None`` (they stay in the snippet).
+    Relative labels such as ``Yesterday`` return ``None`` (they stay in the
+    snippet).
     """
-    match = _RESULT_DATE.fullmatch(text.strip())
-    if match is None:
-        return None
-    month = _MONTHS.get(match.group(1).title())
-    if month is None:
-        return None
-    day, year = int(match.group(2)), int(match.group(3))
-    return f"{year:04d}-{month:02d}-{day:02d}T00:00:00Z"
+    parsed = parse_dates.single(text)
+    return f"{parsed}T00:00:00Z" if parsed else None
 
 
 def collapse_whitespace(text: str) -> str:

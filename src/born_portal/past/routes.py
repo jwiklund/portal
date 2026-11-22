@@ -12,7 +12,7 @@ from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
 from born_portal.errors import record_error
 from born_portal.past.model import ArtistData, PastData
 from born_portal.utils import spotify
-from born_portal.utils.date_range import parse_name_with_dates
+from born_portal.utils.parse_dates import parse_name_with_dates
 
 
 def register_routes(app, engine):

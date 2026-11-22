@@ -9,7 +9,7 @@ from born_portal.core import ADMIN_ROLE, VIEWER_ROLE, form_value, render
 from born_portal.errors import record_error
 from born_portal.upcoming import potential
 from born_portal.upcoming.model import UpcomingData
-from born_portal.utils.date_range import upcoming_weekend
+from born_portal.utils.parse_dates import upcoming_weekend
 
 
 def _split_date(date: str | None) -> tuple[str | None, str | None]:

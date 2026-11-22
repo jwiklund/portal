@@ -1,8 +1,17 @@
+"""Date parsing for Swedish, English and ISO date strings.
+
+``parse_dates.single`` parses one date and ``parse_dates.range`` handles a
+single date or a date/time range. Names and titles can be split with
+``parse_name_with_dates``, and ``upcoming_weekend`` supplies the next
+Friday-Sunday window.
+"""
+
 import locale
 import re
 from datetime import date, datetime, timedelta
 
 _PARTIAL_RANGE_RE = re.compile(r"^(\d{1,2})\s*[-–—]\s*(\d{1,2})\s+(.+)$")
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 locale.setlocale(locale.LC_TIME, "sv_SE.UTF-8")  # Set Swedish locale for date parsing
 
@@ -122,6 +131,20 @@ def _parse_date(date_str: str) -> str | None:
     return None
 
 
+def single(text: str | None) -> str | None:
+    """Parse one date expression to an ISO date (``YYYY-MM-DD``).
+
+    Accepts the Swedish and English forms handled by :func:`_parse_date`
+    (e.g. ``23 maj 2026``, ``Oct 4, 2026``, ``2026-10-04``). Returns ``None``
+    for relative labels such as ``Yesterday`` or anything that is not a single
+    date.
+    """
+    parsed = _parse_date(text or "")
+    if parsed is not None and _ISO_DATE_RE.fullmatch(parsed):
+        return parsed
+    return None
+
+
 def _format_date_range(
     start_date: str | None,
     start_time: str | None,
@@ -143,7 +166,8 @@ def _format_date_range(
     return f"{start_date} {start_time} - {end_date} {end_time}"
 
 
-def parse_date_range(date_str: str | None) -> str | None:
+# Note: this shadows the builtin ``range`` for the rest of this module.
+def range(date_str: str | None) -> str | None:
     """Parse a date string that may contain time ranges or full date ranges.
 
     Supports formats:
@@ -240,7 +264,7 @@ def parse_name_with_dates(name: str) -> tuple[str, str | None, str | None]:
         return "", None, None
 
     tokens = title.split()
-    for i in range(len(tokens)):
+    for i, _token in enumerate(tokens):
         parsed = _parse_name_candidate(" ".join(tokens[i:]))
         if parsed:
             start, end = parsed

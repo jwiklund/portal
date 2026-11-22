@@ -395,7 +395,7 @@ def _list_potential(
     refresh: bool,
     duplicates: bool = False,
 ) -> None:
-    from born_portal.utils.date_range import upcoming_weekend
+    from born_portal.utils.parse_dates import upcoming_weekend
 
     sources = [
         source

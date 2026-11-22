@@ -44,7 +44,7 @@ src/born_portal/
     sw.js          # Service worker: show push notifications, refresh open pages, handle clicks
   utils/
     backup.py      # SQLite backup/restore helpers (used by the backup/restore CLI)
-    date_range.py  # Date parsing (Swedish/English/ISO), handles ranges and timezone offsets
+    parse_dates.py # Date parsing (Swedish/English/ISO): single dates and ranges
     fetch.py       # Safe public-page fetching (SSRF guard, tracking cleanup, headers, HTML→Markdown)
     llm.py         # OpenRouter/OpenAI client wrapper for event and playlist extraction
     search.py      # Kagi subscriber search (session cookie, HTML result parsing)

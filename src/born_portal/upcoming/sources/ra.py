@@ -27,7 +27,7 @@ import httpx2
 from born_portal.core import USER_AGENT
 from born_portal.upcoming.model import UpcomingData
 from born_portal.upcoming.sources.base import Source
-from born_portal.utils.date_range import parse_date_range
+from born_portal.utils import parse_dates
 
 _GRAPHQL_URL = "https://ra.co/graphql"
 _REFERER = "https://ra.co/events/se/stockholm"
@@ -78,8 +78,8 @@ def _event_date(start_time: str | None, end_time: str | None) -> str | None:
         return None
     start = start_time[:19]
     if not end_time:
-        return parse_date_range(start)
-    return parse_date_range(f"{start} - {end_time[:19]}")
+        return parse_dates.range(start)
+    return parse_dates.range(f"{start} - {end_time[:19]}")
 
 
 def parse_events(payload: dict) -> list[UpcomingData]:

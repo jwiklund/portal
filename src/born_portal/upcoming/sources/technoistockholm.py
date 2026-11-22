@@ -29,7 +29,7 @@ import httpx2
 from born_portal.core import USER_AGENT
 from born_portal.upcoming.model import UpcomingData
 from born_portal.upcoming.sources.base import Source, unique_url
-from born_portal.utils.date_range import parse_date_range
+from born_portal.utils import parse_dates
 
 _EVENTS_URL = "https://technoistockholm.se/events"
 _BASE_URL = "https://technoistockholm.se/events/"
@@ -182,7 +182,7 @@ def parse_events(rows: list[dict], start: str, end: str) -> list[UpcomingData]:
                 description=(row.get("description") or "").strip(),
                 location=_location(venues),
                 price=_price(tickets),
-                date=parse_date_range(start_label) or start_label,
+                date=parse_dates.range(start_label) or start_label,
                 ticket=bool(tickets),
             )
         )

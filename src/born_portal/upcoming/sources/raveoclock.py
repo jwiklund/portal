@@ -31,7 +31,7 @@ import httpx2
 from born_portal.core import USER_AGENT
 from born_portal.upcoming.model import UpcomingData
 from born_portal.upcoming.sources.base import Source, unique_url
-from born_portal.utils.date_range import parse_date_range
+from born_portal.utils import parse_dates
 
 _ICAL_URL = (
     "https://calendar.google.com/calendar/ical/"
@@ -153,19 +153,19 @@ def _parse_datetime(value: str, params: dict[str, str]) -> tuple[datetime, bool]
 def _format_date(
     start_local: datetime, end_local: datetime | None, date_only: bool
 ) -> str:
-    """Format the local start/end as a range via ``parse_date_range``."""
+    """Format the local start/end as a range via ``parse_dates.range``."""
     if date_only:
         start = start_local.date().isoformat()
         end = end_local.date().isoformat() if end_local else None
         if end and end != start:
-            return parse_date_range(f"{start} - {end}") or start
-        return parse_date_range(start) or start
+            return parse_dates.range(f"{start} - {end}") or start
+        return parse_dates.range(start) or start
 
     start = start_local.strftime("%Y-%m-%d %H:%M")
     if end_local is None:
-        return parse_date_range(start) or start
+        return parse_dates.range(start) or start
     end = end_local.strftime("%Y-%m-%d %H:%M")
-    return parse_date_range(f"{start} - {end}") or start
+    return parse_dates.range(f"{start} - {end}") or start
 
 
 def _iter_vevents(lines: list[str]):

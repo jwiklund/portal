@@ -6,7 +6,7 @@ import re
 from born_portal.upcoming.biletto import parse_biletto
 from born_portal.upcoming.instagram import parse_instagram
 from born_portal.upcoming.model import UpcomingData
-from born_portal.utils import date_range, llm
+from born_portal.utils import llm, parse_dates
 from born_portal.utils.fetch import fetch_public_html, html_to_markdown
 
 
@@ -75,7 +75,7 @@ def _parse_json_output(raw: str) -> dict[str, str | None]:
     date = None
     for key, value in data.items():
         if key.startswith("date"):
-            date = date_range.parse_date_range(value)
+            date = parse_dates.range(value)
     return {
         "name": data.get("name"),
         "description": data.get("description"),
