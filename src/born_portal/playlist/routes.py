@@ -46,12 +46,14 @@ def _remember_pending(state: str, name: str, artist_names: list[str]) -> None:
     }
 
 
-def register_routes(app):
+def register_routes(app, header):
+    header.register("/playlists", "Playlists", admin_only=True, order=30)
+
     @app.router.get("/playlists")
     @auth(roles=[ADMIN_ROLE])
     async def playlists_page(request: Request):
         flash = _take_flash(request.session)
-        return _render_page(
+        return await _render_page(
             request,
             created=flash.get("created"),
             error=flash.get("error"),
@@ -70,17 +72,19 @@ def register_routes(app):
                 lineup = await playlist.extract_from_text(text, access_token)
             except Exception as e:  # noqa: BLE001
                 await record_error(request, e, context={"source": "text"})
-                return _render_page(request, error=str(e), text=text)
+                return await _render_page(request, error=str(e), text=text)
         elif url.strip():
             try:
                 lineup = await playlist.extract(url, access_token)
             except Exception as e:  # noqa: BLE001
                 await record_error(request, e, context={"url": url})
-                return _render_page(request, error=str(e), url=url)
+                return await _render_page(request, error=str(e), url=url)
         else:
-            return _render_page(request, error="Please enter a URL or paste some text")
+            return await _render_page(
+                request, error="Please enter a URL or paste some text"
+            )
 
-        return _render_page(
+        return await _render_page(
             request,
             artists=lineup.artists,
             event_name=lineup.name,
@@ -99,7 +103,7 @@ def register_routes(app):
         artist_names = [a["name"] for a in artists if a.get("name")]
 
         if not artist_names:
-            return _render_page(
+            return await _render_page(
                 request,
                 error="Add at least one artist before creating a playlist.",
                 artists=artists,
@@ -121,14 +125,14 @@ def register_routes(app):
                 )
             except Exception as e:  # noqa: BLE001
                 await record_error(request, e, context={"stage": "build_playlist"})
-                return _render_page(
+                return await _render_page(
                     request,
                     error=f"Could not create the playlist: {e}",
                     artists=artists,
                     event_name=event_name,
                     year=year,
                 )
-            return _render_page(request, created=created)
+            return await _render_page(request, created=created)
 
         # Not logged in to Spotify yet: remember the playlist, then send the
         # user through the authorization code flow, which redirects back here.
@@ -228,7 +232,7 @@ def register_routes(app):
         return json_response({"results": results})
 
 
-def _render_page(
+async def _render_page(
     request,
     *,
     artists=None,
@@ -239,7 +243,7 @@ def _render_page(
     error=None,
     created=None,
 ):
-    return render(
+    return await render(
         "playlists.html",
         request,
         artists=artists or [],

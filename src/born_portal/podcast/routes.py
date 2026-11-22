@@ -54,11 +54,13 @@ def _list_podcasts() -> list[dict]:
     return files
 
 
-def register_routes(app):
+def register_routes(app, header):
+    header.register("/podcasts", "Podcasts", section="menu", admin_only=True, order=40)
+
     @app.router.get("/podcasts")
     @auth(roles=[ADMIN_ROLE])
     async def podcast_page(request: Request):
-        return render("podcasts.html", request, podcasts=_list_podcasts())
+        return await render("podcasts.html", request, podcasts=_list_podcasts())
 
     @app.router.post("/podcasts/download")
     @auth(roles=[ADMIN_ROLE])
@@ -67,7 +69,7 @@ def register_routes(app):
         url = form_value(form, "url") or ""
 
         if not url or not url.startswith(("http://", "https://")):
-            return render(
+            return await render(
                 "podcasts.html",
                 request,
                 podcasts=_list_podcasts(),
@@ -95,7 +97,7 @@ def register_routes(app):
                     RuntimeError(f"yt-dlp failed for {url}"),
                     context={"url": url, "stderr": stderr.decode()[:500]},
                 )
-                return render(
+                return await render(
                     "podcasts.html",
                     request,
                     podcasts=_list_podcasts(),
@@ -109,7 +111,7 @@ def register_routes(app):
                 RuntimeError("yt-dlp not found"),
                 context={"url": url},
             )
-            return render(
+            return await render(
                 "podcasts.html",
                 request,
                 podcasts=_list_podcasts(),
@@ -128,7 +130,7 @@ def register_routes(app):
             # Only allow safe filenames to prevent path traversal
             safe = _safe_filename(filename)
             if filename != safe:
-                return render(
+                return await render(
                     "error.html",
                     request,
                     message="Invalid filename.",
@@ -146,11 +148,11 @@ def register_routes(app):
         # Only allow safe filenames
         safe = _safe_filename(filename)
         if filename != safe:
-            return render("error.html", request, message="Invalid filename.")
+            return await render("error.html", request, message="Invalid filename.")
 
         filepath = PODCAST_DIR / filename
         if not filepath.exists() or not filepath.is_file():
-            return render("error.html", request, message="File not found")
+            return await render("error.html", request, message="File not found")
 
         content_type = "audio/mpeg"
         if filename.endswith(".m4a"):

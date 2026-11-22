@@ -37,7 +37,7 @@ def register_routes(app):
             if is_viewer(request):
                 return redirect("/upcoming/view")
             return redirect("/upcoming")
-        return render("login.html")
+        return await render("login.html")
 
     @app.router.get("/auth/google")
     @allow_anonymous()
@@ -67,7 +67,7 @@ def register_routes(app):
         state = params.get("state", [None])[0]
 
         if not code or state != request.session.get("oauth_state"):
-            return render(
+            return await render(
                 "error.html", message="Invalid OAuth state. Please try again."
             )
         if "oauth_state" in request.session:
@@ -97,7 +97,7 @@ def register_routes(app):
 
         email = verified_email(user)
         if not email:
-            return render(
+            return await render(
                 "error.html", message="No verified email returned from Google."
             )
         request.session["user"] = email

@@ -15,6 +15,7 @@ from born_portal.core import ADMIN_ROLE, form_value, jinja, render
 from born_portal.errors import record_error
 from born_portal.notifications.model import Notification
 from born_portal.notifications.store import NotificationStore
+from born_portal.utils import headers
 
 _URL_RE = re.compile(r"https?://[^\s<>\"']+")
 
@@ -65,8 +66,24 @@ def _push(notification: Notification | None) -> None:
         push.schedule_notification(notification)
 
 
-def register_routes(app, engine):
+def register_routes(app, engine, header):
     store = NotificationStore(engine)
+
+    async def attention():
+        count = store.unread_count()
+        if count <= 0:
+            return None
+        label = "unread notification" if count == 1 else "unread notifications"
+        return headers.Attention(headers.NOTIFICATION, label)
+
+    header.register(
+        "/notifications",
+        "Notifications",
+        section="menu",
+        attention=attention,
+        admin_only=True,
+        order=60,
+    )
     jinja.filters["linkify"] = linkify
 
     @app.router.get("/notifications")
@@ -83,7 +100,7 @@ def register_routes(app, engine):
             if n.id in new_ids:
                 n.read = True
 
-        return render(
+        return await render(
             "notifications.html",
             request,
             notifications=notifications,
@@ -95,7 +112,7 @@ def register_routes(app, engine):
     @app.router.get("/notifications/new")
     @auth(roles=[ADMIN_ROLE])
     async def notifications_new(request: Request):
-        return render("notifications_new.html", request)
+        return await render("notifications_new.html", request)
 
     @app.router.post("/notifications/add")
     @auth(roles=[ADMIN_ROLE])

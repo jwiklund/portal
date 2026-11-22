@@ -236,15 +236,17 @@ def test_notifications_page_reloads_on_push():
     from born_portal.notifications.routes import linkify
 
     jinja.filters["linkify"] = linkify
-    body = render(
-        "notifications.html",
-        None,
-        notifications=[],
-        new_ids=set(),
-        new_count=0,
-        push_configured=False,
-        is_admin=True,
-        user=None,
+    body = asyncio.run(
+        render(
+            "notifications.html",
+            None,
+            notifications=[],
+            new_ids=set(),
+            new_count=0,
+            push_configured=False,
+            is_admin=True,
+            user=None,
+        )
     ).content.body.decode()
 
     # The page listens for the service worker's push message and reloads.

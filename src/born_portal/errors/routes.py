@@ -12,6 +12,7 @@ from born_portal.auth.guard import auth
 from born_portal.core import ADMIN_ROLE, render
 from born_portal.errors.report import configure, record_error
 from born_portal.errors.store import ErrorStore
+from born_portal.utils import headers
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,24 @@ USER_ERROR_MESSAGE = (
 )
 
 
-def register_routes(app, engine):
+def register_routes(app, engine, header):
     store = ErrorStore(engine)
+
+    async def attention():
+        count = store.count()
+        if count <= 0:
+            return None
+        label = "recorded error" if count == 1 else "recorded errors"
+        return headers.Attention(headers.ERROR, label)
+
+    header.register(
+        "/errors",
+        "Errors",
+        section="menu",
+        attention=attention,
+        admin_only=True,
+        order=70,
+    )
     # Make record_error() usable from route modules without threading the
     # engine through every handler.
     configure(engine)
@@ -39,14 +56,14 @@ def register_routes(app, engine):
         )
         await record_error(request, exc)
         try:
-            return render("error.html", request, message=USER_ERROR_MESSAGE)
+            return await render("error.html", request, message=USER_ERROR_MESSAGE)
         except Exception:  # noqa: BLE001 - never mask the original error
             return Response(500, content=TextContent(USER_ERROR_MESSAGE))
 
     @app.router.get("/errors")
     @auth(roles=[ADMIN_ROLE])
     async def errors_list(request: Request):
-        return render(
+        return await render(
             "errors.html",
             request,
             errors=store.list_recent(),
@@ -58,8 +75,8 @@ def register_routes(app, engine):
     async def error_detail(request: Request, error_id: int):
         record = store.get_by_id(error_id)
         if record is None:
-            return render("error.html", request, message="Error record not found")
-        return render("error_detail.html", request, error=record)
+            return await render("error.html", request, message="Error record not found")
+        return await render("error_detail.html", request, error=record)
 
     @app.router.post("/errors/clear")
     @auth(roles=[ADMIN_ROLE])

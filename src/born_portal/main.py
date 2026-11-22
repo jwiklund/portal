@@ -23,7 +23,7 @@ from born_portal import (
 )
 from born_portal.auth import configure as configure_auth
 from born_portal.core import DB_URL, ENV, SECRET_KEY
-from born_portal.utils import backup, search
+from born_portal.utils import backup, headers, search
 from born_portal.utils.sessions import SqliteSessionStore
 
 logging.basicConfig(
@@ -32,6 +32,15 @@ logging.basicConfig(
 )
 
 app = Application()
+
+
+async def report_header_error(request, exc, link):
+    """Persist a failing header attention lookup to the error log."""
+    await errors.record_error(request, exc, context={"header_attention": link})
+
+
+# Header links and attention badges, registered by each page module.
+header = headers.HeaderProvider(report_error=report_header_error)
 
 # Google Cast SDK script, Google-hosted avatars/album photos, and inline
 # scripts/styles used across templates.
@@ -64,6 +73,11 @@ async def security_headers_middleware(request: Request, handler):
     for name, value in _SECURITY_HEADERS.items():
         response.set_header(name.encode(), value.encode())
     return response
+
+
+async def header_provider_middleware(request: Request, handler):
+    request.header_provider = header
+    return await handler(request)
 
 
 engine = create_engine(
@@ -119,18 +133,19 @@ app.use_sessions(
     )
 )
 app.middlewares.append(security_headers_middleware)
+app.middlewares.append(header_provider_middleware)
 configure_auth(app)
 
 auth.register_routes(app)
-errors.register_routes(app, engine)
+errors.register_routes(app, engine, header)
 push.register_routes(app, engine)
-notifications.register_routes(app, engine)
+notifications.register_routes(app, engine, header)
 routes.register_routes(app)
-upcoming.register_routes(app, engine)
-past.register_routes(app, engine)
-playlist.register_routes(app)
-podcast.register_routes(app)
-show.register_routes(app)
+upcoming.register_routes(app, engine, header)
+past.register_routes(app, engine, header)
+playlist.register_routes(app, header)
+podcast.register_routes(app, header)
+show.register_routes(app, header)
 pwa.register_routes(app)
 
 

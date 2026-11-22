@@ -46,6 +46,7 @@ src/born_portal/
     backup.py      # SQLite backup/restore helpers (used by the backup/restore CLI)
     parse_dates.py # Date parsing (Swedish/English/ISO): single dates and ranges
     fetch.py       # Safe public-page fetching (SSRF guard, tracking cleanup, headers, HTML→Markdown)
+    headers.py     # HeaderProvider: registered nav links + attention badge counts
     llm.py         # OpenRouter/OpenAI client wrapper for event and playlist extraction
     search.py      # Kagi subscriber search (session cookie, HTML result parsing)
     sessions.py    # SqliteSessionStore — server-side sessions backing the cookie session id
@@ -111,25 +112,43 @@ async def podcast_audio(request, filename): ...
 
 ### Route registration pattern
 
-Each module exports a `register_routes(app)` function that adds route handlers. Routes are decorated functions defined inside this function. All modules register in `main.py`:
+Each module exports a `register_routes(...)` function that adds route handlers. Routes are decorated functions defined inside this function. A single `HeaderProvider` is created in `main.py` and passed to modules that contribute a header link; the provider is attached to each request by a middleware, so no module keeps global header state:
 
 ```python
+header = headers.HeaderProvider()
+
 auth.register_routes(app)
-errors.register_routes(app, engine)
-notifications.register_routes(app, engine)
+errors.register_routes(app, engine, header)
+notifications.register_routes(app, engine, header)
 push.register_routes(app, engine)
 routes.register_routes(app)
-upcoming.register_routes(app, engine)
-past.register_routes(app, engine)
-playlist.register_routes(app)
-podcast.register_routes(app)
-show.register_routes(app)
+upcoming.register_routes(app, engine, header)
+past.register_routes(app, engine, header)
+playlist.register_routes(app, header)
+podcast.register_routes(app, header)
+show.register_routes(app, header)
 pwa.register_routes(app)
 ```
 
+Inside a page module:
+
+```python
+async def unread():
+    count = store.unread_count()
+    if count <= 0:
+        return None
+    label = "unread notification" if count == 1 else "unread notifications"
+    return headers.Attention(headers.NOTIFICATION, label)
+
+header.register("/notifications", "Notifications", section="menu",
+                admin_only=True, order=60, attention=unread)
+```
+
+`section` is `main` or `menu`; `viewer_path` swaps the path for non-admins; `order` controls display order. `attention` is an optional async callable returning an `Attention` (or `None` for no badge). It carries the marker style (`kind`) and accessible text (`label`); the header only shows `!`. The callables for all visible links are awaited concurrently, only for admins who can see the link. A failing callable is logged, reported through the provider's `report_error` callback (wired to `record_error` in `main`), and treated as no badge. Because of this, `core.render()` is async and must be awaited.
+
 ### Rendering
 
-All templates use `core.render(template_name, **ctx)` which wraps Jinja2 rendering in a BlackSheep `html()` response. The `user()` helper (in `core.py`) extracts email from the session. Templates always receive `user=user(request)`.
+All templates use `await core.render(template_name, request, **ctx)` which wraps Jinja2 rendering in a BlackSheep `html()` response. The `user()` helper (in `core.py`) extracts email from the session. Templates always receive `user=user(request)`. For page templates, `render()` also resolves the header links into `header_main` and `header_menu` from the request's header provider.
 
 ### Templates & styles
 

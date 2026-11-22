@@ -63,6 +63,26 @@
     .nav-main a.active, .nav-links a.active { color: var(--text); font-weight: bold; }
     .nav-links { display: flex; gap: 1.5rem; align-items: center; margin-left: 1.5rem; }
 
+    /* Admin alert markers: blue for unread notifications, red for errors. */
+    .nav-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.15rem;
+      height: 1.15rem;
+      margin-left: 0.35rem;
+      border-radius: 50%;
+      font-family: sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      line-height: 1;
+      vertical-align: middle;
+    }
+    .nav-main a .nav-badge-notification,
+    .nav-links a .nav-badge-notification { background: var(--info-strong); color: var(--text); }
+    .nav-main a .nav-badge-error,
+    .nav-links a .nav-badge-error { background: var(--red-bright); color: var(--accent-contrast); }
+
     .nav-toggle {
       display: none;
       background: none;
@@ -281,26 +301,17 @@
   </style>
 </head>
 <body>
+  {% macro nav_link(link) -%}
+    <a href="{{ link.path }}" class="{{ 'active' if link.active else '' }}">{{ link.name }}{% if link.attention %}<span class="nav-badge nav-badge-{{ link.attention.kind }}" aria-hidden="true">!</span><span class="sr-only">{{ link.attention.label }}</span>{% endif %}</a>
+  {%- endmacro %}
   <header>
     <nav>
       <div class="nav-main">
-        {% if is_admin %}
-          <a href="/upcoming" class="{{ 'active' if current_path.startswith('/upcoming') else '' }}">Upcoming</a>
-          <a href="/past" class="{{ 'active' if current_path.startswith('/past') else '' }}">Past</a>
-          <a href="/playlists" class="{{ 'active' if current_path.startswith('/playlists') else '' }}">Playlists</a>
-        {% else %}
-          <a href="/upcoming/view" class="{{ 'active' if current_path.startswith('/upcoming') else '' }}">Upcoming</a>
-          <a href="/past/view" class="{{ 'active' if current_path.startswith('/past') else '' }}">Past</a>
-        {% endif %}
+        {% for link in header_main %}{{ nav_link(link) }}{% endfor %}
       </div>
       <button class="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="toggleMenu()">&#9776;</button>
       <div class="nav-links" id="nav-links">
-        {% if is_admin %}
-          <a href="/podcasts" class="{{ 'active' if current_path.startswith('/podcasts') else '' }}">Podcasts</a>
-          <a href="/shows" class="{{ 'active' if current_path.startswith('/shows') else '' }}">Shows</a>
-          <a href="/notifications" class="{{ 'active' if current_path.startswith('/notifications') else '' }}">Notifications</a>
-          <a href="/errors" class="{{ 'active' if current_path.startswith('/errors') else '' }}">Errors</a>
-        {% endif %}
+        {% for link in header_menu %}{{ nav_link(link) }}{% endfor %}
         {% if user and user.picture %}
           <img src="{{ user.picture }}" class="avatar" alt="{{ user.name }}" />
         {% endif %}

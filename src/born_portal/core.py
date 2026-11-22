@@ -113,11 +113,24 @@ def current_year() -> int:
     return datetime.now(UTC).astimezone().year
 
 
-def render(template_name: str, request: Request | None = None, **ctx) -> Response:
+async def render(template_name: str, request: Request | None = None, **ctx) -> Response:
     if request is not None:
         ctx.setdefault("user", user(request))
         ctx.setdefault("is_admin", is_admin(request))
         ctx.setdefault("current_path", request.path)
+        ctx.setdefault("header_main", [])
+        ctx.setdefault("header_menu", [])
+        provider = getattr(request, "header_provider", None)
+        if provider is not None:
+            ctx.update(
+                await provider.context(
+                    is_admin=ctx["is_admin"],
+                    current_path=ctx["current_path"],
+                    request=request,
+                )
+            )
     else:
         ctx.setdefault("current_path", "/")
+        ctx.setdefault("header_main", [])
+        ctx.setdefault("header_menu", [])
     return html(jinja.get_template(template_name).render(**ctx))

@@ -35,8 +35,9 @@ def _is_upcoming(event_date: str | None, today: str) -> bool:
     return bool(event_date) and event_date >= today
 
 
-def register_routes(app, engine):
+def register_routes(app, engine, header):
     store = upcoming.UpcomingStore(engine)
+    header.register("/upcoming", "Upcoming", viewer_path="/upcoming/view", order=10)
 
     @app.router.get("/upcoming")
     @auth(roles=[ADMIN_ROLE])
@@ -59,7 +60,7 @@ def register_routes(app, engine):
 
         upcoming_items = [render_upcoming(e) for e in future_upcoming[:20]]
 
-        return render(
+        return await render(
             "upcoming.html",
             request,
             upcoming=upcoming_items,
@@ -69,7 +70,7 @@ def register_routes(app, engine):
     @app.router.get("/upcoming/import")
     @auth(roles=[ADMIN_ROLE])
     async def upcoming_import(request: Request):
-        return render("upcoming_import.html", request)
+        return await render("upcoming_import.html", request)
 
     @app.router.post("/upcoming/import")
     @auth(roles=[ADMIN_ROLE])
@@ -78,18 +79,20 @@ def register_routes(app, engine):
         url = form_value(form, "url") or ""
 
         if not url:
-            return render("upcoming_import.html", request, error="Please enter a URL")
+            return await render(
+                "upcoming_import.html", request, error="Please enter a URL"
+            )
 
         try:
             upcoming_data = await upcoming.parse(url)
         except Exception as e:  # noqa: BLE001
             await record_error(request, e, context={"url": url})
-            return render("upcoming_import.html", request, error=str(e), url=url)
+            return await render("upcoming_import.html", request, error=str(e), url=url)
 
         # Check if the item already exists by URL
         existing = store.get(url)
         if existing:
-            return render(
+            return await render(
                 "upcoming_edit.html",
                 request,
                 upcoming=existing,
@@ -97,7 +100,7 @@ def register_routes(app, engine):
                 is_update=True,
             )
 
-        return render(
+        return await render(
             "upcoming_edit.html",
             request,
             upcoming=upcoming_data,
@@ -143,7 +146,7 @@ def register_routes(app, engine):
             if _is_upcoming(cluster.date, today)
         ]
 
-        return render(
+        return await render(
             "upcoming_potential.html",
             request,
             clusters=clusters,
@@ -164,7 +167,7 @@ def register_routes(app, engine):
         start, end = upcoming_weekend()
         event = await potential.find_event(source_key, url, start, end)
         if event is None:
-            return render(
+            return await render(
                 "error.html",
                 request,
                 message="Event is no longer available from the source.",
@@ -178,9 +181,11 @@ def register_routes(app, engine):
     async def upcoming_detail(request: Request, upcoming_id: int):
         upcoming_data = store.get_by_id(upcoming_id)
         if not upcoming_data:
-            return render("error.html", request, message="Upcoming item not found")
+            return await render(
+                "error.html", request, message="Upcoming item not found"
+            )
 
-        return render(
+        return await render(
             "upcoming_detail.html",
             request,
             upcoming=upcoming_data,
@@ -191,9 +196,11 @@ def register_routes(app, engine):
     async def upcoming_edit(request: Request, upcoming_id: int):
         upcoming_data = store.get_by_id(upcoming_id)
         if not upcoming_data:
-            return render("error.html", request, message="Upcoming item not found")
+            return await render(
+                "error.html", request, message="Upcoming item not found"
+            )
 
-        return render(
+        return await render(
             "upcoming_edit.html", request, upcoming=upcoming_data, from_import=False
         )
 
@@ -202,7 +209,7 @@ def register_routes(app, engine):
     async def upcoming_save(request: Request):
         form = await request.form()
         if not form:
-            return render("error.html", request, message="No data provided")
+            return await render("error.html", request, message="No data provided")
 
         upcoming_id = form_value(form, "upcoming_id")
         # Determine if we're updating an existing item
@@ -244,7 +251,9 @@ def register_routes(app, engine):
         upcoming_id = form_value(form, "upcoming_id")
 
         if not upcoming_id:
-            return render("error.html", request, message="No upcoming item provided")
+            return await render(
+                "error.html", request, message="No upcoming item provided"
+            )
 
         # Get the URL before deleting
         upcoming_data = store.get_by_id(int(upcoming_id))

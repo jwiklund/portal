@@ -191,11 +191,13 @@ async def _convert(filepath: Path, output_path: Path):
         await record_error(None, e, context={"file": filename})
 
 
-def register_routes(app):
+def register_routes(app, header):
+    header.register("/shows", "Shows", section="menu", admin_only=True, order=50)
+
     @app.router.get("/shows")
     @auth(roles=[ADMIN_ROLE])
     async def shows_page(request: Request):
-        return render("shows.html", request, shows=_list_shows())
+        return await render("shows.html", request, shows=_list_shows())
 
     @app.router.post("/shows/convert")
     @auth(roles=[ADMIN_ROLE])
@@ -204,7 +206,7 @@ def register_routes(app):
         filename = form_value(form, "filename") or ""
 
         if not filename:
-            return render(
+            return await render(
                 "shows.html",
                 request,
                 shows=_list_shows(),
@@ -213,7 +215,7 @@ def register_routes(app):
 
         filepath = (SHOWS_DIR / filename).resolve()
         if not filepath.is_relative_to(SHOWS_DIR.resolve()) or not filepath.is_file():
-            return render(
+            return await render(
                 "shows.html",
                 request,
                 shows=_list_shows(),
@@ -221,7 +223,7 @@ def register_routes(app):
             )
 
         if filepath.suffix.lower() not in VIDEO_EXTENSIONS:
-            return render(
+            return await render(
                 "shows.html",
                 request,
                 shows=_list_shows(),
@@ -230,7 +232,7 @@ def register_routes(app):
 
         current_status = _conversion_status.get(filename, "")
         if current_status == "converting":
-            return render(
+            return await render(
                 "shows.html",
                 request,
                 shows=_list_shows(),
@@ -248,17 +250,17 @@ def register_routes(app):
     @auth(roles=[ADMIN_ROLE])
     async def shows_player(request: Request, id: str):
         if not _stream_filename_pattern(id):
-            return render("error.html", request, message="Invalid stream ID.")
+            return await render("error.html", request, message="Invalid stream ID.")
         shows = [s for s in _list_shows() if s.get("stream_id") == id]
         if len(shows) == 0:
-            return render("error.html", request, message="Stream not found.")
+            return await render("error.html", request, message="Stream not found.")
         stream_file = (
             SHOWS_CACHE_DIR / f"{shows[0]['name']}-{shows[0]['stream_id']}.mp4"
         )
         if not stream_file.exists() or not stream_file.is_file():
-            return render("error.html", request, message="Stream file not found.")
+            return await render("error.html", request, message="Stream file not found.")
 
-        return render(
+        return await render(
             "shows_player.html",
             request,
             id=id,
@@ -270,15 +272,15 @@ def register_routes(app):
     @allow_anonymous()
     async def shows_video(request: Request, id: str):
         if not _stream_filename_pattern(id):
-            return render("error.html", request, message="Invalid stream ID.")
+            return await render("error.html", request, message="Invalid stream ID.")
         shows = [s for s in _list_shows() if s.get("stream_id") == id]
         if len(shows) == 0:
-            return render("error.html", request, message="Stream not found.")
+            return await render("error.html", request, message="Stream not found.")
         stream_file = (
             SHOWS_CACHE_DIR / f"{shows[0]['name']}-{shows[0]['stream_id']}.mp4"
         )
         if not stream_file.exists() or not stream_file.is_file():
-            return render("error.html", request, message="Stream file not found.")
+            return await render("error.html", request, message="Stream file not found.")
 
         file_size = stream_file.stat().st_size
 

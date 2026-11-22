@@ -15,15 +15,16 @@ from born_portal.utils import spotify
 from born_portal.utils.parse_dates import parse_name_with_dates
 
 
-def register_routes(app, engine):
+def register_routes(app, engine, header):
     store = past.PastStore(engine)
+    header.register("/past", "Past", viewer_path="/past/view", order=20)
 
     @app.router.get("/past")
     @auth(roles=[ADMIN_ROLE])
     async def past_list(request: Request):
         past_items = store.list_all()
 
-        return render(
+        return await render(
             "past.html",
             request,
             past=past_items,
@@ -39,7 +40,7 @@ def register_routes(app, engine):
     async def past_new(request: Request):
         known_album_uris = store.known_album_uris()
 
-        return render(
+        return await render(
             "past_edit.html",
             request,
             past=PastData(),
@@ -50,7 +51,7 @@ def register_routes(app, engine):
     @app.router.get("/past/import")
     @auth(roles=[ADMIN_ROLE])
     async def past_import(request: Request):
-        return render("past_import.html", request)
+        return await render("past_import.html", request)
 
     @app.router.post("/past/import")
     @auth(roles=[ADMIN_ROLE])
@@ -59,20 +60,20 @@ def register_routes(app, engine):
         url = (form_value(form, "url") or "").strip()
 
         if not url:
-            return render("past_import.html", request, error="Please enter a URL")
+            return await render("past_import.html", request, error="Please enter a URL")
 
         try:
             page_html = await past.fetch_album_page(url)
             title = past.parse_album_title(page_html)
         except Exception as e:  # noqa: BLE001
             await record_error(request, e, context={"url": url})
-            return render("past_import.html", request, error=str(e), url=url)
+            return await render("past_import.html", request, error=str(e), url=url)
 
         name, start_date, end_date = parse_name_with_dates(title or "")
 
         known_album_uris = store.known_album_uris()
 
-        return render(
+        return await render(
             "past_edit.html",
             request,
             past=PastData(
@@ -92,9 +93,9 @@ def register_routes(app, engine):
         known_album_uris = store.known_album_uris()
 
         if not past_data:
-            return render("error.html", request, message="Past item not found")
+            return await render("error.html", request, message="Past item not found")
 
-        return render(
+        return await render(
             "past_edit.html",
             request,
             past=past_data,
@@ -127,7 +128,7 @@ def register_routes(app, engine):
         past_data = store.get_by_id(past_id)
 
         if not past_data:
-            return render("error.html", request, message="Past item not found")
+            return await render("error.html", request, message="Past item not found")
 
         photos = []
         album_error = None
@@ -140,7 +141,7 @@ def register_routes(app, engine):
                 )
                 album_error = f"Could not load album: {e}"
 
-        return render(
+        return await render(
             "past_detail.html",
             request,
             past=past_data,
@@ -158,11 +159,11 @@ def register_routes(app, engine):
     async def past_save(request: Request):
         form = await request.form()
         if not form:
-            return render("error.html", request, message="No data provided")
+            return await render("error.html", request, message="No data provided")
 
         name = (form_value(form, "name") or "").strip()
         if not name:
-            return render("error.html", request, message="Name is required")
+            return await render("error.html", request, message="Name is required")
 
         artists = []
         try:
@@ -175,7 +176,7 @@ def register_routes(app, engine):
                 if item.get("name", "").strip()
             ]
         except (json.JSONDecodeError, AttributeError):
-            return render("error.html", request, message="Invalid artist data")
+            return await render("error.html", request, message="Invalid artist data")
 
         past_id = form_value(form, "past_id")
         past_data = PastData(
@@ -199,7 +200,7 @@ def register_routes(app, engine):
         form = await request.form()
         past_id = form_value(form, "past_id")
         if not past_id:
-            return render("error.html", request, message="No item provided")
+            return await render("error.html", request, message="No item provided")
 
         store.delete(int(past_id))
 

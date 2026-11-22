@@ -6,6 +6,7 @@ from sqlmodel import SQLModel, create_engine
 
 from born_portal.errors import USER_ERROR_MESSAGE, register_routes
 from born_portal.errors.store import ErrorStore
+from born_portal.utils.headers import HeaderProvider
 
 
 def test_unhandled_exception_is_recorded_and_shown(tmp_path):
@@ -18,7 +19,7 @@ def test_unhandled_exception_is_recorded_and_shown(tmp_path):
     async def boom(request):
         raise ValueError("kaboom")
 
-    register_routes(app, engine)
+    register_routes(app, engine, HeaderProvider())
 
     async def run():
         if not app.started:
