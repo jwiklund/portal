@@ -55,7 +55,7 @@ def _list_podcasts() -> list[dict]:
 
 
 def register_routes(app, header):
-    header.register("/podcasts", "Podcasts", section="menu", admin_only=True, order=40)
+    header.register("/podcasts", "Podcasts", admin_only=True, order=30)
 
     @app.router.get("/podcasts")
     @auth(roles=[ADMIN_ROLE])

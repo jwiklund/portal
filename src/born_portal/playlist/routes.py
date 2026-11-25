@@ -47,7 +47,7 @@ def _remember_pending(state: str, name: str, artist_names: list[str]) -> None:
 
 
 def register_routes(app, header):
-    header.register("/playlists", "Playlists", admin_only=True, order=30)
+    header.register("/playlists", "Playlists", section="menu",admin_only=True, order=40)
 
     @app.router.get("/playlists")
     @auth(roles=[ADMIN_ROLE])
